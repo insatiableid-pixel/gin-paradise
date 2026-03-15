@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \":*)",
+      "Bash(.local-python/3.14/python.exe benchmark.py --games 500 --players Simple,Heisenbot,DeepKnock,Titan --seed 42)",
+      "Bash(python3.14 -c \"import gin_rummy; print\\(''OK''\\)\")",
+      "Bash(python3.14 benchmark.py --games 500 --players Simple,Heisenbot,DeepKnock,Titan --seed 42)",
+      "Bash(python3.14 -c \"import aadr_dual_solver_v16; print\\(dir\\(aadr_dual_solver_v16\\)\\)\")",
+      "Bash(python3.14 -c \":*)"
+    ]
+  }
+}

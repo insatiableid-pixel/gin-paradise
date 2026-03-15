@@ -1,0 +1,25 @@
+Trajectory ID: 9a9f12e9-298e-44e6-b74a-2aa09a032dcc
+Error: HTTP 400 Bad Request
+Sherlog: 
+TraceID: 0x933e442ad4894601
+Headers: {"Alt-Svc":["h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000"],"Content-Length":["282"],"Content-Type":["text/event-stream"],"Date":["Thu, 05 Mar 2026 03:38:44 GMT"],"Server":["ESF"],"Server-Timing":["gfet4t7; dur=568"],"Vary":["Origin","X-Origin","Referer"],"X-Cloudaicompanion-Trace-Id":["933e442ad4894601"],"X-Content-Type-Options":["nosniff"],"X-Frame-Options":["SAMEORIGIN"],"X-Xss-Protection":["0"]}
+
+{
+  "error": {
+    "code": 400,
+    "message": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"prompt is too long: 205236 tokens \u003e 200000 maximum\"},\"request_id\":\"req_vrtx_011CYjEhJECwBsNrwernBHqW\"}",
+    "status": "INVALID_ARGUMENT"
+  }
+}Trajectory ID: 31856699-f941-46b3-88ce-ee05fc1639a3
+Error: HTTP 400 Bad Request
+Sherlog: 
+TraceID: 0xf2724e6ab25908ed
+Headers: {"Alt-Svc":["h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000"],"Content-Length":["282"],"Content-Type":["text/event-stream"],"Date":["Thu, 05 Mar 2026 03:59:25 GMT"],"Server":["ESF"],"Server-Timing":["gfet4t7; dur=351"],"Vary":["Origin","X-Origin","Referer"],"X-Cloudaicompanion-Trace-Id":["f2724e6ab25908ed"],"X-Content-Type-Options":["nosniff"],"X-Frame-Options":["SAMEORIGIN"],"X-Xss-Protection":["0"]}
+
+{
+  "error": {
+    "code": 400,
+    "message": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"prompt is too long: 203989 tokens \u003e 200000 maximum\"},\"request_id\":\"req_vrtx_011CYjGGkrPJeKNQvdHviCC1\"}",
+    "status": "INVALID_ARGUMENT"
+  }
+}
