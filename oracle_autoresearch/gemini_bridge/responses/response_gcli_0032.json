@@ -1,0 +1,100 @@
+{
+  "request_id": "gcli_0032",
+  "response_id": "gcli_0032_resp",
+  "timestamp": "2026-03-28T01:17:48.771251+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Expanding the calibration data fraction and raising the calibration worlds cap will yield a more robust threshold, which is critical now that direct evaluation dominates the prediction blend (0.90).",
+  "edits": {
+    "CALIBRATION_MAX_WORLDS = 150": "CALIBRATION_MAX_WORLDS = 200",
+    "CALIBRATION_FRACTION = 0.15": "CALIBRATION_FRACTION = 0.20"
+  },
+  "param_names": [
+    "CALIBRATION_MAX_WORLDS",
+    "CALIBRATION_FRACTION"
+  ],
+  "param_changes": {
+    "CALIBRATION_MAX_WORLDS": {
+      "old": 150,
+      "new": 200,
+      "delta": 50
+    },
+    "CALIBRATION_FRACTION": {
+      "old": 0.15,
+      "new": 0.2,
+      "delta": 0.05
+    }
+  },
+  "rationale": "Following the priority to support the new 0.90 direct-eval frontier. Since the binary knock decision heavily relies on direct EV now, improving the quality of the threshold by allocating slightly more data and compute to the calibration phase should reduce false positives and undercuts.",
+  "confidence": "medium",
+  "agent_prompt_hash": "5e55346be60d",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0032.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0032.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 30.38,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 24376
+          },
+          "tokens": {
+            "input": 46640,
+            "prompt": 46640,
+            "candidates": 329,
+            "total": 50076,
+            "cached": 0,
+            "thoughts": 3107,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 24376,
+              "tokens": {
+                "input": 46640,
+                "prompt": 46640,
+                "candidates": 329,
+                "total": 50076,
+                "cached": 0,
+                "thoughts": 3107,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Expanding the calibration data fraction and raising the calibration worlds cap will yield a more robust threshold, which is critical now that direct evaluation dominates the prediction blend (0.90).\",\n  \"edits\": {\n    \"CALIBRATION_MAX_WORLDS = 150\": \"CALIBRATION_MAX_WORLDS = 200\",\n    \"CALIBRATION_FRACTION = 0.15\": \"CALIBRATION_FRACTION = 0.20\"\n  },\n  \"param_names\": [\n    \"CALIBRATION_MAX_WORLDS\",\n    \"CALIBRATION_FRACTION\"\n  ],\n  \"param_changes\": {\n    \"CALIBRATION_MAX_WORLDS\": {\n      \"old\": 150,\n      \"new\": 200,\n      \"delta\": 50\n    },\n    \"CALIBRATION_FRACTION\": {\n      \"old\": 0.15,\n      \"new\": 0.20,\n      \"delta\": 0.05\n    }\n  },\n  \"rationale\": \"Following the priority to support the new 0.90 direct-eval frontier. Since the binary knock decision heavily relies on direct EV now, improving the quality of the threshold by allocating slightly more data and compute to the calibration phase should reduce false positives and undercuts.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

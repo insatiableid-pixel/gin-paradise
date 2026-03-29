@@ -15,8 +15,9 @@
  *   - Regression coverage for existing systems
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { startTestServer, stopTestServer, getBaseUrl, registerUser, loginUser, makeRequest } from "./helpers.js";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
+import WebSocket from "ws";
+import { startTestServer, stopTestServer, registerUser, loginUser, makeRequest } from "./helpers.js";
 import {
   getSpectatorView,
   getFeaturedReasons,
@@ -49,8 +50,8 @@ import {
   getPlayerView,
 } from "../server/multiplayer/engine.js";
 import { db } from "../server/db.js";
-
-let baseUrl: string;
+import { getCoordinator } from "../server/multiplayer/coordinatorFactory.js";
+import { handleWatchMatch, sendSpectatorMessage } from "../server/multiplayer/roomManager.js";
 
 // ── Test utilities ─────────────────────────────────────────────────
 
@@ -78,7 +79,7 @@ function createTestUserInDB(username: string, rating: number = 1200): string {
 // ── Setup ──────────────────────────────────────────────────────────
 
 beforeAll(async () => {
-  baseUrl = await startTestServer();
+  await startTestServer();
 });
 
 afterAll(async () => {
@@ -407,6 +408,140 @@ describe("Spectator View — Data Shape", () => {
     const match = createTestMatchState();
     const view = getSpectatorView(match);
     expect(view.discardCount).toBe(1); // Initial discard
+  });
+});
+
+// ── Spectator Relay ──────────────────────────────────────────────
+
+describe("Spectator Relay", () => {
+  it("should send spectator updates directly on the local node", () => {
+    const coord = getCoordinator();
+    const roomId = `relay-local-${Date.now()}`;
+    const userId = createTestUserInDB(`relay_local_${Date.now().toString(36)}`);
+    const ws = {
+      readyState: WebSocket.OPEN,
+      send: vi.fn(),
+    } as unknown as WebSocket;
+
+    try {
+      coord.setSpectatorConnection(userId, { ws, roomId, connectedAt: Date.now() });
+      sendSpectatorMessage(roomId, userId, {
+        type: "spectator_update",
+        state: { roomId } as any,
+      });
+
+      expect((ws as any).send).toHaveBeenCalledTimes(1);
+      const payload = JSON.parse((ws as any).send.mock.calls[0][0]);
+      expect(payload).toMatchObject({
+        type: "spectator_update",
+        state: { roomId },
+      });
+    } finally {
+      coord.removeSpectatorConnection(userId);
+    }
+  });
+
+  it("should relay spectator updates to the owning node when the socket lives elsewhere", () => {
+    const coord = getCoordinator();
+    const roomId = `relay-remote-${Date.now()}`;
+    const userId = createTestUserInDB(`relay_remote_${Date.now().toString(36)}`);
+    const ws = {
+      readyState: WebSocket.OPEN,
+      send: vi.fn(),
+    } as unknown as WebSocket;
+    const deliverSpy = vi.spyOn(coord, "deliverNodeMessage");
+
+    try {
+      coord.setSpectatorConnection(userId, {
+        ws,
+        roomId,
+        nodeId: "remote-spectator-node",
+        connectedAt: Date.now(),
+      });
+
+      sendSpectatorMessage(roomId, userId, {
+        type: "spectator_update",
+        state: { roomId } as any,
+      });
+
+      expect(deliverSpy).toHaveBeenCalledTimes(1);
+      expect(deliverSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetNodeId: "remote-spectator-node",
+          sourceNodeId: expect.any(String),
+          roomId,
+          userId,
+          message: expect.objectContaining({
+            type: "spectator_update",
+            state: { roomId },
+          }),
+        })
+      );
+      expect((ws as any).send).not.toHaveBeenCalled();
+    } finally {
+      deliverSpy.mockRestore();
+      coord.removeSpectatorConnection(userId);
+    }
+  });
+
+  it("should watch a remote-owned match without a handoff", async () => {
+    const coord = getCoordinator();
+    const roomId = `watch-remote-${Date.now()}`;
+    const ownerNodeId = "remote-owner-node";
+    const suffix = Date.now().toString(36);
+    const player1 = await registerUser(`watch_p1_${suffix}`, `watch_p1_${suffix}@test.com`, "password123");
+    const player2 = await registerUser(`watch_p2_${suffix}`, `watch_p2_${suffix}@test.com`, "password123");
+    const spectator = await registerUser(`watch_spec_${suffix}`, `watch_spec_${suffix}@test.com`, "password123");
+    const player1Id = player1.body.user.id;
+    const player2Id = player2.body.user.id;
+    const spectatorId = spectator.body.user.id;
+    const match = createMatch(
+      roomId,
+      { userId: player1Id, username: player1.body.user.username },
+      { userId: player2Id, username: player2.body.user.username }
+    );
+
+    try {
+      coord.createRoom({
+        id: roomId,
+        hostId: player1Id,
+        players: new Map([
+          [player1Id, { userId: player1Id, username: player1.body.user.username, ws: null, connected: true }],
+          [player2Id, { userId: player2Id, username: player2.body.user.username, ws: null, connected: true }],
+        ]),
+        status: "playing",
+        createdAt: Date.now(),
+        stakeId: "free",
+        ownerNodeId,
+        ownerLeaseExpiresAt: Date.now() + 60_000,
+      });
+      coord.setRoomGameState(roomId, {
+        match,
+        lastShowdown: null,
+        updatedAt: Date.now(),
+        nodeId: ownerNodeId,
+      });
+      addAdminFeatured(roomId);
+
+      const socket = {
+        readyState: WebSocket.OPEN,
+        send: vi.fn(),
+      } as unknown as WebSocket;
+      handleWatchMatch(socket, spectatorId, spectator.body.user.username, roomId);
+
+      expect((socket as any).send).toHaveBeenCalledTimes(1);
+      const message = JSON.parse((socket as any).send.mock.calls[0][0]);
+      expect(message.type).toBe("spectator_update");
+      expect(message).not.toMatchObject({ type: "room_handoff_required" });
+      expect(message.state.roomId).toBe(roomId);
+
+      coord.removeSpectatorConnection(spectatorId);
+    } finally {
+      removeAdminFeatured(roomId);
+      cleanupSpectators(roomId);
+      coord.deleteRoom(roomId);
+      coord.removeSpectatorConnection(spectatorId);
+    }
   });
 });
 

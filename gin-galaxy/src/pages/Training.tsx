@@ -111,27 +111,27 @@ function formatDuration(ms: number): string {
 }
 
 function accuracyColor(accuracy: number | null): string {
-  if (accuracy === null) return "text-zinc-500";
+  if (accuracy === null) return "text-emerald-400/50";
   if (accuracy >= 90) return "text-emerald-400";
-  if (accuracy >= 75) return "text-teal-400";
+  if (accuracy >= 75) return "text-emerald-400";
   if (accuracy >= 60) return "text-amber-400";
   if (accuracy >= 40) return "text-orange-400";
   return "text-rose-400";
 }
 
 function accuracyBgColor(accuracy: number | null): string {
-  if (accuracy === null) return "bg-zinc-800/50";
+  if (accuracy === null) return "bg-[#0a2e1e]/50";
   if (accuracy >= 90) return "bg-emerald-500/10";
-  if (accuracy >= 75) return "bg-teal-500/10";
+  if (accuracy >= 75) return "bg-emerald-500/10";
   if (accuracy >= 60) return "bg-amber-500/10";
   if (accuracy >= 40) return "bg-orange-500/10";
   return "bg-rose-500/10";
 }
 
 function accuracyBorderColor(accuracy: number | null): string {
-  if (accuracy === null) return "border-zinc-700/40";
+  if (accuracy === null) return "border-emerald-700/30";
   if (accuracy >= 90) return "border-emerald-500/25";
-  if (accuracy >= 75) return "border-teal-500/25";
+  if (accuracy >= 75) return "border-amber-500/25";
   if (accuracy >= 60) return "border-amber-500/25";
   if (accuracy >= 40) return "border-orange-500/25";
   return "border-rose-500/25";
@@ -141,7 +141,7 @@ function resultColor(result: string): string {
   switch (result) {
     case "win": return "text-emerald-400";
     case "loss": return "text-rose-400";
-    default: return "text-zinc-400";
+    default: return "text-emerald-300/60";
   }
 }
 
@@ -149,7 +149,7 @@ function resultBg(result: string): string {
   switch (result) {
     case "win": return "bg-emerald-500/10 border-emerald-500/20";
     case "loss": return "bg-rose-500/10 border-rose-500/20";
-    default: return "bg-zinc-800/50 border-zinc-700/40";
+    default: return "bg-[#0a2e1e]/50 border-emerald-700/30";
   }
 }
 
@@ -158,7 +158,7 @@ function trendIcon(trend: string) {
     case "improving": return <TrendingUp className="w-5 h-5 text-emerald-400" />;
     case "declining": return <TrendingDown className="w-5 h-5 text-rose-400" />;
     case "stable": return <Minus className="w-5 h-5 text-amber-400" />;
-    default: return <BarChart3 className="w-5 h-5 text-zinc-500" />;
+    default: return <BarChart3 className="w-5 h-5 text-emerald-400/50" />;
   }
 }
 
@@ -176,20 +176,20 @@ function trendColor(trend: string): string {
     case "improving": return "text-emerald-400";
     case "declining": return "text-rose-400";
     case "stable": return "text-amber-400";
-    default: return "text-zinc-500";
+    default: return "text-emerald-400/50";
   }
 }
 
 function formatBadge(format: string): { label: string; color: string; icon: React.ReactNode } {
   switch (format) {
     case "tournament_sng":
-      return { label: "SNG", color: "bg-violet-500/15 text-violet-400 border-violet-500/25", icon: <Trophy className="w-3 h-3" /> };
+      return { label: "SNG", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: <Trophy className="w-3 h-3" /> };
     case "tournament_scheduled":
-      return { label: "Tournament", color: "bg-violet-500/15 text-violet-400 border-violet-500/25", icon: <Trophy className="w-3 h-3" /> };
+      return { label: "Tournament", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: <Trophy className="w-3 h-3" /> };
     case "heads_up_staked":
       return { label: "Staked", color: "bg-amber-500/15 text-amber-400 border-amber-500/25", icon: <Zap className="w-3 h-3" /> };
     default:
-      return { label: "Casual", color: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25", icon: <Swords className="w-3 h-3" /> };
+      return { label: "Casual", color: "bg-zinc-500/15 text-emerald-300/60 border-zinc-500/25", icon: <Swords className="w-3 h-3" /> };
   }
 }
 
@@ -248,8 +248,8 @@ export function Training() {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-zinc-500">Loading your training data...</span>
+          <div className="w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-emerald-400/50">Loading your training data...</span>
         </div>
       </div>
     );
@@ -258,11 +258,11 @@ export function Training() {
   if (error) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Card className="bg-zinc-900/40 border-zinc-800/60 max-w-md">
+        <Card className="bg-emerald-950/30 border-emerald-800/30 max-w-md">
           <CardContent className="p-8 text-center space-y-4">
             <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto" />
-            <p className="text-zinc-300 font-medium">Unable to load training data</p>
-            <p className="text-sm text-zinc-500">{error}</p>
+            <p className="text-emerald-200 font-medium">Unable to load training data</p>
+            <p className="text-sm text-emerald-400/50">{error}</p>
           </CardContent>
         </Card>
       </div>
@@ -282,16 +282,16 @@ export function Training() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-50 flex items-center gap-3" id="training-heading">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
+          <h1 className="text-2xl font-bold tracking-tight text-amber-50 flex items-center gap-3" id="training-heading">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             Training Center
           </h1>
-          <p className="text-sm text-zinc-500 mt-1">
+          <p className="text-sm text-emerald-400/50 mt-1">
             Track your decision quality, identify patterns, and improve your game.
             {meta.autoEvaluationEnabled && (
-              <span className="ml-1 text-teal-500/70">Evaluations auto-prepare after each match.</span>
+              <span className="ml-1 text-emerald-400/70">Evaluations auto-prepare after each match.</span>
             )}
           </p>
         </div>
@@ -299,7 +299,7 @@ export function Training() {
           {hasData && unevaluatedCount > 0 && (
             <Button
               variant="outline"
-              className="border-teal-600/40 text-teal-400 hover:text-teal-300 hover:bg-teal-600/10"
+              className="border-emerald-600/40 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-600/10"
               onClick={handleBatchPrep}
               disabled={preparing}
               id="training-batch-prep"
@@ -313,7 +313,7 @@ export function Training() {
             </Button>
           )}
           <Link to="/replays">
-            <Button variant="outline" className="border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800">
+            <Button variant="outline" className="border-emerald-800/40 text-emerald-300/60 hover:text-emerald-100 hover:bg-emerald-950/40">
               <Eye className="w-4 h-4 mr-2" />
               View Replays
             </Button>
@@ -323,25 +323,25 @@ export function Training() {
 
       {/* Prep result banner */}
       {prepResult && (
-        <div className="bg-teal-500/10 border border-teal-500/20 rounded-lg px-4 py-2.5 text-sm text-teal-300 flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-teal-400 shrink-0" />
+        <div className="bg-emerald-500/10 border border-amber-500/20 rounded-lg px-4 py-2.5 text-sm text-emerald-200 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
           {prepResult}
         </div>
       )}
 
       {!hasData && (
-        <Card className="bg-zinc-900/40 border-zinc-800/60">
+        <Card className="bg-emerald-950/30 border-emerald-800/30">
           <CardContent className="p-12 text-center space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500/20 to-cyan-500/20 flex items-center justify-center mx-auto border border-teal-500/20">
-              <Target className="w-8 h-8 text-teal-400" />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-400/20 flex items-center justify-center mx-auto border border-amber-500/20">
+              <Target className="w-8 h-8 text-emerald-400" />
             </div>
-            <h2 className="text-lg font-semibold text-zinc-200">No sessions yet</h2>
-            <p className="text-sm text-zinc-500 max-w-md mx-auto">
+            <h2 className="text-lg font-semibold text-emerald-100">No sessions yet</h2>
+            <p className="text-sm text-emerald-400/50 max-w-md mx-auto">
               Play some matches to start building your training profile. Evaluations are now prepared automatically after each match.
             </p>
             <div className="flex justify-center gap-3 pt-2">
               <Link to="/">
-                <Button variant="primary" className="bg-teal-600 hover:bg-teal-500">
+                <Button variant="primary" className="bg-emerald-700 hover:bg-emerald-600">
                   Play a Game
                 </Button>
               </Link>
@@ -353,13 +353,13 @@ export function Training() {
       {hasData && (
         <>
           {/* Tab Navigation */}
-          <div className="flex items-center gap-1 bg-zinc-900/50 rounded-lg p-1 border border-zinc-800/60 w-fit">
+          <div className="flex items-center gap-1 bg-emerald-950/40 rounded-lg p-1 border border-emerald-800/30 w-fit">
             <button
-              className={cn("px-4 py-1.5 rounded-md text-sm font-medium transition-all", activeTab === "overview" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-500 hover:text-zinc-300")}
+              className={cn("px-4 py-1.5 rounded-md text-sm font-medium transition-all", activeTab === "overview" ? "bg-emerald-950/40 text-emerald-100 shadow-sm" : "text-emerald-400/50 hover:text-emerald-200")}
               onClick={() => setActiveTab("overview")}
             >Overview</button>
             <button
-              className={cn("px-4 py-1.5 rounded-md text-sm font-medium transition-all", activeTab === "history" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-500 hover:text-zinc-300")}
+              className={cn("px-4 py-1.5 rounded-md text-sm font-medium transition-all", activeTab === "history" ? "bg-emerald-950/40 text-emerald-100 shadow-sm" : "text-emerald-400/50 hover:text-emerald-200")}
               onClick={() => setActiveTab("history")}
             >History</button>
           </div>
@@ -373,12 +373,12 @@ export function Training() {
                   "border overflow-hidden",
                   hasEvaluations
                     ? cn(accuracyBgColor(trends.averageAccuracy), accuracyBorderColor(trends.averageAccuracy))
-                    : "bg-zinc-900/40 border-zinc-800/60"
+                    : "bg-emerald-950/30 border-emerald-800/30"
                 )} id="training-accuracy-card">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">Engine Accuracy</span>
-                      <Percent className="w-4 h-4 text-zinc-600" />
+                      <span className="text-[10px] uppercase tracking-wider text-emerald-400/50 font-medium">Engine Accuracy</span>
+                      <Percent className="w-4 h-4 text-emerald-500/40" />
                     </div>
                     <div className={cn("text-3xl font-bold tabular-nums", accuracyColor(trends.averageAccuracy))}>
                       {trends.averageAccuracy !== null ? `${trends.averageAccuracy}%` : "—"}
@@ -397,55 +397,55 @@ export function Training() {
                       </div>
                     )}
                     {!hasEvaluations && (
-                      <p className="text-[11px] text-zinc-600 mt-2">Evaluations auto-prepare after matches</p>
+                      <p className="text-[11px] text-emerald-500/40 mt-2">Evaluations auto-prepare after matches</p>
                     )}
                   </CardContent>
                 </Card>
 
                 {/* Win Rate */}
-                <Card className="bg-zinc-900/40 border-zinc-800/60" id="training-winrate-card">
+                <Card className="bg-emerald-950/30 border-emerald-800/30" id="training-winrate-card">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">Win Rate</span>
-                      <Trophy className="w-4 h-4 text-zinc-600" />
+                      <span className="text-[10px] uppercase tracking-wider text-emerald-400/50 font-medium">Win Rate</span>
+                      <Trophy className="w-4 h-4 text-emerald-500/40" />
                     </div>
                     <div className={cn(
                       "text-3xl font-bold tabular-nums",
                       trends.winRate !== null
                         ? trends.winRate >= 50 ? "text-emerald-400" : "text-amber-400"
-                        : "text-zinc-500"
+                        : "text-emerald-400/50"
                     )}>
                       {trends.winRate !== null ? `${trends.winRate}%` : "—"}
                     </div>
-                    <p className="text-[11px] text-zinc-600 mt-2">
+                    <p className="text-[11px] text-emerald-500/40 mt-2">
                       {trends.sessionsPlayed} sessions played
                     </p>
                   </CardContent>
                 </Card>
 
                 {/* Sessions Evaluated */}
-                <Card className="bg-zinc-900/40 border-zinc-800/60" id="training-evaluated-card">
+                <Card className="bg-emerald-950/30 border-emerald-800/30" id="training-evaluated-card">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">Evaluated</span>
-                      <Activity className="w-4 h-4 text-zinc-600" />
+                      <span className="text-[10px] uppercase tracking-wider text-emerald-400/50 font-medium">Evaluated</span>
+                      <Activity className="w-4 h-4 text-emerald-500/40" />
                     </div>
-                    <div className="text-3xl font-bold tabular-nums text-zinc-200">
+                    <div className="text-3xl font-bold tabular-nums text-emerald-100">
                       {trends.sessionsEvaluated}
-                      <span className="text-lg text-zinc-600 font-normal"> / {trends.sessionsPlayed}</span>
+                      <span className="text-lg text-emerald-500/40 font-normal"> / {trends.sessionsPlayed}</span>
                     </div>
-                    <p className="text-[11px] text-zinc-600 mt-2">
+                    <p className="text-[11px] text-emerald-500/40 mt-2">
                       {unevaluatedCount > 0 ? `${unevaluatedCount} pending` : "All evaluated"}
                     </p>
                   </CardContent>
                 </Card>
 
                 {/* Decision Quality */}
-                <Card className="bg-zinc-900/40 border-zinc-800/60" id="training-decisions-card">
+                <Card className="bg-emerald-950/30 border-emerald-800/30" id="training-decisions-card">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">Decision Quality</span>
-                      <Brain className="w-4 h-4 text-zinc-600" />
+                      <span className="text-[10px] uppercase tracking-wider text-emerald-400/50 font-medium">Decision Quality</span>
+                      <Brain className="w-4 h-4 text-emerald-500/40" />
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       {trends.totalSeverity.best > 0 && (
@@ -470,10 +470,10 @@ export function Training() {
                       )}
                     </div>
                     {!hasEvaluations && (
-                      <p className="text-[11px] text-zinc-600 mt-2">No evaluations yet</p>
+                      <p className="text-[11px] text-emerald-500/40 mt-2">No evaluations yet</p>
                     )}
                     {hasEvaluations && trends.recurringMistakeTypes.length > 0 && (
-                      <p className="text-[11px] text-zinc-600 mt-2">
+                      <p className="text-[11px] text-emerald-500/40 mt-2">
                         Common issue area{trends.recurringMistakeTypes.length > 1 ? "s" : ""}: {trends.recurringMistakeTypes.join(", ")}
                       </p>
                     )}
@@ -485,10 +485,10 @@ export function Training() {
               {hasEvaluations && (
                 <div className="grid gap-4 md:grid-cols-2">
                   {/* Streak & Category Card */}
-                  <Card className="bg-zinc-900/40 border-zinc-800/60" id="training-progression-card">
+                  <Card className="bg-emerald-950/30 border-emerald-800/30" id="training-progression-card">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm flex items-center gap-2 text-zinc-300">
-                        <TrendingUp className="w-4 h-4 text-teal-400" />
+                      <CardTitle className="text-sm flex items-center gap-2 text-emerald-200">
+                        <TrendingUp className="w-4 h-4 text-emerald-400" />
                         Progression Insights
                       </CardTitle>
                     </CardHeader>
@@ -510,7 +510,7 @@ export function Training() {
                             <div className={cn("text-sm font-medium", p.currentStreakType === "hot" ? "text-emerald-400" : "text-rose-400")}>
                               {p.currentStreakType === "hot" ? "Hot Streak" : "Cold Streak"}: {p.currentStreakLength} sessions
                             </div>
-                            <div className="text-[10px] text-zinc-600">
+                            <div className="text-[10px] text-emerald-500/40">
                               {p.currentStreakType === "hot" ? "Playing above your average" : "Playing below your average"}
                             </div>
                           </div>
@@ -519,9 +519,9 @@ export function Training() {
 
                       {/* Best streak */}
                       {p.bestStreak > 1 && (
-                        <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+                        <div className="flex items-center gap-2 text-[11px] text-emerald-400/50">
                           <Award className="w-3.5 h-3.5 text-amber-500/70" />
-                          Best streak: <span className="text-zinc-300 font-medium">{p.bestStreak} sessions</span> above average
+                          Best streak: <span className="text-emerald-200 font-medium">{p.bestStreak} sessions</span> above average
                         </div>
                       )}
 
@@ -531,14 +531,14 @@ export function Training() {
                           {p.strongestCategory && (
                             <div className="flex items-center gap-2 text-[11px]">
                               <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="text-zinc-500">Strongest:</span>
+                              <span className="text-emerald-400/50">Strongest:</span>
                               <span className="text-emerald-400 font-medium capitalize">{p.strongestCategory} decisions</span>
                             </div>
                           )}
                           {p.weakestCategory && (
                             <div className="flex items-center gap-2 text-[11px]">
                               <ArrowDownRight className="w-3.5 h-3.5 text-rose-400" />
-                              <span className="text-zinc-500">Focus area:</span>
+                              <span className="text-emerald-400/50">Focus area:</span>
                               <span className="text-rose-400 font-medium capitalize">{p.weakestCategory} decisions</span>
                             </div>
                           )}
@@ -547,17 +547,17 @@ export function Training() {
 
                       {/* Window comparison */}
                       {p.recentWindowAccuracy !== null && p.olderWindowAccuracy !== null && (
-                        <div className="bg-zinc-800/40 rounded-lg p-3 border border-zinc-700/30">
-                          <div className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium mb-2">Window Comparison</div>
+                        <div className="bg-[#0a2e1e]/40 rounded-lg p-3 border border-emerald-700/25">
+                          <div className="text-[10px] text-emerald-500/40 uppercase tracking-wider font-medium mb-2">Window Comparison</div>
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <div className="text-[10px] text-zinc-500 mb-0.5">Recent</div>
+                              <div className="text-[10px] text-emerald-400/50 mb-0.5">Recent</div>
                               <div className={cn("text-lg font-bold tabular-nums", accuracyColor(p.recentWindowAccuracy))}>
                                 {p.recentWindowAccuracy}%
                               </div>
                             </div>
                             <div>
-                              <div className="text-[10px] text-zinc-500 mb-0.5">Earlier</div>
+                              <div className="text-[10px] text-emerald-400/50 mb-0.5">Earlier</div>
                               <div className={cn("text-lg font-bold tabular-nums", accuracyColor(p.olderWindowAccuracy))}>
                                 {p.olderWindowAccuracy}%
                               </div>
@@ -570,10 +570,10 @@ export function Training() {
 
                   {/* Format Breakdown Card */}
                   {Object.keys(trends.formatBreakdown).length > 0 && (
-                    <Card className="bg-zinc-900/40 border-zinc-800/60" id="training-format-card">
+                    <Card className="bg-emerald-950/30 border-emerald-800/30" id="training-format-card">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center gap-2 text-zinc-300">
-                          <Swords className="w-4 h-4 text-teal-400" />
+                        <CardTitle className="text-sm flex items-center gap-2 text-emerald-200">
+                          <Swords className="w-4 h-4 text-emerald-400" />
                           Match Format Distribution
                         </CardTitle>
                       </CardHeader>
@@ -588,11 +588,11 @@ export function Training() {
                                 {badge.label}
                               </div>
                               <div className="flex-1">
-                                <div className="w-full h-2 bg-zinc-800/60 rounded-full overflow-hidden">
-                                  <div className="h-full bg-teal-500/50 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                                <div className="w-full h-2 bg-[#0a2e1e]/60 rounded-full overflow-hidden">
+                                  <div className="h-full bg-emerald-500/50 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                                 </div>
                               </div>
-                              <span className="text-[11px] text-zinc-500 tabular-nums shrink-0">{count} ({pct}%)</span>
+                              <span className="text-[11px] text-emerald-400/50 tabular-nums shrink-0">{count} ({pct}%)</span>
                             </div>
                           );
                         })}
@@ -604,20 +604,20 @@ export function Training() {
 
               {/* AI Coaching Insights */}
               {coaching && (coaching.totalCoached > 0 || coaching.recurringThemes.length > 0) && (
-                <Card className="bg-zinc-900/40 border-zinc-800/60" id="training-coaching-card">
+                <Card className="bg-emerald-950/30 border-emerald-800/30" id="training-coaching-card">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2 text-zinc-300">
-                      <BookOpen className="w-4 h-4 text-violet-400" />
+                    <CardTitle className="text-sm flex items-center gap-2 text-emerald-200">
+                      <BookOpen className="w-4 h-4 text-emerald-400" />
                       AI Coaching Insights
-                      <span className="text-[10px] text-zinc-600 font-normal ml-auto">
+                      <span className="text-[10px] text-emerald-500/40 font-normal ml-auto">
                         {coaching.totalCoached} session{coaching.totalCoached !== 1 ? "s" : ""} coached
                         {coaching.recentCoachingNote?.source === "ai" && (
-                          <span className="ml-1.5 px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20">
+                          <span className="ml-1.5 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                             AI
                           </span>
                         )}
                         {coaching.recentCoachingNote?.source === "fallback" && (
-                          <span className="ml-1.5 px-1.5 py-0.5 rounded bg-zinc-500/10 text-zinc-400 border border-zinc-500/20">
+                          <span className="ml-1.5 px-1.5 py-0.5 rounded bg-zinc-500/10 text-emerald-300/60 border border-zinc-500/20">
                             Structured
                           </span>
                         )}
@@ -628,17 +628,17 @@ export function Training() {
                     {/* Recurring themes */}
                     {coaching.recurringThemes.length > 0 && (
                       <div className="space-y-2">
-                        <div className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium">Recurring Themes</div>
+                        <div className="text-[10px] text-emerald-500/40 uppercase tracking-wider font-medium">Recurring Themes</div>
                         <div className="flex flex-wrap gap-2">
                           {coaching.recurringThemes.map((t, i) => (
                             <div
                               key={i}
-                              className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg bg-violet-500/5 border border-violet-500/15 text-violet-300/90"
+                              className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/15 text-emerald-300/80"
                             >
-                              <MessageSquare className="w-3 h-3 text-violet-400/60" />
+                              <MessageSquare className="w-3 h-3 text-emerald-400/60" />
                               <span className="capitalize">{t.theme}</span>
                               {t.count > 1 && (
-                                <span className="text-[9px] text-violet-500/60 ml-0.5">×{t.count}</span>
+                                <span className="text-[9px] text-emerald-500/50 ml-0.5">×{t.count}</span>
                               )}
                             </div>
                           ))}
@@ -648,17 +648,17 @@ export function Training() {
 
                     {/* Recent coaching note themes */}
                     {coaching.recentCoachingNote && coaching.recentCoachingNote.themes.length > 0 && (
-                      <div className="bg-zinc-800/40 rounded-lg p-3 border border-zinc-700/30">
-                        <div className="text-[10px] text-zinc-600 uppercase tracking-wider font-medium mb-2">Latest Session</div>
+                      <div className="bg-[#0a2e1e]/40 rounded-lg p-3 border border-emerald-700/25">
+                        <div className="text-[10px] text-emerald-500/40 uppercase tracking-wider font-medium mb-2">Latest Session</div>
                         <div className="space-y-1.5">
                           {coaching.recentCoachingNote.themes.slice(0, 3).map((theme, i) => (
-                            <div key={i} className="flex items-center gap-2 text-[11px] text-zinc-400">
-                              <span className="w-1.5 h-1.5 rounded-full bg-violet-400/60 shrink-0" />
+                            <div key={i} className="flex items-center gap-2 text-[11px] text-emerald-300/60">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/60 shrink-0" />
                               {theme}
                             </div>
                           ))}
                         </div>
-                        <div className="text-[10px] text-zinc-600 mt-2">
+                        <div className="text-[10px] text-emerald-500/40 mt-2">
                           {timeAgo(coaching.recentCoachingNote.generatedAt)}
                         </div>
                       </div>
@@ -666,7 +666,7 @@ export function Training() {
 
                     {/* No coaching prompt */}
                     {coaching.totalCoached === 0 && (
-                      <p className="text-[11px] text-zinc-600">
+                      <p className="text-[11px] text-emerald-500/40">
                         Request coaching via the session detail view to start building your coaching history.
                       </p>
                     )}
@@ -678,7 +678,7 @@ export function Training() {
               {hasEvaluations && (
                 <div className="grid gap-4 md:grid-cols-2">
                   {trends.bestSession && (
-                    <Card className="bg-zinc-900/40 border-zinc-800/60 hover:border-emerald-500/30 transition-colors cursor-pointer group"
+                    <Card className="bg-emerald-950/30 border-emerald-800/30 hover:border-emerald-500/30 transition-colors cursor-pointer group"
                       id="training-best-session"
                       onClick={() => navigate(`/replays?highlight=${trends.bestSession!.replayId}`)}
                     >
@@ -689,8 +689,8 @@ export function Training() {
                               <Flame className="w-5 h-5 text-emerald-400" />
                             </div>
                             <div>
-                              <div className="text-xs text-zinc-500 uppercase tracking-wider font-medium">Best Session</div>
-                              <div className="text-sm text-zinc-300 font-medium mt-0.5 flex items-center gap-2">
+                              <div className="text-xs text-emerald-400/50 uppercase tracking-wider font-medium">Best Session</div>
+                              <div className="text-sm text-emerald-200 font-medium mt-0.5 flex items-center gap-2">
                                 vs {trends.bestSession.opponent}
                                 {trends.bestSession.matchFormat !== "heads_up" && (
                                   <span className={cn("text-[9px] px-1 py-0.5 rounded border", formatBadge(trends.bestSession.matchFormat).color)}>
@@ -705,9 +705,9 @@ export function Training() {
                               <div className={cn("text-xl font-bold tabular-nums", accuracyColor(trends.bestSession.accuracy))}>
                                 {trends.bestSession.accuracy}%
                               </div>
-                              <div className="text-[10px] text-zinc-600">{timeAgo(trends.bestSession.playedAt)}</div>
+                              <div className="text-[10px] text-emerald-500/40">{timeAgo(trends.bestSession.playedAt)}</div>
                             </div>
-                            <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+                            <ChevronRight className="w-4 h-4 text-emerald-500/40 group-hover:text-emerald-300/60 transition-colors" />
                           </div>
                         </div>
                       </CardContent>
@@ -715,7 +715,7 @@ export function Training() {
                   )}
 
                   {trends.worstSession && trends.worstSession.replayId !== trends.bestSession?.replayId && (
-                    <Card className="bg-zinc-900/40 border-zinc-800/60 hover:border-rose-500/30 transition-colors cursor-pointer group"
+                    <Card className="bg-emerald-950/30 border-emerald-800/30 hover:border-rose-500/30 transition-colors cursor-pointer group"
                       id="training-worst-session"
                       onClick={() => navigate(`/replays?highlight=${trends.worstSession!.replayId}`)}
                     >
@@ -726,8 +726,8 @@ export function Training() {
                               <Target className="w-5 h-5 text-rose-400" />
                             </div>
                             <div>
-                              <div className="text-xs text-zinc-500 uppercase tracking-wider font-medium">Most Instructive</div>
-                              <div className="text-sm text-zinc-300 font-medium mt-0.5 flex items-center gap-2">
+                              <div className="text-xs text-emerald-400/50 uppercase tracking-wider font-medium">Most Instructive</div>
+                              <div className="text-sm text-emerald-200 font-medium mt-0.5 flex items-center gap-2">
                                 vs {trends.worstSession.opponent}
                                 {trends.worstSession.matchFormat !== "heads_up" && (
                                   <span className={cn("text-[9px] px-1 py-0.5 rounded border", formatBadge(trends.worstSession.matchFormat).color)}>
@@ -742,9 +742,9 @@ export function Training() {
                               <div className={cn("text-xl font-bold tabular-nums", accuracyColor(trends.worstSession.accuracy))}>
                                 {trends.worstSession.accuracy}%
                               </div>
-                              <div className="text-[10px] text-zinc-600">{timeAgo(trends.worstSession.playedAt)}</div>
+                              <div className="text-[10px] text-emerald-500/40">{timeAgo(trends.worstSession.playedAt)}</div>
                             </div>
-                            <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+                            <ChevronRight className="w-4 h-4 text-emerald-500/40 group-hover:text-emerald-300/60 transition-colors" />
                           </div>
                         </div>
                       </CardContent>
@@ -763,16 +763,16 @@ export function Training() {
                 const mistPct = (trends.totalSeverity.mistake / total) * 100;
                 const blunPct = (trends.totalSeverity.blunder / total) * 100;
                 return (
-                  <Card className="bg-zinc-900/40 border-zinc-800/60" id="training-severity-bar">
+                  <Card className="bg-emerald-950/30 border-emerald-800/30" id="training-severity-bar">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm flex items-center gap-2 text-zinc-300">
-                        <BarChart3 className="w-4 h-4 text-teal-400" />
+                      <CardTitle className="text-sm flex items-center gap-2 text-emerald-200">
+                        <BarChart3 className="w-4 h-4 text-emerald-400" />
                         Decision Severity Distribution
-                        <span className="text-[10px] text-zinc-600 font-normal">({total} decisions)</span>
+                        <span className="text-[10px] text-emerald-500/40 font-normal">({total} decisions)</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pb-5 pt-0 px-6">
-                      <div className="flex w-full h-4 rounded-full overflow-hidden border border-zinc-800/60">
+                      <div className="flex w-full h-4 rounded-full overflow-hidden border border-emerald-800/30">
                         {bestPct > 0 && (
                           <div className="bg-emerald-500/70 h-full transition-all duration-500" style={{ width: `${bestPct}%` }}
                             title={`Best: ${trends.totalSeverity.best} (${Math.round(bestPct)}%)`} />
@@ -791,16 +791,16 @@ export function Training() {
                         )}
                       </div>
                       <div className="flex items-center gap-4 mt-3 flex-wrap">
-                        <span className="flex items-center gap-1.5 text-[10px] text-zinc-400">
+                        <span className="flex items-center gap-1.5 text-[10px] text-emerald-300/60">
                           <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/70" /> Best {Math.round(bestPct)}%
                         </span>
-                        <span className="flex items-center gap-1.5 text-[10px] text-zinc-400">
+                        <span className="flex items-center gap-1.5 text-[10px] text-emerald-300/60">
                           <span className="w-2.5 h-2.5 rounded-sm bg-amber-500/70" /> Inaccuracy {Math.round(inaccPct)}%
                         </span>
-                        <span className="flex items-center gap-1.5 text-[10px] text-zinc-400">
+                        <span className="flex items-center gap-1.5 text-[10px] text-emerald-300/60">
                           <span className="w-2.5 h-2.5 rounded-sm bg-orange-500/70" /> Mistake {Math.round(mistPct)}%
                         </span>
-                        <span className="flex items-center gap-1.5 text-[10px] text-zinc-400">
+                        <span className="flex items-center gap-1.5 text-[10px] text-emerald-300/60">
                           <span className="w-2.5 h-2.5 rounded-sm bg-rose-500/70" /> Blunder {Math.round(blunPct)}%
                         </span>
                       </div>
@@ -813,8 +813,8 @@ export function Training() {
 
           {/* Session List (both tabs) */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-200 flex items-center gap-2" id="training-sessions-heading">
-              <Clock className="w-5 h-5 text-teal-400" />
+            <h2 className="text-lg font-semibold text-emerald-100 flex items-center gap-2" id="training-sessions-heading">
+              <Clock className="w-5 h-5 text-emerald-400" />
               {activeTab === "overview" ? "Recent Sessions" : "Session History"}
             </h2>
 
@@ -824,7 +824,7 @@ export function Training() {
                 return (
                 <Card
                   key={session.replayId}
-                  className="bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700/60 transition-all cursor-pointer group"
+                  className="bg-emerald-950/20 border-emerald-800/30 hover:border-emerald-800/40/60 transition-all cursor-pointer group"
                   id={`training-session-${session.replayId.slice(0, 8)}`}
                   onClick={() => navigate(`/replays?highlight=${session.replayId}`)}
                 >
@@ -840,7 +840,7 @@ export function Training() {
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-zinc-200 truncate">
+                            <span className="text-sm font-medium text-emerald-100 truncate">
                               vs {session.opponent}
                             </span>
                             <span className={cn("text-xs font-medium", resultColor(session.result))}>
@@ -854,7 +854,7 @@ export function Training() {
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 text-[11px] text-zinc-600">
+                          <div className="flex items-center gap-2 text-[11px] text-emerald-500/40">
                             <span>{timeAgo(session.playedAt)}</span>
                             <span>·</span>
                             <span>{formatDuration(session.durationMs)}</span>
@@ -867,7 +867,7 @@ export function Training() {
                             {session.tournamentName && (
                               <>
                                 <span>·</span>
-                                <span className="text-violet-400/80">{session.tournamentName}</span>
+                                <span className="text-emerald-400/80">{session.tournamentName}</span>
                               </>
                             )}
                           </div>
@@ -906,19 +906,19 @@ export function Training() {
                           </div>
                         )}
                         {session.hasCoaching && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20 flex items-center gap-1" title="Coaching available">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1" title="Coaching available">
                             <BookOpen className="w-3 h-3" />
                           </span>
                         )}
                         {!session.hasEvaluation && (
-                          <span className="text-[10px] text-zinc-600 px-2 py-0.5 rounded border border-zinc-800/60">
+                          <span className="text-[10px] text-emerald-500/40 px-2 py-0.5 rounded border border-emerald-800/30">
                             Preparing…
                           </span>
                         )}
                       </div>
 
                       {/* Right: action arrow */}
-                      <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 shrink-0 transition-colors" />
+                      <ChevronRight className="w-4 h-4 text-emerald-500/40 group-hover:text-emerald-300/60 shrink-0 transition-colors" />
                     </div>
                   </CardContent>
                 </Card>
@@ -927,29 +927,29 @@ export function Training() {
           </div>
 
           {/* Methodology Note */}
-          <Card className="bg-zinc-900/20 border-zinc-800/40">
+          <Card className="bg-emerald-950/15 border-emerald-800/25">
             <CardContent className="p-5">
               <div className="flex items-start gap-3">
-                <Brain className="w-5 h-5 text-teal-500/60 mt-0.5 shrink-0" />
+                <Brain className="w-5 h-5 text-emerald-400/60 mt-0.5 shrink-0" />
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-zinc-400">About Training Metrics</h3>
-                  <p className="text-[11px] text-zinc-600 leading-relaxed">
-                    <strong className="text-zinc-500">Automatic Evaluation</strong> — evaluations are now prepared
+                  <h3 className="text-sm font-medium text-emerald-300/60">About Training Metrics</h3>
+                  <p className="text-[11px] text-emerald-500/40 leading-relaxed">
+                    <strong className="text-emerald-400/50">Automatic Evaluation</strong> — evaluations are now prepared
                     automatically after each completed match. You can also trigger batch evaluation for older replays
                     using the Evaluate button above.
                   </p>
-                  <p className="text-[11px] text-zinc-600 leading-relaxed">
-                    <strong className="text-zinc-500">Engine Accuracy</strong> measures how often your decisions
+                  <p className="text-[11px] text-emerald-500/40 leading-relaxed">
+                    <strong className="text-emerald-400/50">Engine Accuracy</strong> measures how often your decisions
                     agree with the Apex v2 heuristic evaluator. It is a strong approximation, not a solved-game oracle.
                     Gin Rummy has hidden information, so draw evaluations carry inherent uncertainty.
                   </p>
-                  <p className="text-[11px] text-zinc-600 leading-relaxed">
-                    <strong className="text-zinc-500">Progression Signals</strong> compare your recent performance
+                  <p className="text-[11px] text-emerald-500/40 leading-relaxed">
+                    <strong className="text-emerald-400/50">Progression Signals</strong> compare your recent performance
                     against earlier sessions. Streaks and trends help identify when you're playing your best or
                     when to take a break.
                   </p>
-                  <p className="text-[11px] text-zinc-600 leading-relaxed">
-                    <strong className="text-zinc-500">AI Coaching</strong> provides narrative explanations and strategic
+                  <p className="text-[11px] text-emerald-500/40 leading-relaxed">
+                    <strong className="text-emerald-400/50">AI Coaching</strong> provides narrative explanations and strategic
                     themes cached per session. Coaching is a separate layer from the engine evaluation — the engine
                     provides mathematical accuracy, while coaching provides contextual explanation and actionable advice.
                     Coaching is generated on-demand and cached for reuse.

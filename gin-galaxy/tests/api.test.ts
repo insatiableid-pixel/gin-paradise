@@ -2,25 +2,75 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { startTestServer, stopTestServer, registerUser, loginUser, makeRequest } from "./helpers.js";
 import { db } from "../server/db.js";
 
+/**
+ * Comprehensive cleanup of all test users and their FK-dependent rows.
+ * Tables are deleted in dependency order (children before parents).
+ * We also temporarily disable FK constraints as a safety net in case
+ * new FK-dependent tables are added in the future.
+ */
+function cleanTestUsers(): void {
+  const testUserFilter = "SELECT id FROM users WHERE username LIKE 'test_%'";
+
+  // Temporarily disable FK enforcement so deletion order isn't critical
+  db.pragma("foreign_keys = OFF");
+
+  try {
+    // Child tables referencing users(id) — added as the schema grew
+    const childTables = [
+      // social
+      { table: "social_notifications", col: "user_id" },
+      { table: "rematches", col: "player1_id" },
+      { table: "challenges", col: "challenger_id" },
+      { table: "follows", col: "follower_id" },
+      { table: "follows", col: "following_id" },
+      // daily retention
+      { table: "daily_puzzles", col: "user_id" },
+      { table: "daily_streaks", col: "user_id" },
+      { table: "daily_missions", col: "user_id" },
+      // billing & offers
+      { table: "offer_redemptions", col: "user_id" },
+      { table: "offer_interactions", col: "user_id" },
+      { table: "billing_sessions", col: "user_id" },
+      // cosmetics & achievements
+      { table: "cosmetic_inventory", col: "user_id" },
+      { table: "achievement_notifications", col: "user_id" },
+      { table: "player_profiles", col: "user_id" },
+      { table: "prestige", col: "user_id" },
+      { table: "achievements", col: "user_id" },
+      // entitlements
+      { table: "entitlements", col: "user_id" },
+      { table: "entitlement_audit_log", col: "user_id" },
+      // core tables already cleaned before
+      { table: "player_spectate_preferences", col: "user_id" },
+      { table: "transactions", col: "user_id" },
+      { table: "wallets", col: "user_id" },
+      { table: "sessions", col: "user_id" },
+      { table: "matches", col: "user_id" },
+    ];
+
+    for (const { table, col } of childTables) {
+      try {
+        db.prepare(`DELETE FROM ${table} WHERE ${col} IN (${testUserFilter})`).run();
+      } catch {
+        // Table may not exist yet — ignore
+      }
+    }
+
+    // Finally delete the users themselves
+    db.prepare("DELETE FROM users WHERE username LIKE 'test_%'").run();
+  } finally {
+    // Re-enable FK enforcement
+    db.pragma("foreign_keys = ON");
+  }
+}
+
 beforeAll(async () => {
   await startTestServer();
-  // Clean up test users from any previous runs
-  db.prepare("DELETE FROM player_spectate_preferences WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'test_%')").run();
-  db.prepare("DELETE FROM transactions WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'test_%')").run();
-  db.prepare("DELETE FROM wallets WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'test_%')").run();
-  db.prepare("DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'test_%')").run();
-  db.prepare("DELETE FROM matches WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'test_%')").run();
-  db.prepare("DELETE FROM users WHERE username LIKE 'test_%'").run();
+  cleanTestUsers();
 });
 
 afterAll(async () => {
-  // Clean up test users
-  db.prepare("DELETE FROM player_spectate_preferences WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'test_%')").run();
-  db.prepare("DELETE FROM transactions WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'test_%')").run();
-  db.prepare("DELETE FROM wallets WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'test_%')").run();
-  db.prepare("DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'test_%')").run();
-  db.prepare("DELETE FROM matches WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'test_%')").run();
-  db.prepare("DELETE FROM users WHERE username LIKE 'test_%'").run();
+  cleanTestUsers();
   await stopTestServer();
 });
 

@@ -1,0 +1,86 @@
+{
+  "request_id": "gcli_0101",
+  "response_id": "gcli_0101_resp",
+  "timestamp": "2026-03-29T02:31:34.149156+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Integrate pickup_pressure to reduce direct EV weight and raise risk floor against meld-seeking opponents",
+  "edits": {
+    "    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))": "    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence) - (0.20 * pickup_pressure)\n    return max(0.4, min(1.0, dynamic_weight))",
+    "    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress)\n    return max(dynamic_floor, min(1.0, multiplier))": "    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress) + (0.20 * pickup_pressure)\n    return max(dynamic_floor, min(1.0, multiplier))"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "High pickup pressure indicates specific meld threats, rendering the average world EV less reliable. Reducing the direct eval weight forces more reliance on CFR priors in these spots, while simultaneously raising the risk multiplier floor to enforce caution when knocking into a developed opponent hand.",
+  "confidence": "high",
+  "agent_prompt_hash": "6a4f67f53c4c",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0101.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0101.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 24.31,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 20197
+          },
+          "tokens": {
+            "input": 15622,
+            "prompt": 15622,
+            "candidates": 435,
+            "total": 17608,
+            "cached": 0,
+            "thoughts": 1551,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 20197,
+              "tokens": {
+                "input": 15622,
+                "prompt": 15622,
+                "candidates": 435,
+                "total": 17608,
+                "cached": 0,
+                "thoughts": 1551,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Integrate pickup_pressure to reduce direct EV weight and raise risk floor against meld-seeking opponents\",\n  \"edits\": {\n    \"    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\": \"    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence) - (0.20 * pickup_pressure)\\n    return max(0.4, min(1.0, dynamic_weight))\",\n    \"    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress)\\n    return max(dynamic_floor, min(1.0, multiplier))\": \"    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress) + (0.20 * pickup_pressure)\\n    return max(dynamic_floor, min(1.0, multiplier))\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight_and_trace_confidence\",\n  \"rationale\": \"High pickup pressure indicates specific meld threats, rendering the average world EV less reliable. Reducing the direct eval weight forces more reliance on CFR priors in these spots, while simultaneously raising the risk multiplier floor to enforce caution when knocking into a developed opponent hand.\",\n  \"confidence\": \"high\"\n}"
+}

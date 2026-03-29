@@ -12,7 +12,7 @@ export function Fairness() {
   return (
     <div className="space-y-8 pb-20 md:pb-0 max-w-4xl mx-auto">
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-950/60 via-zinc-900/80 to-teal-950/40 border border-emerald-500/20 p-8 md:p-12">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-950/60 via-[#0a2e1e]/80 to-teal-950/40 border border-emerald-500/20 p-8 md:p-12">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
         
@@ -22,7 +22,7 @@ export function Fairness() {
               <Shield className="w-6 h-6 text-emerald-400" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-zinc-50 tracking-tight">
+              <h1 className="text-2xl md:text-3xl font-bold text-amber-50 tracking-tight">
                 Trust Shield
               </h1>
               <p className="text-sm text-emerald-400/80 font-medium">
@@ -31,7 +31,7 @@ export function Fairness() {
             </div>
           </div>
           
-          <p className="text-zinc-300 leading-relaxed max-w-2xl text-base md:text-lg">
+          <p className="text-emerald-300/70 leading-relaxed max-w-2xl text-base md:text-lg">
             Every Gin Paradise multiplayer hand uses cryptographically secure shuffling
             with a commit-reveal protocol and client-seed contribution. You can independently 
             verify that the deck was fair — no blockchain required.
@@ -39,96 +39,96 @@ export function Fairness() {
         </div>
       </div>
 
-      {/* How It Works — Three Steps */}
+      {/* How It Works — Four Steps */}
       <div>
-        <h2 className="text-lg font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-amber-50 mb-4 flex items-center gap-2">
           <RefreshCw className="w-5 h-5 text-emerald-400" />
           How It Works
         </h2>
         
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Step 1: Commit */}
-          <Card className="bg-zinc-900/50 border-zinc-800/60 overflow-hidden">
+          <Card className="bg-emerald-950/30 border-emerald-800/40 overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
             <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-sm font-bold text-emerald-400">
                   1
                 </div>
-                <h3 className="font-semibold text-zinc-200">Commit</h3>
+                <h3 className="font-semibold text-amber-50">Commit</h3>
               </div>
               <div className="flex items-center gap-2 mb-3">
                 <Lock className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="text-xs text-emerald-400/80 uppercase tracking-wider font-medium">Before Dealing</span>
               </div>
-              <p className="text-sm text-zinc-400 leading-relaxed">
-                The server generates a secret <span className="text-zinc-200 font-medium">server seed</span> and 
-                publishes its <span className="text-zinc-200 font-medium">SHA-256 hash</span> (the commitment) 
+              <p className="text-sm text-emerald-300/60 leading-relaxed">
+                The server generates a secret <span className="text-emerald-100 font-medium">server seed</span> and 
+                publishes its <span className="text-emerald-100 font-medium">SHA-256 hash</span> (the commitment) 
                 before any cards are dealt. This locks in the server's entropy.
               </p>
             </CardContent>
           </Card>
 
           {/* Step 2: Client Seeds */}
-          <Card className="bg-zinc-900/50 border-zinc-800/60 overflow-hidden">
-            <div className="h-1 bg-gradient-to-r from-purple-500 to-violet-500" />
+          <Card className="bg-emerald-950/30 border-emerald-800/40 overflow-hidden">
+            <div className="h-1 bg-gradient-to-r from-amber-500 to-amber-400" />
             <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-sm font-bold text-purple-400">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-sm font-bold text-amber-400">
                   2
                 </div>
-                <h3 className="font-semibold text-zinc-200">Contribute</h3>
+                <h3 className="font-semibold text-amber-50">Contribute</h3>
               </div>
               <div className="flex items-center gap-2 mb-3">
-                <Fingerprint className="w-4 h-4 text-purple-400 shrink-0" />
-                <span className="text-xs text-purple-400/80 uppercase tracking-wider font-medium">Client Seeds</span>
+                <Fingerprint className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="text-xs text-amber-400/80 uppercase tracking-wider font-medium">Client Seeds</span>
               </div>
-              <p className="text-sm text-zinc-400 leading-relaxed">
-                Each player submits a random <span className="text-zinc-200 font-medium">client seed</span>. 
-                These are combined with the server seed via <span className="text-zinc-200 font-medium">HMAC-SHA256</span>, 
-                ensuring <span className="text-zinc-200 font-medium">no single party</span> determines the shuffle.
+              <p className="text-sm text-emerald-300/60 leading-relaxed">
+                Each player submits a random <span className="text-emerald-100 font-medium">client seed</span>. 
+                These are combined with the server seed via <span className="text-emerald-100 font-medium">HMAC-SHA256</span>, 
+                ensuring <span className="text-emerald-100 font-medium">no single party</span> determines the shuffle.
               </p>
             </CardContent>
           </Card>
 
           {/* Step 3: Play */}
-          <Card className="bg-zinc-900/50 border-zinc-800/60 overflow-hidden">
-            <div className="h-1 bg-gradient-to-r from-teal-500 to-cyan-500" />
+          <Card className="bg-emerald-950/30 border-emerald-800/40 overflow-hidden">
+            <div className="h-1 bg-gradient-to-r from-teal-500 to-emerald-500" />
             <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center text-sm font-bold text-teal-400">
                   3
                 </div>
-                <h3 className="font-semibold text-zinc-200">Play</h3>
+                <h3 className="font-semibold text-amber-50">Play</h3>
               </div>
               <div className="flex items-center gap-2 mb-3">
                 <Server className="w-4 h-4 text-teal-400 shrink-0" />
                 <span className="text-xs text-teal-400/80 uppercase tracking-wider font-medium">During the Hand</span>
               </div>
-              <p className="text-sm text-zinc-400 leading-relaxed">
+              <p className="text-sm text-emerald-300/60 leading-relaxed">
                 The game plays out normally. The combined seed determines the deck 
-                order — it <span className="text-zinc-200 font-medium">cannot be changed</span> after commitment 
+                order — it <span className="text-emerald-100 font-medium">cannot be changed</span> after commitment 
                 and seed submission.
               </p>
             </CardContent>
           </Card>
 
           {/* Step 4: Reveal & Verify */}
-          <Card className="bg-zinc-900/50 border-zinc-800/60 overflow-hidden">
-            <div className="h-1 bg-gradient-to-r from-cyan-500 to-indigo-500" />
+          <Card className="bg-emerald-950/30 border-emerald-800/40 overflow-hidden">
+            <div className="h-1 bg-gradient-to-r from-emerald-400 to-amber-400" />
             <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center text-sm font-bold text-cyan-400">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-sm font-bold text-emerald-400">
                   4
                 </div>
-                <h3 className="font-semibold text-zinc-200">Reveal & Verify</h3>
+                <h3 className="font-semibold text-amber-50">Reveal & Verify</h3>
               </div>
               <div className="flex items-center gap-2 mb-3">
-                <Eye className="w-4 h-4 text-cyan-400 shrink-0" />
-                <span className="text-xs text-cyan-400/80 uppercase tracking-wider font-medium">After the Hand</span>
+                <Eye className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="text-xs text-emerald-400/80 uppercase tracking-wider font-medium">After the Hand</span>
               </div>
-              <p className="text-sm text-zinc-400 leading-relaxed">
-                All seeds are revealed. You can <span className="text-zinc-200 font-medium">independently verify</span> that 
+              <p className="text-sm text-emerald-300/60 leading-relaxed">
+                All seeds are revealed. You can <span className="text-emerald-100 font-medium">independently verify</span> that 
                 the commitment matches and the deck is reproducible from the revealed seeds.
               </p>
             </CardContent>
@@ -137,9 +137,9 @@ export function Fairness() {
       </div>
 
       {/* What You Can Verify */}
-      <Card className="bg-zinc-900/40 border-zinc-800/60">
-        <CardHeader className="border-b border-zinc-800/60 bg-gradient-to-r from-emerald-950/30 to-zinc-900/80">
-          <CardTitle className="text-lg flex items-center gap-2">
+      <Card className="bg-emerald-950/20 border-emerald-800/40">
+        <CardHeader className="border-b border-emerald-800/40 bg-gradient-to-r from-emerald-950/40 to-[#0a2e1e]/80">
+          <CardTitle className="text-lg flex items-center gap-2 text-amber-50">
             <Check className="w-5 h-5 text-emerald-400" />
             What You Can Verify
           </CardTitle>
@@ -168,11 +168,11 @@ export function Fairness() {
                 desc: "Use our verification API or compute SHA-256 yourself to confirm fairness without trusting anyone.",
               },
             ].map((item, i) => (
-              <div key={i} className="flex gap-3 p-4 rounded-lg bg-zinc-900/60 border border-zinc-800/40">
+              <div key={i} className="flex gap-3 p-4 rounded-lg bg-emerald-950/40 border border-emerald-800/30">
                 <div className="mt-0.5 shrink-0">{item.icon}</div>
                 <div>
-                  <h4 className="text-sm font-semibold text-zinc-200 mb-1">{item.title}</h4>
-                  <p className="text-xs text-zinc-400 leading-relaxed">{item.desc}</p>
+                  <h4 className="text-sm font-semibold text-emerald-100 mb-1">{item.title}</h4>
+                  <p className="text-xs text-emerald-300/60 leading-relaxed">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -181,15 +181,15 @@ export function Fairness() {
       </Card>
 
       {/* What Remains Trust-Based */}
-      <Card className="bg-zinc-900/40 border-zinc-800/60">
-        <CardHeader className="border-b border-zinc-800/60 bg-gradient-to-r from-amber-950/20 to-zinc-900/80">
-          <CardTitle className="text-lg flex items-center gap-2">
+      <Card className="bg-emerald-950/20 border-emerald-800/40">
+        <CardHeader className="border-b border-emerald-800/40 bg-gradient-to-r from-amber-950/20 to-[#0a2e1e]/80">
+          <CardTitle className="text-lg flex items-center gap-2 text-amber-50">
             <Server className="w-5 h-5 text-amber-400" />
             What Remains Trust-Based
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <p className="text-sm text-zinc-400 leading-relaxed mb-4">
+          <p className="text-sm text-emerald-300/60 leading-relaxed mb-4">
             The commit-reveal model provides strong guarantees, but some aspects inherently rely on 
             server trust. We believe in transparency about these boundaries:
           </p>
@@ -211,8 +211,8 @@ export function Fairness() {
               <div key={i} className="flex gap-3 p-3 rounded-lg border border-amber-500/10 bg-amber-950/10">
                 <ChevronRight className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-semibold text-zinc-300 mb-0.5">{item.title}</h4>
-                  <p className="text-xs text-zinc-500 leading-relaxed">{item.desc}</p>
+                  <h4 className="text-sm font-semibold text-emerald-200 mb-0.5">{item.title}</h4>
+                  <p className="text-xs text-emerald-400/50 leading-relaxed">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -221,10 +221,10 @@ export function Fairness() {
       </Card>
 
       {/* Technical Details */}
-      <Card className="bg-zinc-900/40 border-zinc-800/60">
-        <CardHeader className="border-b border-zinc-800/60">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Fingerprint className="w-5 h-5 text-indigo-400" />
+      <Card className="bg-emerald-950/20 border-emerald-800/40">
+        <CardHeader className="border-b border-emerald-800/40 bg-gradient-to-r from-emerald-950/40 to-[#0a2e1e]/80">
+          <CardTitle className="text-lg flex items-center gap-2 text-amber-50">
+            <Fingerprint className="w-5 h-5 text-emerald-400" />
             Technical Details
           </CardTitle>
         </CardHeader>
@@ -240,16 +240,16 @@ export function Fairness() {
               { label: "Blockchain Required", value: "No" },
               { label: "Backward Compatible", value: "Yes (v1 proofs still verifiable)" },
             ].map((item, i) => (
-              <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-zinc-800/30 border border-zinc-800/40">
-                <span className="text-xs text-zinc-500 uppercase tracking-wider">{item.label}</span>
-                <span className="text-sm font-mono text-zinc-200">{item.value}</span>
+              <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/30">
+                <span className="text-xs text-emerald-400/50 uppercase tracking-wider">{item.label}</span>
+                <span className="text-sm font-mono text-emerald-100">{item.value}</span>
               </div>
             ))}
           </div>
 
-          <div className="mt-4 p-4 rounded-lg bg-zinc-800/30 border border-zinc-800/40">
-            <h4 className="text-sm font-semibold text-zinc-300 mb-2">Verification Pseudocode</h4>
-            <pre className="text-xs text-zinc-400 font-mono leading-relaxed overflow-x-auto">
+          <div className="mt-4 p-4 rounded-lg bg-[#0a2e1e]/60 border border-emerald-800/30">
+            <h4 className="text-sm font-semibold text-emerald-200 mb-2">Verification Pseudocode</h4>
+            <pre className="text-xs text-emerald-300/60 font-mono leading-relaxed overflow-x-auto">
 {`// 1. Check server commitment
 commitment_hash = SHA-256(server_seed + ":" + nonce)
 assert commitment_hash === published_commitment
@@ -267,15 +267,15 @@ assert deck_hash === published_deck_hash`}
             </pre>
           </div>
 
-          <div className="flex items-start gap-3 p-4 rounded-lg border border-indigo-500/15 bg-indigo-950/10">
-            <FileSearch className="w-5 h-5 text-indigo-400 mt-0.5 shrink-0" />
+          <div className="flex items-start gap-3 p-4 rounded-lg border border-emerald-500/15 bg-emerald-950/30">
+            <FileSearch className="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" />
             <div>
-              <h4 className="text-sm font-semibold text-zinc-200 mb-1">Verification API</h4>
-              <p className="text-xs text-zinc-400 leading-relaxed mb-2">
+              <h4 className="text-sm font-semibold text-emerald-100 mb-1">Verification API</h4>
+              <p className="text-xs text-emerald-300/60 leading-relaxed mb-2">
                 Submit any proof package to our public verification endpoint. 
                 No authentication required — the math speaks for itself.
               </p>
-              <code className="text-xs text-indigo-400 bg-indigo-950/30 px-2 py-1 rounded font-mono">
+              <code className="text-xs text-emerald-400 bg-emerald-950/60 px-2 py-1 rounded font-mono">
                 POST /api/fairness/verify
               </code>
             </div>
@@ -285,8 +285,8 @@ assert deck_hash === published_deck_hash`}
 
       {/* CTA */}
       <div className="text-center py-4">
-        <p className="text-sm text-zinc-500">
-          Fairness proofs are available in the <span className="text-zinc-300 font-medium">Match Replay</span> viewer 
+        <p className="text-sm text-emerald-400/50">
+          Fairness proofs are available in the <span className="text-emerald-200 font-medium">Match Replay</span> viewer 
           for all multiplayer games played with Trust Shield active.
         </p>
       </div>

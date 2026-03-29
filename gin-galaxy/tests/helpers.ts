@@ -37,6 +37,11 @@ import { initBillingTables } from "../server/billing.js";
 import { initializeDailyRetentionTables } from "../server/dailyRetention.js";
 import { initOfferTables } from "../server/offers.js";
 import { resetAllRateLimiters } from "../server/middleware/rateLimit.js";
+import { initCoordinator, _resetCoordinator } from "../server/multiplayer/coordinatorFactory.js";
+import { getCoordinator } from "../server/multiplayer/coordinatorFactory.js";
+import { getLiveRoomRoutingMode } from "../server/config.js";
+import { initOutboxTable } from "../server/outbox.js";
+import { registerAllHandlers } from "../server/outboxHandlers.js";
 
 let server: http.Server;
 let baseUrl: string;
@@ -51,12 +56,54 @@ export function createApp(): Express {
     try {
       const row = db.prepare("SELECT 1 as ok").get() as { ok: number } | undefined;
       const dbOk = row?.ok === 1;
+      let coordInfo: {
+        mode: "memory" | "redis" | "unknown";
+        healthy: boolean;
+        nodeId?: string;
+        rooms?: number;
+        players?: number;
+        spectators?: number;
+        snapshots?: number;
+      } = {
+        mode: "unknown",
+        healthy: false,
+      };
+      let deployment: {
+        coordinatorMode: "memory" | "redis" | "unknown";
+        liveRoomRouting: "single_node" | "multi_node_relay";
+      } = {
+        coordinatorMode: "unknown",
+        liveRoomRouting: "single_node",
+      };
+
+      try {
+        const coord = getCoordinator();
+        const diag = coord.getDiagnostics();
+        coordInfo = {
+          mode: diag.mode,
+          healthy: diag.healthy,
+          nodeId: diag.nodeId,
+          rooms: diag.roomCount,
+          players: diag.playerMappingCount,
+          spectators: diag.spectatorConnectionCount,
+          snapshots: (diag.details as any)?.roomGameSnapshotCount ?? 0,
+        };
+        deployment = {
+          coordinatorMode: diag.mode,
+          liveRoomRouting: getLiveRoomRoutingMode(diag.mode),
+        };
+      } catch {
+        // Coordinator is not available in some minimal test setups.
+      }
+
       res.json({
         status: dbOk ? "healthy" : "degraded",
         timestamp: new Date().toISOString(),
         uptime: Math.floor(process.uptime()),
         version: "1.0.0-beta",
         database: dbOk ? "connected" : "unreachable",
+        coordinator: coordInfo,
+        deployment,
         environment: "test",
       });
     } catch {
@@ -99,6 +146,8 @@ export function createApp(): Express {
 }
 
 export async function startTestServer(): Promise<string> {
+  await _resetCoordinator();
+  await initCoordinator({ mode: "memory" });
   initializeDatabase();
   initializeAchievementTables();
   initializeCosmeticTables();
@@ -108,7 +157,9 @@ export async function startTestServer(): Promise<string> {
   initBillingTables();
   initializeDailyRetentionTables();
   initOfferTables();
+  initOutboxTable();
   resetAllRateLimiters();
+  registerAllHandlers();
   const app = createApp();
   return new Promise((resolve) => {
     server = app.listen(0, "127.0.0.1", () => {

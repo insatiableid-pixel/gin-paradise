@@ -1,0 +1,93 @@
+{
+  "request_id": "gcli_0036",
+  "response_id": "gcli_0036_resp",
+  "timestamp": "2026-03-28T01:39:32.816869+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Increasing CALIBRATION_MAX_WORLDS from 150 to 200 improves threshold selection reliability, which is critical now that direct evaluation has a 90% weight in the final probability.",
+  "edits": {
+    "CALIBRATION_MAX_WORLDS = 150": "CALIBRATION_MAX_WORLDS = 200"
+  },
+  "param_names": [
+    "CALIBRATION_MAX_WORLDS"
+  ],
+  "param_changes": {
+    "CALIBRATION_MAX_WORLDS": {
+      "old": 150,
+      "new": 200,
+      "delta": 50
+    }
+  },
+  "rationale": "With DIRECT_EVAL_WEIGHT at 0.90, the calibration step needs high-quality EV estimates to pick the optimal threshold. Raising the max worlds cap allows adaptive calibration to spend more of its allocated budget on deeper search rather than capping out early.",
+  "confidence": "medium",
+  "agent_prompt_hash": "5e55346be60d",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0036.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0036.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 21.9,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 17064
+          },
+          "tokens": {
+            "input": 47058,
+            "prompt": 47058,
+            "candidates": 250,
+            "total": 48901,
+            "cached": 0,
+            "thoughts": 1593,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 17064,
+              "tokens": {
+                "input": 47058,
+                "prompt": 47058,
+                "candidates": 250,
+                "total": 48901,
+                "cached": 0,
+                "thoughts": 1593,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Increasing CALIBRATION_MAX_WORLDS from 150 to 200 improves threshold selection reliability, which is critical now that direct evaluation has a 90% weight in the final probability.\",\n  \"edits\": {\n    \"CALIBRATION_MAX_WORLDS = 150\": \"CALIBRATION_MAX_WORLDS = 200\"\n  },\n  \"param_names\": [\n    \"CALIBRATION_MAX_WORLDS\"\n  ],\n  \"param_changes\": {\n    \"CALIBRATION_MAX_WORLDS\": {\n      \"old\": 150,\n      \"new\": 200,\n      \"delta\": 50\n    }\n  },\n  \"rationale\": \"With DIRECT_EVAL_WEIGHT at 0.90, the calibration step needs high-quality EV estimates to pick the optimal threshold. Raising the max worlds cap allows adaptive calibration to spend more of its allocated budget on deeper search rather than capping out early.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

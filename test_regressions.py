@@ -165,5 +165,61 @@ class GinRummyRegressionTests(unittest.TestCase):
         self.assertEqual(ai.model.card_state[stale_card], IN_DISCARD)
 
 
+class CyclingPlayer(Player):
+    """Player that always takes the discard and discards highest DW, creating cycles."""
+
+    def __init__(self, name="CyclingPlayer"):
+        super().__init__(name)
+
+    def draw_decision(self, top_discard, hand, game_state):
+        return True  # Always take discard
+
+    def discard_decision(self, hand, drew_from_discard, drawn_card, game_state):
+        from gin_rummy.card import deadwood_value
+        # Can't discard what we just drew from discard pile
+        if drew_from_discard and drawn_card is not None:
+            candidates = [c for c in hand if c != drawn_card]
+            return max(candidates, key=deadwood_value) if candidates else hand[0]
+        return max(hand, key=deadwood_value)
+
+    def knock_decision(self, hand, game_state):
+        return False  # Never knock
+
+
+class MaxTurnsPerHandTests(unittest.TestCase):
+    """Tests for the MAX_TURNS_PER_HAND engine guard."""
+
+    def test_degenerate_game_terminates(self):
+        """Two cycling players should hit the turn limit, not hang forever."""
+        import time
+        from gin_rummy.game import GinRummyGame, MAX_TURNS_PER_HAND
+        p0 = CyclingPlayer("C0")
+        p1 = CyclingPlayer("C1")
+        game = GinRummyGame(p0, p1, target_score=100, verbose=False)
+
+        t0 = time.time()
+        result = game.play_game()
+        elapsed = time.time() - t0
+
+        # Must complete in reasonable time (not hang)
+        self.assertLess(elapsed, 30.0, f"Game took {elapsed:.1f}s — likely hung")
+        self.assertIsNotNone(result.winner)
+        # Should have some void hands from the turn limit
+        self.assertGreater(result.void_count, 0,
+                           "Cycling players should trigger void hands from turn limit")
+
+    def test_normal_game_unaffected_by_turn_limit(self):
+        """Normal Apex vs Apex games should finish well before MAX_TURNS_PER_HAND."""
+        import random
+        from gin_rummy.game import GinRummyGame
+        from gin_rummy.apex import Apex
+        for seed in [42, 123, 456]:
+            random.seed(seed)
+            g = GinRummyGame(Apex("A1"), Apex("A2"), target_score=100, verbose=False)
+            r = g.play_game()
+            self.assertIsNotNone(r.winner, f"Game should complete for seed {seed}")
+            self.assertGreater(r.hands_played, 0)
+
+
 if __name__ == '__main__':
     unittest.main()

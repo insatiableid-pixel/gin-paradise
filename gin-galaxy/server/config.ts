@@ -10,6 +10,7 @@
  *   NODE_ENV          — "production" or "development" (default: "development")
  *   DATABASE_PATH     — Absolute path to SQLite database (default: "./database.sqlite")
  *   TRUST_PROXY       — Enable Express trust proxy for reverse-proxy deployments (default: "false")
+ *   COORDINATOR_NODE_ID — Stable identity for the realtime coordinator node (default: generated per process)
  *   GEMINI_API_KEY    — Optional. AI analysis key. Missing = graceful fallback.
  *   SESSION_SECRET    — Optional. Not currently used but reserved for future cookie signing.
  *   ALLOWED_ORIGINS   — Optional. Comma-separated list of allowed CORS origins.
@@ -23,8 +24,12 @@ export interface AppConfig {
   nodeEnv: "production" | "development";
   databasePath: string;
   trustProxy: boolean | string;
+  coordinatorNodeId: string | undefined;
   geminiApiKey: string | undefined;
   allowedOrigins: string[];
+  coordinatorMode: "memory" | "redis";
+  redisUrl: string | undefined;
+  redisKeyPrefix: string;
 }
 
 function parsePort(raw: string | undefined, fallback: number): number {
@@ -43,6 +48,10 @@ function parseTrustProxy(raw: string | undefined): boolean | string {
   return raw;
 }
 
+export function getLiveRoomRoutingMode(coordinatorMode: AppConfig["coordinatorMode"]): "single_node" | "multi_node_relay" {
+  return coordinatorMode === "redis" ? "multi_node_relay" : "single_node";
+}
+
 export function loadConfig(): AppConfig {
   const nodeEnv = (process.env.NODE_ENV === "production" ? "production" : "development") as AppConfig["nodeEnv"];
   const port = parsePort(process.env.PORT, 3000);
@@ -55,6 +64,10 @@ export function loadConfig(): AppConfig {
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(",").map(s => s.trim()).filter(Boolean)
     : [];
+  const coordinatorMode = (process.env.COORDINATOR_MODE === "redis" ? "redis" : "memory") as AppConfig["coordinatorMode"];
+  const redisUrl = process.env.REDIS_URL || undefined;
+  const redisKeyPrefix = process.env.REDIS_KEY_PREFIX || "ginparadise:";
+  const coordinatorNodeId = process.env.COORDINATOR_NODE_ID || undefined;
 
   return {
     port,
@@ -62,8 +75,12 @@ export function loadConfig(): AppConfig {
     nodeEnv,
     databasePath,
     trustProxy,
+    coordinatorNodeId,
     geminiApiKey,
     allowedOrigins,
+    coordinatorMode,
+    redisUrl,
+    redisKeyPrefix,
   };
 }
 
@@ -79,6 +96,12 @@ export function validateAndLogConfig(config: AppConfig): void {
     issues.push("DATABASE_PATH is empty — SQLite database location must be specified");
   }
 
+  if (config.coordinatorMode === "redis" && !config.coordinatorNodeId) {
+    issues.push(
+      "COORDINATOR_MODE=redis requires COORDINATOR_NODE_ID so live-room ownership survives restarts"
+    );
+  }
+
   if (issues.length > 0) {
     throw new Error(`Configuration errors:\n  - ${issues.join("\n  - ")}`);
   }
@@ -90,6 +113,8 @@ export function validateAndLogConfig(config: AppConfig): void {
   console.log(`  Host:          ${config.host}`);
   console.log(`  Database:      ${config.databasePath}`);
   console.log(`  Trust Proxy:   ${config.trustProxy}`);
+  console.log(`  Coordinator ID:${config.coordinatorNodeId || " generated (not stable)"}`);
+  console.log(`  Live Routing:  ${getLiveRoomRoutingMode(config.coordinatorMode)}`);
   console.log(`  Gemini API:    ${config.geminiApiKey ? "configured ✓" : "not set (analysis will use fallback)"}`);
   if (config.allowedOrigins.length > 0) {
     console.log(`  CORS Origins:  ${config.allowedOrigins.join(", ")}`);

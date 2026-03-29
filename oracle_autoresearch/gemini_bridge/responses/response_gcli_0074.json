@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0074",
+  "response_id": "gcli_0074_resp",
+  "timestamp": "2026-03-28T20:49:48.649342+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Smooth the trace confidence scaling in compute_eval_weight using an exponential curve instead of linear clipping.",
+  "edits": {
+    "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)": "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = 1.0 - math.exp(-n_trace_events / 8.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "Since exponential decay proved highly effective in compute_trace_confidence_multiplier, applying a similar smooth exponential approach to trace_confidence in compute_eval_weight prevents abrupt clipping at n=10 and provides better gradations of trust for early and mid-game decision making.",
+  "confidence": "medium",
+  "agent_prompt_hash": "b1cd77a97646",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0074.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0074.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 30.88,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 25492
+          },
+          "tokens": {
+            "input": 15855,
+            "prompt": 15855,
+            "candidates": 358,
+            "total": 18633,
+            "cached": 0,
+            "thoughts": 2420,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 25492,
+              "tokens": {
+                "input": 15855,
+                "prompt": 15855,
+                "candidates": 358,
+                "total": 18633,
+                "cached": 0,
+                "thoughts": 2420,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Smooth the trace confidence scaling in compute_eval_weight using an exponential curve instead of linear clipping.\",\n  \"edits\": {\n    \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\": \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = 1.0 - math.exp(-n_trace_events / 8.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"Since exponential decay proved highly effective in compute_trace_confidence_multiplier, applying a similar smooth exponential approach to trace_confidence in compute_eval_weight prevents abrupt clipping at n=10 and provides better gradations of trust for early and mid-game decision making.\",\n  \"confidence\": \"medium\"\n}"
+}

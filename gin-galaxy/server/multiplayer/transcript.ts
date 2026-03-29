@@ -18,8 +18,7 @@
  */
 
 import { persistReplay } from "../db.js";
-import { triggerAutoEvaluation } from "../analysis/pythonBridge.js";
-import { triggerLiveAchievements } from "../achievements.js";
+import { enqueueJob } from "../outbox.js";
 
 // ── Action Types ────────────────────────────────────────────────────
 
@@ -228,31 +227,37 @@ export function finalizeTranscript(
     endReason,
   });
 
-  // Persist to durable storage (SQLite) with optional fairness proof data
+  // ── AUTHORITATIVE SYNCHRONOUS WRITE ──
+  // Persist replay to durable storage (SQLite). This is the system-of-record
+  // for match transcripts. Must succeed synchronously.
   try {
     const replayId = persistReplay(transcript, fairnessData);
-    // Trigger automatic background evaluation (fire-and-forget, never blocks)
-    setTimeout(() => {
-      try {
-        triggerAutoEvaluation(replayId);
-      } catch (err) {
-        console.error(`[transcript] Auto-eval trigger failed for room ${roomId}:`, err);
-      }
-    }, 2000); // Brief delay to ensure all match finalization is complete
+
+    // ── DERIVED ASYNC WRITES (via durable outbox) ──
+    // These are retryable, eventually-consistent side effects.
+    // They never block or fail the hot path.
+
+    // 1. Queue replay auto-evaluation (Python engine, ~30s)
+    enqueueJob({
+      jobType: "replay_auto_evaluation",
+      payload: { replayId },
+      dedupKey: `eval:${replayId}`,
+      delayMs: 2000, // Brief delay for finalization to settle
+    });
+
+    // 2. Queue achievement evaluation for both players
+    enqueueJob({
+      jobType: "achievement_trigger",
+      payload: { userId: winnerId, trigger: "match_completion" },
+      dedupKey: `ach:${winnerId}:${replayId}`,
+    });
+    enqueueJob({
+      jobType: "achievement_trigger",
+      payload: { userId: loserId, trigger: "match_completion" },
+      dedupKey: `ach:${loserId}:${replayId}`,
+    });
   } catch (err) {
     console.error(`[transcript] Failed to persist replay for room ${roomId}:`, err);
-  }
-
-  // Live achievement triggers for both players (fire-and-forget, never blocks)
-  try {
-    triggerLiveAchievements(winnerId, "match_completion");
-  } catch (err) {
-    console.error(`[transcript] Achievement trigger failed for winner ${winnerId}:`, err);
-  }
-  try {
-    triggerLiveAchievements(loserId, "match_completion");
-  } catch (err) {
-    console.error(`[transcript] Achievement trigger failed for loser ${loserId}:`, err);
   }
 }
 

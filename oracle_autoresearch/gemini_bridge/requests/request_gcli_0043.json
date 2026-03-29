@@ -1,0 +1,683 @@
+{
+  "request_id": "gcli_0043",
+  "timestamp": "2026-03-28T17:00:56.998031+00:00",
+  "program": "# Oracle Autoresearch Program (Directive 109)\n\nThis folder is the Gin Rummy Oracle analogue of Karpathy's `autoresearch`\nworkflow, hardened via Directive 108 and extended via Directive 109 with\nexplicit semantic mutation surfaces for AlphaEvolve-style LLM code evolution.\n\n## Architecture (Directive 109)\n\nThe lab evaluates Oracle decision quality across three frozen benchmark lanes,\neach consuming **pre-computed offline targets** (no online oracle recomputation):\n\n| Lane | Decision | Metric | Weight | Targets |\n|------|----------|--------|--------|---------|\n| **Knock** | knock vs continue (low-stock) | composite score | 60% | `frozen_knock_targets.json` |\n| **Draw** | take discard vs draw stock | accuracy + distance | 25% | `frozen_draw_targets.json` |\n| **Discard** | which card to discard | accuracy + safety + DW dist | 15% | `frozen_discard_targets.json` |\n\nAll lanes share a common **Oracle Abstraction Layer** (`oracle_abstractions.py`).\n\nThe **aggregate promotion score** is the weighted combination of per-lane\nscores, gated by a **Pareto constraint** that prevents any single-lane regression.\n\n## Semantic Mutation Surface (Directive 109)\n\nTwo small helper functions in `train.py` are the primary evolution targets:\n\n### `compute_eval_weight(hero_deadwood, stock_size, n_trace_events, ev_gap) \u2192 float`\n- Controls blend between direct EV and CFR prior\n- Currently returns fixed `DIRECT_EVAL_WEIGHT = 0.90`\n- Target: state-dependent sigmoid, polynomial, or piecewise functions\n\n### `compute_trace_confidence_multiplier(n_trace_events, stock_size, hero_deadwood) \u2192 float`\n- Controls risk-penalty scaling based on observation quality\n- Currently: linear decay `1.0 - 0.08 * events`, floor 0.6\n- Target: non-linear decay, interaction terms, contextual adaptation\n\nBoth functions are used by the real-policy gauntlet player, ensuring the\nheld-out evaluation always runs the exact same policy being optimized.\n\n## Setup\n\n1. Read `README.md`, `prepare.py`, `train.py`, and this `program.md`.\n2. Run `python oracle_autoresearch/prepare.py --force` to generate frozen targets.\n3. Verify `oracle_autoresearch/data/` contains:\n   - `train_spots.json`, `eval_spots.json`, `lab_manifest.json`\n   - `frozen_knock_targets.json`, `frozen_draw_targets.json`, `frozen_discard_targets.json`\n4. Verify `oracle_autoresearch/loop_state.json` exists and has an incumbent.\n5. Confirm Gemini CLI is installed and authenticated if using the loop.\n\n## Scope\n\nWhat you can edit:\n- `train.py` \u2014 **preferably** the two mutation surface functions:\n  - `compute_eval_weight()`\n  - `compute_trace_confidence_multiplier()`\n- Scalar knobs in `train.py` as a fallback\n\nWhat you cannot edit (frozen benchmark infrastructure):\n- `prepare.py` \u2014 the frozen benchmark harness\n- `multi_lane_benchmark.py` \u2014 the frozen lane runner\n- `oracle_abstractions.py` \u2014 the frozen abstraction layer\n- `gauntlet_eval.py` \u2014 the held-out evaluation (now runs real policy)\n- The frozen benchmark data and targets\n- The scoring formula\n- The rest of the repo unless explicitly told otherwise\n\n## Objective\n\nOptimize the **aggregate score** across all three lanes.\nHigher is better. The knock lane still dominates (60% weight), but\ndraw and discard lanes provide broader signal.\n\nPromotion requires both:\n1. Aggregate score improvement by margin\n2. No single lane regression beyond epsilon (0.02)\n\n## Experiment Loop\n\nThe autoresearch loop owns keep/discard decisions:\n\n1. Generate one focused candidate edit to `train.py`\n   - **Prefer semantic mutations** in helper functions over scalar tuning\n   - Propose continuous math: sigmoid, exponential, polynomial, sqrt\n2. Apply the edit\n3. Benchmark it (all lanes run with frozen targets)\n4. Keep it only if the aggregate score beats the incumbent by margin\n   AND no single lane regresses by > epsilon (Pareto gate)\n5. Otherwise restore the incumbent and move on\n6. Log diffs, scores, rationale, and provenance every time\n\n## Held-Out Gauntlet (Directive 109: Real Policy)\n\nThe gauntlet now evaluates the **real `train.py` Oracle policy**:\n\n- `RealOraclePolicyPlayer` runs belief-world EV estimation for knock decisions\n- Uses the same `compute_eval_weight()` and `compute_trace_confidence_multiplier()`\n  that the proxy benchmark optimizes\n- Deterministic seat-balanced games with Wilson CI\n- Command: `python oracle_autoresearch/gauntlet_eval.py --n-deals 10 --seed 109`\n- Legacy mode: `python oracle_autoresearch/gauntlet_eval.py --n-deals 10 --seed 109 --mode legacy`\n\n## Simplicity Criterion\n\nAll else equal, simpler is better. Focused, falsifiable edits beat sprawling rewrites.\nA single clean sigmoid that improves the aggregate score is worth more than\na sprawling framework that adds complexity without measurable benefit.\n\n## Good Directions\n\n- **Semantic mutations** in `compute_eval_weight()` or `compute_trace_confidence_multiplier()`\n- Non-linear functions of game-state features\n- Interaction terms between available state variables\n- Asymmetric rules for different game phases\n- Better EV estimation via knob adjustments (fallback)\n- Better opponent-model weights for world generation\n\n## Bad Directions\n\n- Editing `prepare.py`, `multi_lane_benchmark.py`, or `oracle_abstractions.py`\n- Rebuilding targets every run\n- Changing the fixed eval benchmark\n- Expanding into unrelated engine work\n- Opaque neural embedding rewrites\n- Over-claiming full unified Gin Rummy solving\n\n## Current Research Context\n\n- Phase 76 repaired calibration integrity.\n- Directive 107 expanded from a single knock lane to three lanes.\n- Directive 108 froze per-lane targets, added Pareto promotion, gauntlet, narrowed surface.\n- **Directive 109** extracted semantic mutation surfaces and integrated the real\n  policy into the gauntlet.\n- The incumbent knock score is `0.6293` (CALIBRATION_MAX_WORLDS=150).\n- The aggregate score now replaces the single knock score for promotion.\n- The next Gemini campaign should target `compute_eval_weight()` and\n  `compute_trace_confidence_multiplier()` with continuous mathematical functions.\n",
+  "agent_prompt": "# Oracle Autoresearch Agent Prompt \u2014 Directive 109 (Semantic Mutation Surface)\n\nYou are an autonomous Oracle research agent running inside Gemini CLI.\n\n## Your Mission\n\nEdit **only `train.py`** to improve the Oracle's **aggregate score** across\nthree frozen benchmark lanes. Focus your mutations on the **extracted helper\nfunctions** below.\n\n## IMPORTANT: Narrowed Editable Surface\n\nAfter Directive 108, the benchmark infrastructure is **frozen by default**.\nAfter Directive 109, `train.py` contains explicit **semantic mutation surfaces**.\n\n**You CAN edit:**\n- `train.py` \u2014 knock lane logic, knobs, calibration, EV estimation\n- **Primary targets**: `compute_eval_weight()` and `compute_trace_confidence_multiplier()`\n\n**You CANNOT edit (frozen infrastructure):**\n- `prepare.py` \u2014 frozen harness\n- `multi_lane_benchmark.py` \u2014 frozen lane runner\n- `oracle_abstractions.py` \u2014 frozen abstraction layer\n- `gauntlet_eval.py` \u2014 held-out evaluation scaffold (now runs real train.py policy)\n- Any other files\n\n## Semantic Mutation Surfaces (Directive 109)\n\nThese two helper functions in `train.py` are your **primary edit targets**.\nTheir initial implementations are simple baseline logic. You should propose\nricher mathematical functions that improve the aggregate score.\n\n### `compute_eval_weight(hero_deadwood, stock_size, n_trace_events, ev_gap) \u2192 float`\n\nControls the blend weight between direct EV evaluation and CFR prior.\n- **Current**: returns fixed constant `DIRECT_EVAL_WEIGHT = 0.90`\n- **Opportunity**: make the weight state-dependent via:\n  - Non-linear functions of stock_size (trust EV more in late game)\n  - Sigmoid curves over ev_gap (trust more when gap is large)\n  - Interaction terms between trace_events and hero_deadwood\n  - Asymmetric rules for high vs low DW scenarios\n\n### `compute_trace_confidence_multiplier(n_trace_events, stock_size, hero_deadwood) \u2192 float`\n\nControls how much risk penalty is applied to knock EV.\n- **Current**: simple linear decay `1.0 - 0.08 * n_trace_events`, floored at 0.6\n- **Opportunity**: replace with:\n  - Exponential or sqrt decay curves\n  - Weighted event types (pickups vs discards vs declines)\n  - Stock-size interaction (late-game trace is more informative)\n  - hero_deadwood context (risk matters more at high DW)\n  - Polynomial blends or sigmoid mappings\n\n### What Makes a Good Mutation\n\n**Prefer:**\n- Continuous mathematical operations (sigmoid, exponential, sqrt, polynomial)\n- Dynamic schedules that vary with game state\n- Non-linear weighting logic\n- Asymmetric rules (different behavior for gin-live vs marginal knock)\n- Small, self-contained changes within one or both helper functions\n\n**Avoid:**\n- Plain scalar retuning (that was the old approach)\n- Wide structural rewrites outside the helper functions\n- Adding new classes or large frameworks\n- Changing the scoring formula or benchmark infrastructure\n\n## Multi-Lane Architecture (Frozen Targets)\n\n| Lane | Weight | Decision | Targets |\n|------|--------|----------|---------|\n| **Knock** (60%) | knock vs continue | `frozen_knock_targets.json` |\n| **Draw** (25%) | discard vs stock draw | `frozen_draw_targets.json` |\n| **Discard** (15%) | which card to discard | `frozen_discard_targets.json` |\n\n**Aggregate score** = weighted average of per-lane scores.\n\n## Promotion Gate (Pareto-Aware)\n\nA candidate is promoted only if:\n1. Aggregate score beats incumbent by margin (configurable)\n2. No single lane regresses by more than epsilon (default: 0.02)\n\n## Editable Parameters (train.py only)\n\n| Parameter | Current | Description |\n|-----------|---------|-------------|\n| TRACE_CONFIDENCE_FLOOR | 0.6 | Min risk multiplier |\n| TRACE_CONFIDENCE_DECAY | 0.08 | Per-event risk reduction |\n| KNOCK_RISK_PENALTY_BASE | 0.05 | Base undercut penalty |\n| DW_RISK_SCALE | 0.012 | Per-DW-point penalty |\n| GIN_BONUS | 0.04 | Bonus for gin hands |\n| EARLY_EXIT_CONFIDENCE_THRESHOLD | 2.5 | T-stat for early exit |\n| EARLY_EXIT_MIN_WORLDS | 20 | Min worlds before exit |\n| N_WORLDS_BASE | 50 | Base worlds per spot |\n| DIRECT_EVAL_WEIGHT | 0.90 | Direct eval vs CFR blend (now via compute_eval_weight) |\n| CALIBRATION_MAX_WORLDS | 150 | Max calibration worlds |\n| CFR_BUDGET_FRACTION | 0.10 | CFR time budget fraction |\n| CALIBRATION_FRACTION | 0.15 | Calibration data fraction |\n\n## Rules\n\n1. **Prefer edits inside `compute_eval_weight()` or `compute_trace_confidence_multiplier()`**\n2. Each edit should be a focused, testable hypothesis\n3. Keep changes small and reviewable\n4. Do not alter the eval set or scoring formula\n5. Do not edit `prepare.py`, `multi_lane_benchmark.py`, or `oracle_abstractions.py`\n6. Prefer 1-3 exact string replacements in `train.py`\n7. Log your hypothesis clearly\n8. The aggregate score is what matters for promotion\n9. Scalar retuning is fine as a fallback, but **semantic function mutations are preferred**\n\n## Output Contract\n\nReturn exactly one JSON object with these keys:\n\n```json\n{\n  \"hypothesis\": \"short hypothesis\",\n  \"edits\": {\n    \"exact old text\": \"exact new text\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [\"SYMBOL_A\"],\n  \"param_changes\": {\n    \"SYMBOL_A\": { \"old\": 1, \"new\": 2, \"delta\": 1 }\n  },\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"why this candidate is worth testing now\",\n  \"confidence\": \"low\"\n}\n```\n\n- `target_file` must be `train.py` (the only editable file)\n- `edits` must be exact string replacements in `train.py`\n- `mutation_type` should be `\"semantic\"` for helper function edits or `\"scalar\"` for knob changes\n- `mutation_target` should name the function being edited (if semantic)\n- `confidence` must be `low`, `medium`, or `high`\n- return JSON only, with no markdown fences or extra commentary\n",
+  "agent_prompt_hash": "bc3bf765b34d",
+  "incumbent_score": 0.7458,
+  "incumbent_variant": "gemini_gcli_0039",
+  "incumbent_params": {
+    "TRACE_CONFIDENCE_FLOOR": 0.6,
+    "TRACE_CONFIDENCE_DECAY": 0.08,
+    "KNOCK_RISK_PENALTY_BASE": 0.05,
+    "DW_RISK_SCALE": 0.012,
+    "GIN_BONUS": 0.04,
+    "EARLY_EXIT_CONFIDENCE_THRESHOLD": 2.5,
+    "EARLY_EXIT_MIN_WORLDS": 20,
+    "N_WORLDS_BASE": 50,
+    "DIRECT_EVAL_WEIGHT": 0.9,
+    "DECLINE_SAME_RANK_REDUCE": 0.35,
+    "DECLINE_ADJ_SUIT_REDUCE": 0.3,
+    "DECLINE_FAR_SUIT_REDUCE": 0.15,
+    "CONTINUATION_MIX_ENABLED": true,
+    "CONTINUATION_CHAMPION_WEIGHT": 0.8,
+    "STOCK_DW_PRIOR_ENABLED": true,
+    "STOCK_DW_PRIOR_STD": 3.5,
+    "CALIBRATION_MAX_WORLDS": 150,
+    "CFR_BUDGET_FRACTION": 0.1,
+    "CALIBRATION_FRACTION": 0.15,
+    "WORLD_GEN_OVERSAMPLE": 2
+  },
+  "experiment_history_summary": [
+    {
+      "id": 3,
+      "variant": "stock_dw_prior_only",
+      "score": 0.5626,
+      "delta": -0.0247,
+      "decision": "discard",
+      "accuracy_vs_best": 0.6875,
+      "knock_rate": 0.5375,
+      "overknock_vs_v6": 0.1125
+    },
+    {
+      "id": 4,
+      "variant": "mixed_continuation_only",
+      "score": 0.5523,
+      "delta": -0.035,
+      "decision": "discard",
+      "accuracy_vs_best": 0.65,
+      "knock_rate": 0.475,
+      "overknock_vs_v6": 0.05
+    },
+    {
+      "id": 5,
+      "variant": "trace_confidence_only",
+      "score": 0.5719,
+      "delta": -0.0154,
+      "decision": "discard",
+      "accuracy_vs_best": 0.7375,
+      "knock_rate": 0.6125,
+      "overknock_vs_v6": 0.1875
+    },
+    {
+      "id": 6,
+      "variant": "full_p75_bundle",
+      "score": 0.4897,
+      "delta": -0.0976,
+      "decision": "discard",
+      "accuracy_vs_best": 0.5625,
+      "knock_rate": 0.3375,
+      "overknock_vs_v6": 0.0
+    },
+    {
+      "id": 7,
+      "variant": "refine_trace_confidence_floor_045",
+      "score": 0.5735,
+      "delta": -0.0138,
+      "decision": "discard",
+      "strategy": null,
+      "source": null,
+      "phase": null
+    },
+    {
+      "id": 8,
+      "variant": "refine_trace_decay_012",
+      "score": 0.4983,
+      "delta": -0.089,
+      "decision": "discard",
+      "strategy": null,
+      "source": null,
+      "phase": null
+    },
+    {
+      "id": 9,
+      "variant": "disable_mixed_continuation",
+      "score": 0.5876,
+      "delta": 0.0003,
+      "decision": "discard",
+      "strategy": null,
+      "source": null,
+      "phase": null
+    },
+    {
+      "id": 10,
+      "variant": "combo_decline_weaker",
+      "score": 0.4983,
+      "delta": -0.089,
+      "decision": "discard",
+      "strategy": "combination",
+      "source": null,
+      "phase": 79
+    },
+    {
+      "id": 11,
+      "variant": "gen_continuation_champion_weight_0p85",
+      "score": 0.5568,
+      "delta": -0.0305,
+      "decision": "discard",
+      "strategy": "gradient_informed",
+      "source": null,
+      "phase": 79
+    },
+    {
+      "id": 12,
+      "variant": "antigravity_p80_resp_001",
+      "score": 0.5134,
+      "delta": -0.0739,
+      "decision": "discard",
+      "strategy": "antigravity_medium",
+      "source": "claude_opus_4.6_antigravity",
+      "phase": 80
+    },
+    {
+      "id": 13,
+      "variant": "gemini_gcli_0013",
+      "score": 0.4897,
+      "delta": -0.0976,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 14,
+      "variant": "gemini_gcli_0014",
+      "score": 0.5587,
+      "delta": -0.0286,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 15,
+      "variant": "gemini_gcli_0015",
+      "score": 0.4986,
+      "delta": -0.0887,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 16,
+      "variant": "gemini_gcli_0016",
+      "score": 0.5346,
+      "delta": -0.0527,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 17,
+      "variant": "gemini_gcli_0017",
+      "score": 0.4966,
+      "delta": -0.0907,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 18,
+      "variant": "gemini_gcli_0018",
+      "score": 0.4983,
+      "delta": -0.089,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 19,
+      "variant": "gemini_gcli_0019",
+      "score": 0.6189,
+      "delta": 0.0316,
+      "decision": "keep",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 20,
+      "variant": "gemini_gcli_0020",
+      "score": 0.6134,
+      "delta": -0.0055,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 21,
+      "variant": "gemini_gcli_0021",
+      "score": 0.5596,
+      "delta": -0.0593,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 22,
+      "variant": "gemini_gcli_0022",
+      "score": 0.5762,
+      "delta": -0.0427,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 23,
+      "variant": "gemini_gcli_0023",
+      "score": 0.6132,
+      "delta": -0.0057,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 24,
+      "variant": "gemini_gcli_0024",
+      "score": 0.6243,
+      "delta": 0.0054,
+      "decision": "keep",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 25,
+      "variant": "gemini_gcli_0025",
+      "score": 0.6293,
+      "delta": 0.005,
+      "decision": "keep",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 26,
+      "variant": "gemini_gcli_0026",
+      "score": 0.5161,
+      "delta": -0.1132,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 27,
+      "variant": "gemini_gcli_0027",
+      "score": 0.5763,
+      "delta": -0.053,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 28,
+      "variant": "gemini_gcli_0028",
+      "score": 0.598,
+      "delta": -0.0313,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 29,
+      "variant": "gemini_gcli_0029",
+      "score": 0.5763,
+      "delta": -0.053,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 30,
+      "variant": "gemini_gcli_0030",
+      "score": 0.587,
+      "delta": -0.0423,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 31,
+      "variant": "gemini_gcli_0031",
+      "score": 0.5161,
+      "delta": -0.1132,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 32,
+      "variant": "gemini_gcli_0032",
+      "score": 0.598,
+      "delta": -0.0313,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 33,
+      "variant": "gemini_gcli_0033",
+      "score": 0.5161,
+      "delta": -0.1132,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 34,
+      "variant": "gemini_gcli_0034",
+      "score": 0.5161,
+      "delta": -0.1132,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 35,
+      "variant": "gemini_gcli_0035",
+      "score": 0.598,
+      "delta": -0.0313,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 36,
+      "variant": "gemini_gcli_0036",
+      "score": 0.598,
+      "delta": -0.0313,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 81
+    },
+    {
+      "id": 37,
+      "variant": "combo_decline_stronger",
+      "score": null,
+      "delta": null,
+      "decision": "dry_run",
+      "strategy": "local_fallback_combination",
+      "source": "local_fallback_generator",
+      "phase": 81
+    },
+    {
+      "id": 38,
+      "variant": "combo_no_mix_knock_penalty_0.04",
+      "score": null,
+      "delta": null,
+      "decision": "dry_run",
+      "strategy": "local_fallback_combination",
+      "source": "local_fallback_generator",
+      "phase": 108
+    },
+    {
+      "id": 39,
+      "variant": "gemini_gcli_0039",
+      "score": 0.7458,
+      "delta": 0.1165,
+      "decision": "keep",
+      "strategy": "gemini_high",
+      "source": "gemini_cli_headless",
+      "phase": 108
+    },
+    {
+      "id": 40,
+      "variant": "gemini_gcli_0040",
+      "score": 0.7457,
+      "delta": -0.0001,
+      "decision": "discard",
+      "strategy": "gemini_high",
+      "source": "gemini_cli_headless",
+      "phase": 108
+    },
+    {
+      "id": 41,
+      "variant": "gemini_gcli_0041",
+      "score": null,
+      "delta": null,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 108
+    },
+    {
+      "id": 42,
+      "variant": "gemini_gcli_0042",
+      "score": 0.7458,
+      "delta": 0.0,
+      "decision": "discard",
+      "strategy": "gemini_medium",
+      "source": "gemini_cli_headless",
+      "phase": 108
+    }
+  ],
+  "constraints": {
+    "editable_file": "train.py",
+    "forbidden_files": [
+      "prepare.py"
+    ],
+    "loop_owner": "agent_loop.py",
+    "promotion_margin": 0.005,
+    "preferred_edit_style": "exact string replacements against current train.py",
+    "max_edit_count": 3,
+    "keep_changes_reviewable": true
+  },
+  "param_registry": [
+    {
+      "name": "TRACE_CONFIDENCE_FLOOR",
+      "min_val": 0.2,
+      "max_val": 0.9,
+      "step_sizes": [
+        0.05,
+        0.1,
+        0.15
+      ],
+      "param_type": "float",
+      "description": "Minimum risk multiplier when trace data is rich",
+      "group": "trace"
+    },
+    {
+      "name": "TRACE_CONFIDENCE_DECAY",
+      "min_val": 0.02,
+      "max_val": 0.2,
+      "step_sizes": [
+        0.02,
+        0.04
+      ],
+      "param_type": "float",
+      "description": "Per-event reduction in risk multiplier",
+      "group": "trace"
+    },
+    {
+      "name": "KNOCK_RISK_PENALTY_BASE",
+      "min_val": 0.01,
+      "max_val": 0.15,
+      "step_sizes": [
+        0.01,
+        0.02
+      ],
+      "param_type": "float",
+      "description": "Base undercut penalty on knock payoff",
+      "group": "risk"
+    },
+    {
+      "name": "DW_RISK_SCALE",
+      "min_val": 0.004,
+      "max_val": 0.025,
+      "step_sizes": [
+        0.002,
+        0.004
+      ],
+      "param_type": "float",
+      "description": "Per-deadwood-point penalty scale",
+      "group": "risk"
+    },
+    {
+      "name": "GIN_BONUS",
+      "min_val": 0.01,
+      "max_val": 0.1,
+      "step_sizes": [
+        0.01,
+        0.02
+      ],
+      "param_type": "float",
+      "description": "Bonus for gin hands",
+      "group": "risk"
+    },
+    {
+      "name": "EARLY_EXIT_CONFIDENCE_THRESHOLD",
+      "min_val": 1.5,
+      "max_val": 4.0,
+      "step_sizes": [
+        0.25,
+        0.5
+      ],
+      "param_type": "float",
+      "description": "T-stat threshold for early exit in incremental eval",
+      "group": "eval"
+    },
+    {
+      "name": "EARLY_EXIT_MIN_WORLDS",
+      "min_val": 10,
+      "max_val": 40,
+      "step_sizes": [
+        5,
+        10
+      ],
+      "param_type": "int",
+      "description": "Minimum worlds before early exit is allowed",
+      "group": "eval"
+    },
+    {
+      "name": "N_WORLDS_BASE",
+      "min_val": 30,
+      "max_val": 100,
+      "step_sizes": [
+        10,
+        20
+      ],
+      "param_type": "int",
+      "description": "Base worlds per spot for evaluation",
+      "group": "sampling"
+    },
+    {
+      "name": "DIRECT_EVAL_WEIGHT",
+      "min_val": 0.5,
+      "max_val": 1.0,
+      "step_sizes": [
+        0.05,
+        0.1
+      ],
+      "param_type": "float",
+      "description": "Blend weight: direct eval vs CFR prior",
+      "group": "blend"
+    },
+    {
+      "name": "DECLINE_SAME_RANK_REDUCE",
+      "min_val": 0.1,
+      "max_val": 0.6,
+      "step_sizes": [
+        0.05,
+        0.1
+      ],
+      "param_type": "float",
+      "description": "Weight reduction for same-rank cards on upcard decline",
+      "group": "decline"
+    },
+    {
+      "name": "DECLINE_ADJ_SUIT_REDUCE",
+      "min_val": 0.1,
+      "max_val": 0.55,
+      "step_sizes": [
+        0.05,
+        0.1
+      ],
+      "param_type": "float",
+      "description": "Weight reduction for adjacent same-suit on upcard decline",
+      "group": "decline"
+    },
+    {
+      "name": "DECLINE_FAR_SUIT_REDUCE",
+      "min_val": 0.05,
+      "max_val": 0.35,
+      "step_sizes": [
+        0.05,
+        0.1
+      ],
+      "param_type": "float",
+      "description": "Weight reduction for 2-distant same-suit on upcard decline",
+      "group": "decline"
+    },
+    {
+      "name": "CONTINUATION_MIX_ENABLED",
+      "min_val": 0,
+      "max_val": 1,
+      "step_sizes": [
+        1
+      ],
+      "param_type": "bool",
+      "description": "Enable/disable mixed continuation policy blend",
+      "group": "continuation"
+    },
+    {
+      "name": "CONTINUATION_CHAMPION_WEIGHT",
+      "min_val": 0.5,
+      "max_val": 1.0,
+      "step_sizes": [
+        0.05,
+        0.1
+      ],
+      "param_type": "float",
+      "description": "Champion policy weight in mixed continuation",
+      "group": "continuation"
+    },
+    {
+      "name": "STOCK_DW_PRIOR_ENABLED",
+      "min_val": 0,
+      "max_val": 1,
+      "step_sizes": [
+        1
+      ],
+      "param_type": "bool",
+      "description": "Enable/disable stock-size deadwood prior",
+      "group": "prior"
+    },
+    {
+      "name": "STOCK_DW_PRIOR_STD",
+      "min_val": 1.5,
+      "max_val": 6.0,
+      "step_sizes": [
+        0.5,
+        1.0
+      ],
+      "param_type": "float",
+      "description": "Gaussian kernel spread for deadwood prior",
+      "group": "prior"
+    },
+    {
+      "name": "CALIBRATION_MAX_WORLDS",
+      "min_val": 50,
+      "max_val": 200,
+      "step_sizes": [
+        25,
+        50
+      ],
+      "param_type": "int",
+      "description": "Max worlds for threshold calibration",
+      "group": "calibration"
+    },
+    {
+      "name": "CFR_BUDGET_FRACTION",
+      "min_val": 0.0,
+      "max_val": 0.25,
+      "step_sizes": [
+        0.05
+      ],
+      "param_type": "float",
+      "description": "Fraction of time budget allocated to CFR prior",
+      "group": "blend"
+    },
+    {
+      "name": "CALIBRATION_FRACTION",
+      "min_val": 0.05,
+      "max_val": 0.3,
+      "step_sizes": [
+        0.05
+      ],
+      "param_type": "float",
+      "description": "Fraction of training data for threshold calibration",
+      "group": "calibration"
+    },
+    {
+      "name": "WORLD_GEN_OVERSAMPLE",
+      "min_val": 1,
+      "max_val": 4,
+      "step_sizes": [
+        1
+      ],
+      "param_type": "int",
+      "description": "Oversample factor for world generation",
+      "group": "sampling"
+    }
+  ],
+  "train_py_content": "\"\"\"\nAgent-editable Oracle candidate.\n\nEverything in this file is fair game: abstraction, training schedule,\nsampling choices, thresholding, regularization, and scoring heuristics.\n\nprepare.py is fixed. program.md is human-authored.\n\nPhase 76: Oracle Calibration Integrity Repair.\nCorrects two calibration plumbing bugs from Phase 75:\n  1. calibrate_threshold_on_training now uses the Phase 75 model path\n     (predict_knock_probability_incremental_p75) instead of the legacy predictor,\n     so calibration and eval are model-consistent.\n  2. Adaptive calibration world-count is no longer clamped back to N_WORLDS_BASE.\n     An explicit, documented cap at CALIBRATION_MAX_WORLDS is used instead.\n\nRetains Phase 75 opponent-model improvements:\n  - Upcard decline signal\n  - Stock-size-aware deadwood prior\n  - Mixed continuation policy blend\n  - Trace-confidence-scaled risk adjustments\n\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nimport math\nimport os\nimport random\nimport time\nfrom collections import defaultdict\nfrom dataclasses import dataclass\nfrom typing import Any, Dict, List, Optional, Tuple\n\nfrom prepare import (\n    ARTIFACT_DIR,\n    SpotRecord,\n    evaluate_probabilities,\n    load_eval_spots,\n    load_manifest,\n    load_train_spots,\n    prepare_lab,\n)\n\ntry:\n    from gin_rummy.endgame_solver import PublicState, evaluate_knock_now\n    from gin_rummy.solver_v2 import (\n        CONTINUATION_CHAMPION, CONTINUATION_GREEDY,\n        simulate_continuation_policy,\n    )\n    from gin_rummy.belief_world_generator import generate_belief_weighted_worlds\n    from gin_rummy.opponent_model import OpponentModel\n    from gin_rummy.card import rank, suit, make_card, NUM_CARDS\nexcept ModuleNotFoundError:\n    import sys\n\n    ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))\n    sys.path.insert(0, ROOT_DIR)\n    from gin_rummy.endgame_solver import PublicState, evaluate_knock_now\n    from gin_rummy.solver_v2 import (\n        CONTINUATION_CHAMPION, CONTINUATION_GREEDY,\n        simulate_continuation_policy,\n    )\n    from gin_rummy.belief_world_generator import generate_belief_weighted_worlds\n    from gin_rummy.opponent_model import OpponentModel\n    from gin_rummy.card import rank, suit, make_card, NUM_CARDS\n\n\nACTIONS = (\"knock\", \"continue\")\nACTION_KNOCK = 0\nACTION_CONTINUE = 1\nN_ACTIONS = 2\n\n# \u2500\u2500 Experiment knobs \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nTRAIN_TIME_BUDGET_SEC = 300.0\nPROGRESS_EVERY_SEC = 30.0\n\n# For the direct approach: base worlds per spot (adaptive scaling may increase)\nN_WORLDS_BASE = 50\nVALUE_NORMALIZER = 50.0\n\n# Precommitted knock threshold (calibration may update this)\nKNOCK_THRESHOLD = 0.55\n\n# Risk adjustments applied to knock payoff\nKNOCK_RISK_PENALTY_BASE = 0.05   # base undercut penalty\nDW_RISK_SCALE = 0.012            # per-deadwood-point penalty\nGIN_BONUS = 0.04                 # bonus for gin hands\n\n# Phase 75: Trace-informed confidence scaling for risk adjustments\n# More trace events \u2192 more confident in our world model \u2192 less risk penalty needed\nTRACE_CONFIDENCE_FLOOR = 0.6     # minimum risk multiplier (when trace is rich)\nTRACE_CONFIDENCE_DECAY = 0.08    # how much each trace event reduces risk multiplier\n\n# Phase 75: Deadwood prior \u2014 stock-size-based expected opponent deadwood\n# In late game (low stock), surviving opponents likely have organized hands\n# These are heuristic priors, NOT tuned on eval set\nSTOCK_DW_PRIOR_ENABLED = True\nSTOCK_DW_PRIOR = {\n    2: 4.0,   # Very late game: opponent likely has ~4 DW\n    3: 5.0,\n    4: 6.0,\n    5: 7.5,\n    6: 9.0,\n}\nSTOCK_DW_PRIOR_STD = 3.5  # Gaussian kernel spread (intentionally soft)\n\n# Phase 75: Mixed continuation policy\n# Blend champion + greedy continuation to hedge against policy model error\nCONTINUATION_MIX_ENABLED = True\nCONTINUATION_CHAMPION_WEIGHT = 0.80  # 80% champion, 20% greedy\nCONTINUATION_GREEDY_WEIGHT = 0.20\n\n# Threshold candidates for calibration (on TRAINING data only)\n# Phase 76: added denser coverage around 0.48-0.53 range per directive\nTHRESHOLD_CANDIDATES = [0.40, 0.45, 0.48, 0.50, 0.52, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80]\n\n# Phase 76: Explicit calibration world-count cap (honest, documented)\n# Adaptive logic may compute more, but we cap here to stay within budget.\n# This replaces the silent min(cal_n_worlds, N_WORLDS_BASE) clamp from Phase 75.\nCALIBRATION_MAX_WORLDS = 150\n\n# CFR component for \"policy prior\"\nUSE_CFR_PRIOR = True\nCFR_BUDGET_FRACTION = 0.10  # Phase 74: reduced from 20% to 10%\nN_WORLDS_TRAIN = 15\nREGRET_CLIP = 4.0\n\n# Info-set buckets for CFR prior\nSTOCK_BUCKETS = (2, 4, 6)\nSCORE_DIFF_BUCKETS = (-30, -10, 10, 30)\nDISCARD_BUCKETS = (5, 12, 20)\nTURN_BUCKETS = (4, 8, 12, 16)\nHERO_DW_BUCKETS = (0, 2, 5, 7, 9)\nOPP_PICKUP_BUCKETS = (0, 1, 2, 4)\nOPP_DISCARD_BUCKETS = (0, 2, 5, 8)\nDECLINE_BUCKETS = (0, 2, 5, 8)\nTRACE_BUCKETS = (0, 2, 4)\n\n# Blend weight: how much to trust direct eval vs CFR prior\n# 0 = pure CFR, 1 = pure direct eval\nDIRECT_EVAL_WEIGHT = 0.90\n\n# Calibration split: fraction of training data used for threshold calibration\nCALIBRATION_FRACTION = 0.15\nCALIBRATION_SEED = 73\n\n# Phase 74: Early-exit confidence for incremental EV estimation\nEARLY_EXIT_MIN_WORLDS = 20\nEARLY_EXIT_CONFIDENCE_THRESHOLD = 2.5\n\n# World generation oversample factor\nWORLD_GEN_OVERSAMPLE = 2\n\n# Phase 75: Upcard decline weight reduction parameters\nDECLINE_SAME_RANK_REDUCE = 0.35    # Declined a card \u2192 less likely to need same rank\nDECLINE_ADJ_SUIT_REDUCE = 0.30     # Less likely to need adjacent same-suit cards\nDECLINE_FAR_SUIT_REDUCE = 0.15     # Weaker signal for 2-distant same suit\n\n\ndef bucketize(value: int, boundaries: Tuple[int, ...]) -> int:\n    for idx, boundary in enumerate(boundaries):\n        if value <= boundary:\n            return idx\n    return len(boundaries)\n\n\ndef compute_candidate_info_set(spot: SpotRecord) -> tuple:\n    score_diff = spot.my_score - spot.opp_score\n    trace_intensity = (\n        len(spot.known_opponent_pickups) * 2\n        + len(spot.known_opponent_discards)\n        + len(spot.upcard_declines)\n    )\n    gin_live = 1 if (spot.hero_deadwood <= 1 and spot.hero_dw_card_count == 1) else 0\n\n    return (\n        bucketize(spot.stock_size, STOCK_BUCKETS),\n        bucketize(score_diff, SCORE_DIFF_BUCKETS),\n        bucketize(spot.discard_pile_size, DISCARD_BUCKETS),\n        bucketize(spot.turn_number, TURN_BUCKETS),\n        bucketize(spot.hero_deadwood, HERO_DW_BUCKETS),\n        min(spot.hero_meld_count, 4),\n        min(spot.hero_dw_card_count, 4),\n        gin_live,\n        bucketize(len(spot.known_opponent_pickups), OPP_PICKUP_BUCKETS),\n        bucketize(len(spot.known_opponent_discards), OPP_DISCARD_BUCKETS),\n        bucketize(len(spot.upcard_declines), DECLINE_BUCKETS),\n        bucketize(trace_intensity, TRACE_BUCKETS),\n    )\n\n\n@dataclass\nclass CandidateStats:\n    iterations: int\n    elapsed_seconds: float\n    info_sets: int\n    iterations_per_sec: float\n    exploitability_proxy: float\n    mean_knock_probability: float\n    direct_eval_spots: int\n    cfr_budget_sec: float\n    eval_budget_sec: float\n    n_worlds_used: int\n    calibrated_threshold: float\n    calibration_method: str\n    time_budget_requested: float\n    time_budget_honored: bool\n\n\nclass CandidateStrategy:\n    \"\"\"Simple CFR strategy used as a prior.\"\"\"\n    def __init__(self) -> None:\n        self.regret_sum = defaultdict(lambda: [0.0] * N_ACTIONS)\n        self.strategy_sum = defaultdict(lambda: [0.0] * N_ACTIONS)\n        self.visit_count = defaultdict(int)\n\n    def get_strategy(self, info_set: tuple) -> List[float]:\n        regrets = self.regret_sum[info_set]\n        positive = [max(0.0, regret) for regret in regrets]\n        total = sum(positive)\n        if total > 0:\n            return [value / total for value in positive]\n        return [0.5, 0.5]\n\n    def get_average_strategy(self, info_set: tuple) -> List[float]:\n        sums = self.strategy_sum[info_set]\n        total = sum(sums)\n        if total > 0:\n            return [value / total for value in sums]\n        return [0.5, 0.5]\n\n    def accumulate_strategy(self, info_set: tuple, strategy: List[float]) -> None:\n        for action in range(N_ACTIONS):\n            self.strategy_sum[info_set][action] += strategy[action]\n        self.visit_count[info_set] += 1\n\n    def update_regret(self, info_set: tuple, action: int, regret: float) -> None:\n        clipped = max(-REGRET_CLIP, min(REGRET_CLIP, regret))\n        self.regret_sum[info_set][action] += clipped\n\n    def get_exploitability_proxy(self) -> float:\n        if not self.regret_sum:\n            return 1.0\n        diffs = []\n        for info_set in self.regret_sum:\n            current = self.get_strategy(info_set)\n            average = self.get_average_strategy(info_set)\n            diffs.append(sum(abs(a - b) for a, b in zip(current, average)))\n        return sum(diffs) / len(diffs) if diffs else 1.0\n\n    def mean_knock_probability(self) -> float:\n        if not self.strategy_sum:\n            return 0.5\n        values = [\n            self.get_average_strategy(info_set)[ACTION_KNOCK]\n            for info_set in self.strategy_sum\n        ]\n        return sum(values) / len(values) if values else 0.5\n\n\n# \u2500\u2500 Phase 75: Enhanced Card Weight Builder \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\ndef build_enhanced_card_weights(\n    hero_hand: List[int],\n    discard_pile: List[int],\n    known_opponent_pickups: Optional[List[int]] = None,\n    known_opponent_discards: Optional[List[int]] = None,\n    upcard_declines: Optional[List[int]] = None,\n) -> Dict[int, float]:\n    \"\"\"\n    Phase 75: Enhanced card weight builder that integrates upcard declines.\n\n    Standard OpponentModel handles pickups/discards. We add:\n    - Upcard decline signal: cards opponent declined to pick up reduce\n      likelihood of neighboring cards (opponent doesn't need that region).\n    - This directly addresses a quality gap identified in the Phase 75 audit:\n      upcard_declines data was available but never used in world generation.\n    \"\"\"\n    model = OpponentModel()\n    model.reset(hero_hand)\n\n    # Mark discard pile\n    for c in discard_pile:\n        model.set_discard(c)\n\n    # Process opponent pickup history\n    if known_opponent_pickups:\n        for c in known_opponent_pickups:\n            if known_opponent_discards and c in known_opponent_discards:\n                continue\n            model.opponent_drew_discard(c)\n\n    # Process opponent discard history\n    if known_opponent_discards:\n        for c in known_opponent_discards:\n            model.opponent_discarded(c)\n\n    # Phase 75: Process upcard declines \u2014 opponent chose not to pick these up\n    # This means they likely don't need cards in this rank/suit neighborhood\n    if upcard_declines:\n        for declined_card in upcard_declines:\n            # Don't process if card is already resolved\n            if declined_card in set(hero_hand) or declined_card in set(discard_pile):\n                continue\n            r, s = rank(declined_card), suit(declined_card)\n\n            # Reduce weight of same-rank cards (opponent doesn't want this rank set)\n            for su in range(4):\n                if su != s:\n                    c = make_card(r, su)\n                    if model.card_state[c] == 3:  # UNKNOWN\n                        model.weight[c] = max(0.1, model.weight[c] - DECLINE_SAME_RANK_REDUCE)\n\n            # Reduce weight of adjacent same-suit cards\n            for dr in [-1, 1]:\n                nr = r + dr\n                if 0 <= nr <= 12:\n                    c = make_card(nr, s)\n                    if model.card_state[c] == 3:  # UNKNOWN\n                        model.weight[c] = max(0.1, model.weight[c] - DECLINE_ADJ_SUIT_REDUCE)\n\n            # Weaker reduction for 2-distant same-suit\n            for dr in [-2, 2]:\n                nr = r + dr\n                if 0 <= nr <= 12:\n                    c = make_card(nr, s)\n                    if model.card_state[c] == 3:  # UNKNOWN\n                        model.weight[c] = max(0.1, model.weight[c] - DECLINE_FAR_SUIT_REDUCE)\n\n    # Build weight dict for all unknown cards\n    hero_set = set(hero_hand)\n    visible = set(discard_pile)\n    weights = {}\n\n    for card_id in range(NUM_CARDS):\n        if card_id in hero_set or card_id in visible:\n            continue\n        weights[card_id] = model.weight[card_id]\n\n    return weights\n\n\ndef compute_trace_confidence(spot: SpotRecord) -> float:\n    \"\"\"\n    Phase 75: Compute a trace-confidence score based on how much public\n    information we have about opponent behavior.\n\n    More trace data means our world model is better informed, so we can\n    apply less risk penalty (the worlds are more accurate).\n\n    Returns a multiplier in [TRACE_CONFIDENCE_FLOOR, 1.0]:\n      1.0 = no trace data, full risk penalty applies\n      TRACE_CONFIDENCE_FLOOR = rich trace data, reduced risk penalty\n    \"\"\"\n    n_events = (\n        len(spot.known_opponent_pickups)\n        + len(spot.known_opponent_discards)\n        + len(spot.upcard_declines)\n    )\n    return compute_trace_confidence_multiplier(\n        n_trace_events=n_events,\n        stock_size=spot.stock_size,\n        hero_deadwood=spot.hero_deadwood,\n    )\n\n\n# \u2500\u2500 Directive 109: Semantic Mutation Surface \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n#\n# These two functions are the primary targets for Gemini's\n# symbolic-evolution campaign. They encapsulate policy intelligence\n# that currently lives as simple scalar operations. An LLM can\n# propose continuous mathematical formulas, schedules, non-linear\n# logic, or asymmetric rules inside these functions without touching\n# any benchmark infrastructure.\n#\n# IMPORTANT: The initial implementations below produce behavior\n# IDENTICAL to the Phase 76 incumbent. Any experiment that changes\n# these functions must be verified by the benchmark before promotion.\n# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n\ndef compute_eval_weight(\n    hero_deadwood: int,\n    stock_size: int,\n    n_trace_events: int,\n    ev_gap: float,\n) -> float:\n    \"\"\"\n    Compute how much to trust the direct EV evaluation vs the CFR prior.\n\n    This function controls the blend between the direct belief-world\n    EV estimate and the CFR policy prior. Higher output means \"trust\n    the direct evaluation more.\"\n\n    The initial implementation returns the fixed incumbent value\n    (DIRECT_EVAL_WEIGHT = 0.90). A smarter version could vary this\n    weight based on game state \u2014 for example:\n    - Lower trust when trace data is sparse (uncertain worlds)\n    - Higher trust when EV gap is large (high-confidence decision)\n    - Different trust levels at different stock sizes or DW levels\n    - Non-linear schedules or sigmoid curves over state features\n\n    Args:\n        hero_deadwood: current hero deadwood count (0-10 when knockable)\n        stock_size: cards remaining in the stock\n        n_trace_events: number of public trace events observed\n            (pickups + discards + declines)\n        ev_gap: knock_ev - continue_ev from the current spot evaluation\n\n    Returns:\n        float in [0.0, 1.0]: weight for direct evaluation\n        (1 - weight is applied to the CFR prior)\n    \"\"\"\n    # \u2500\u2500 MUTATION TARGET \u2500\u2500\n    # Incumbent: flat constant. Gemini should explore state-dependent\n    # functions here \u2014 continuous math, schedules, or asymmetric rules.\n    return DIRECT_EVAL_WEIGHT\n\n\ndef compute_trace_confidence_multiplier(\n    n_trace_events: int,\n    stock_size: int,\n    hero_deadwood: int,\n) -> float:\n    \"\"\"\n    Compute risk-adjustment multiplier based on observation quality.\n\n    This function controls how much risk penalty (undercut penalty,\n    DW-scaled penalty) is applied to the knock payoff. A lower output\n    means \"we have good information about the opponent, so apply less\n    risk penalty.\" A higher output means \"less information, more caution.\"\n\n    The initial implementation is a simple linear decay from 1.0,\n    decreasing by TRACE_CONFIDENCE_DECAY per trace event, with floor\n    at TRACE_CONFIDENCE_FLOOR. A smarter version could:\n    - Use non-linear decay (e.g., exponential, sqrt)\n    - Weight different event types differently (pickups vs discards)\n    - Incorporate stock-size context (late-game trace is more valuable)\n    - Factor in hero_deadwood (risk matters more at high DW)\n    - Combine signals via a sigmoid or polynomial\n\n    Args:\n        n_trace_events: total public trace events (pickups + discards + declines)\n        stock_size: cards remaining in the stock\n        hero_deadwood: hero's current deadwood count\n\n    Returns:\n        float in [TRACE_CONFIDENCE_FLOOR, 1.0]: risk multiplier\n        1.0 = full risk penalty, TRACE_CONFIDENCE_FLOOR = reduced penalty\n    \"\"\"\n    # \u2500\u2500 MUTATION TARGET \u2500\u2500\n    # Exponential decay for smoother risk reduction\n    multiplier = math.exp(-TRACE_CONFIDENCE_DECAY * n_trace_events)\n    # Risk matters more at high deadwood; raise the floor for marginal knocks\n    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4))\n    return max(dynamic_floor, min(1.0, multiplier))\n\n\n# \u2500\u2500 Phase 75: Enhanced World Value Computation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\ndef compute_spot_values_p75(\n    spot: SpotRecord,\n    n_worlds: int,\n    rng: random.Random,\n) -> Tuple[float, float]:\n    \"\"\"\n    Phase 75: Compute knock and continue EV with opponent-model quality improvements.\n\n    Improvements over Phase 74:\n    1. Enhanced card weights with upcard decline signal\n    2. Stock-size-aware deadwood prior for world quality filtering\n    3. Mixed continuation policy blend (champion + greedy)\n    4. Trace-confidence-scaled risk adjustments\n    \"\"\"\n    # Phase 75: Build enhanced card weights including decline signal\n    card_weights = build_enhanced_card_weights(\n        hero_hand=list(spot.hero_hand),\n        discard_pile=list(spot.discard_pile),\n        known_opponent_pickups=spot.known_opponent_pickups,\n        known_opponent_discards=spot.known_opponent_discards,\n        upcard_declines=spot.upcard_declines,\n    )\n\n    # Phase 75: Stock-size-aware deadwood prior\n    predicted_mean_dw = None\n    if STOCK_DW_PRIOR_ENABLED and spot.stock_size in STOCK_DW_PRIOR:\n        predicted_mean_dw = STOCK_DW_PRIOR[spot.stock_size]\n\n    worlds, _weights = generate_belief_weighted_worlds(\n        hero_hand=list(spot.hero_hand),\n        discard_pile=list(spot.discard_pile),\n        stock_size=spot.stock_size,\n        n_worlds=n_worlds,\n        rng=random.Random(rng.randint(0, 2**31 - 1)),\n        card_weights=card_weights,\n        known_opponent_pickups=spot.known_opponent_pickups,\n        known_opponent_discards=spot.known_opponent_discards,\n        predicted_mean_opp_dw=predicted_mean_dw,\n        quality_weight_mode='gaussian' if predicted_mean_dw is not None else 'none',\n        oversample_factor=WORLD_GEN_OVERSAMPLE,\n    )\n\n    if not worlds:\n        return 0.0, 0.0\n\n    public_state = PublicState(\n        discard_pile=list(spot.discard_pile),\n        turn_number=spot.turn_number,\n        stock_size=spot.stock_size,\n        my_score=spot.my_score,\n        opp_score=spot.opp_score,\n    )\n\n    # Phase 75: Trace-confidence-scaled risk adjustment\n    trace_conf = compute_trace_confidence(spot)\n    dw = spot.hero_deadwood\n    if dw == 0:\n        dw_adjustment = GIN_BONUS * VALUE_NORMALIZER\n    else:\n        # Scale DW risk by trace confidence: more trace data \u2192 less penalty\n        dw_adjustment = -DW_RISK_SCALE * dw * VALUE_NORMALIZER * trace_conf\n\n    knock_total = 0.0\n    continue_total = 0.0\n\n    hero_hand_list = list(spot.hero_hand)\n\n    for world_index, (opp_hand, stock) in enumerate(worlds):\n        opp_hand_list = list(opp_hand)\n        knock_outcome = evaluate_knock_now(hero_hand_list, opp_hand_list)\n        knock_payoff = knock_outcome.hero_points - knock_outcome.opp_points\n\n        # Phase 75: Mixed continuation policy\n        if CONTINUATION_MIX_ENABLED:\n            # Champion continuation\n            champion_outcome = simulate_continuation_policy(\n                hero_hand=hero_hand_list,\n                opp_hand=opp_hand_list,\n                stock=list(stock),\n                public_state=public_state,\n                rng=random.Random(rng.randint(0, 2**31 - 1) + world_index),\n                mode=CONTINUATION_CHAMPION,\n            )\n            champion_payoff = champion_outcome.hero_points - champion_outcome.opp_points\n\n            # Greedy continuation (cheaper, different policy model)\n            greedy_outcome = simulate_continuation_policy(\n                hero_hand=hero_hand_list,\n                opp_hand=opp_hand_list,\n                stock=list(stock),\n                public_state=public_state,\n                rng=random.Random(rng.randint(0, 2**31 - 1) + world_index + 500000),\n                mode=CONTINUATION_GREEDY,\n            )\n            greedy_payoff = greedy_outcome.hero_points - greedy_outcome.opp_points\n\n            continue_payoff = (\n                CONTINUATION_CHAMPION_WEIGHT * champion_payoff\n                + CONTINUATION_GREEDY_WEIGHT * greedy_payoff\n            )\n        else:\n            continue_outcome = simulate_continuation_policy(\n                hero_hand=hero_hand_list,\n                opp_hand=opp_hand_list,\n                stock=list(stock),\n                public_state=public_state,\n                rng=random.Random(rng.randint(0, 2**31 - 1) + world_index),\n                mode=CONTINUATION_CHAMPION,\n            )\n            continue_payoff = continue_outcome.hero_points - continue_outcome.opp_points\n\n        # Apply risk adjustments to knock\n        knock_payoff += dw_adjustment\n        if knock_outcome.undercut:\n            knock_payoff -= KNOCK_RISK_PENALTY_BASE * VALUE_NORMALIZER * trace_conf\n\n        knock_total += knock_payoff\n        continue_total += continue_payoff\n\n    mean_knock = knock_total / len(worlds)\n    mean_continue = continue_total / len(worlds)\n    return (mean_knock / VALUE_NORMALIZER, mean_continue / VALUE_NORMALIZER)\n\n\ndef compute_spot_values_incremental_p75(\n    spot: SpotRecord,\n    n_worlds: int,\n    rng: random.Random,\n) -> Tuple[float, float, int]:\n    \"\"\"\n    Phase 75: Compute knock and continue EV with early-exit optimization\n    AND opponent-model quality improvements.\n\n    Returns (knock_ev, continue_ev, worlds_actually_used).\n    \"\"\"\n    # Phase 75: Enhanced card weights with decline signal\n    card_weights = build_enhanced_card_weights(\n        hero_hand=list(spot.hero_hand),\n        discard_pile=list(spot.discard_pile),\n        known_opponent_pickups=spot.known_opponent_pickups,\n        known_opponent_discards=spot.known_opponent_discards,\n        upcard_declines=spot.upcard_declines,\n    )\n\n    # Phase 75: Stock-size-aware deadwood prior\n    predicted_mean_dw = None\n    if STOCK_DW_PRIOR_ENABLED and spot.stock_size in STOCK_DW_PRIOR:\n        predicted_mean_dw = STOCK_DW_PRIOR[spot.stock_size]\n\n    worlds, _weights = generate_belief_weighted_worlds(\n        hero_hand=list(spot.hero_hand),\n        discard_pile=list(spot.discard_pile),\n        stock_size=spot.stock_size,\n        n_worlds=n_worlds,\n        rng=random.Random(rng.randint(0, 2**31 - 1)),\n        card_weights=card_weights,\n        known_opponent_pickups=spot.known_opponent_pickups,\n        known_opponent_discards=spot.known_opponent_discards,\n        predicted_mean_opp_dw=predicted_mean_dw,\n        quality_weight_mode='gaussian' if predicted_mean_dw is not None else 'none',\n        oversample_factor=WORLD_GEN_OVERSAMPLE,\n    )\n\n    if not worlds:\n        return 0.0, 0.0, 0\n\n    # Pre-compute shared objects once per spot\n    hero_hand_list = list(spot.hero_hand)\n    public_state = PublicState(\n        discard_pile=list(spot.discard_pile),\n        turn_number=spot.turn_number,\n        stock_size=spot.stock_size,\n        my_score=spot.my_score,\n        opp_score=spot.opp_score,\n    )\n\n    # Phase 75: Trace-confidence-scaled risk adjustment\n    trace_conf = compute_trace_confidence(spot)\n    dw = spot.hero_deadwood\n    if dw == 0:\n        dw_adjustment = GIN_BONUS * VALUE_NORMALIZER\n    else:\n        dw_adjustment = -DW_RISK_SCALE * dw * VALUE_NORMALIZER * trace_conf\n\n    knock_total = 0.0\n    continue_total = 0.0\n    gap_values = []\n    worlds_used = 0\n\n    for world_index, (opp_hand, stock) in enumerate(worlds):\n        opp_hand_list = list(opp_hand)\n        knock_outcome = evaluate_knock_now(hero_hand_list, opp_hand_list)\n        knock_payoff = knock_outcome.hero_points - knock_outcome.opp_points\n\n        # Phase 75: Mixed continuation policy\n        if CONTINUATION_MIX_ENABLED:\n            champion_outcome = simulate_continuation_policy(\n                hero_hand=hero_hand_list,\n                opp_hand=opp_hand_list,\n                stock=list(stock),\n                public_state=public_state,\n                rng=random.Random(rng.randint(0, 2**31 - 1) + world_index),\n                mode=CONTINUATION_CHAMPION,\n            )\n            champion_payoff = champion_outcome.hero_points - champion_outcome.opp_points\n\n            greedy_outcome = simulate_continuation_policy(\n                hero_hand=hero_hand_list,\n                opp_hand=opp_hand_list,\n                stock=list(stock),\n                public_state=public_state,\n                rng=random.Random(rng.randint(0, 2**31 - 1) + world_index + 500000),\n                mode=CONTINUATION_GREEDY,\n            )\n            greedy_payoff = greedy_outcome.hero_points - greedy_outcome.opp_points\n\n            continue_payoff = (\n                CONTINUATION_CHAMPION_WEIGHT * champion_payoff\n                + CONTINUATION_GREEDY_WEIGHT * greedy_payoff\n            )\n        else:\n            continue_outcome = simulate_continuation_policy(\n                hero_hand=hero_hand_list,\n                opp_hand=opp_hand_list,\n                stock=list(stock),\n                public_state=public_state,\n                rng=random.Random(rng.randint(0, 2**31 - 1) + world_index),\n                mode=CONTINUATION_CHAMPION,\n            )\n            continue_payoff = continue_outcome.hero_points - continue_outcome.opp_points\n\n        # Apply risk adjustments to knock\n        knock_payoff += dw_adjustment\n        if knock_outcome.undercut:\n            knock_payoff -= KNOCK_RISK_PENALTY_BASE * VALUE_NORMALIZER * trace_conf\n\n        knock_total += knock_payoff\n        continue_total += continue_payoff\n        worlds_used += 1\n\n        # Track per-world gap for early-exit\n        gap_values.append(knock_payoff - continue_payoff)\n\n        # Early-exit check after minimum worlds\n        if worlds_used >= EARLY_EXIT_MIN_WORLDS and worlds_used < len(worlds):\n            n = worlds_used\n            mean_gap = sum(gap_values) / n\n            if n >= 3:\n                variance = sum((g - mean_gap) ** 2 for g in gap_values) / (n - 1)\n                if variance > 0:\n                    stderr = (variance / n) ** 0.5\n                    t_stat = abs(mean_gap) / stderr\n                    if t_stat >= EARLY_EXIT_CONFIDENCE_THRESHOLD:\n                        break\n\n    mean_knock = knock_total / worlds_used\n    mean_continue = continue_total / worlds_used\n    return (mean_knock / VALUE_NORMALIZER, mean_continue / VALUE_NORMALIZER, worlds_used)\n\n\n# \u2500\u2500 Legacy compute_spot_values (used in CFR training) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\ndef compute_spot_values(\n    spot: SpotRecord,\n    n_worlds: int,\n    rng: random.Random,\n) -> Tuple[float, float]:\n    \"\"\"Compute knock and continue EV for a spot using world sampling (legacy path for CFR).\"\"\"\n    worlds, _weights = generate_belief_weighted_worlds(\n        hero_hand=list(spot.hero_hand),\n        discard_pile=list(spot.discard_pile),\n        stock_size=spot.stock_size,\n        n_worlds=n_worlds,\n        rng=random.Random(rng.randint(0, 2**31 - 1)),\n        known_opponent_pickups=spot.known_opponent_pickups,\n        known_opponent_discards=spot.known_opponent_discards,\n        oversample_factor=WORLD_GEN_OVERSAMPLE,\n    )\n\n    if not worlds:\n        return 0.0, 0.0\n\n    public_state = PublicState(\n        discard_pile=list(spot.discard_pile),\n        turn_number=spot.turn_number,\n        stock_size=spot.stock_size,\n        my_score=spot.my_score,\n        opp_score=spot.opp_score,\n    )\n\n    knock_total = 0.0\n    continue_total = 0.0\n\n    for world_index, (opp_hand, stock) in enumerate(worlds):\n        knock_outcome = evaluate_knock_now(list(spot.hero_hand), list(opp_hand))\n        knock_payoff = knock_outcome.hero_points - knock_outcome.opp_points\n\n        continue_outcome = simulate_continuation_policy(\n            hero_hand=list(spot.hero_hand),\n            opp_hand=list(opp_hand),\n            stock=list(stock),\n            public_state=public_state,\n            rng=random.Random(rng.randint(0, 2**31 - 1) + world_index),\n            mode=CONTINUATION_CHAMPION,\n        )\n        continue_payoff = continue_outcome.hero_points - continue_outcome.opp_points\n\n        # Graduated deadwood risk\n        dw = spot.hero_deadwood\n        if dw == 0:\n            knock_payoff += GIN_BONUS * VALUE_NORMALIZER\n        else:\n            knock_payoff -= DW_RISK_SCALE * dw * VALUE_NORMALIZER\n\n        # Undercut penalty\n        if knock_outcome.undercut:\n            knock_payoff -= KNOCK_RISK_PENALTY_BASE * VALUE_NORMALIZER\n\n        knock_total += knock_payoff\n        continue_total += continue_payoff\n\n    mean_knock = knock_total / len(worlds)\n    mean_continue = continue_total / len(worlds)\n    return (mean_knock / VALUE_NORMALIZER, mean_continue / VALUE_NORMALIZER)\n\n\ndef train_cfr_prior(\n    strategy: CandidateStrategy,\n    spots: List[SpotRecord],\n    time_budget_sec: float,\n    seed: int = 71,\n) -> int:\n    \"\"\"Train a quick CFR prior on training data.\"\"\"\n    rng = random.Random(seed)\n    start = time.perf_counter()\n    iterations = 0\n\n    while time.perf_counter() - start < time_budget_sec:\n        spot = rng.choice(spots)\n        info_set = compute_candidate_info_set(spot)\n        strat = strategy.get_strategy(info_set)\n        strategy.accumulate_strategy(info_set, strat)\n\n        knock_value, continue_value = compute_spot_values(spot, N_WORLDS_TRAIN, rng)\n        expected_value = strat[ACTION_KNOCK] * knock_value + strat[ACTION_CONTINUE] * continue_value\n\n        strategy.update_regret(info_set, ACTION_KNOCK, knock_value - expected_value)\n        strategy.update_regret(info_set, ACTION_CONTINUE, continue_value - expected_value)\n\n        iterations += 1\n        if iterations % 500 == 0:\n            elapsed = time.perf_counter() - start\n            print(\n                f\"  CFR prior: t={elapsed:5.1f}s | iter={iterations:6d} | \"\n                f\"info_sets={len(strategy.regret_sum):4d} | \"\n                f\"mean_p_knock={strategy.mean_knock_probability():.4f}\"\n            )\n\n    return iterations\n\n\ndef predict_knock_probability_direct(\n    spot: SpotRecord,\n    rng: random.Random,\n    n_worlds: int,\n    strategy: CandidateStrategy = None,\n) -> float:\n    \"\"\"Compute knock probability via direct EV estimation, optionally blended with CFR prior.\"\"\"\n    # Direct evaluation with adaptive world count\n    knock_ev, continue_ev = compute_spot_values(spot, n_worlds, rng)\n\n    # Convert EV gap to a probability via sigmoid mapping\n    ev_gap = knock_ev - continue_ev\n    direct_prob = 1.0 / (1.0 + math.exp(-ev_gap * 3.0))\n\n    if strategy is not None and USE_CFR_PRIOR:\n        info_set = compute_candidate_info_set(spot)\n        cfr_prob = strategy.get_average_strategy(info_set)[ACTION_KNOCK]\n        # Directive 109: use compute_eval_weight mutation surface\n        n_trace = (\n            len(spot.known_opponent_pickups)\n            + len(spot.known_opponent_discards)\n            + len(spot.upcard_declines)\n        )\n        w = compute_eval_weight(\n            hero_deadwood=spot.hero_deadwood,\n            stock_size=spot.stock_size,\n            n_trace_events=n_trace,\n            ev_gap=ev_gap,\n        )\n        blended = w * direct_prob + (1.0 - w) * cfr_prob\n        return blended\n    else:\n        return direct_prob\n\n\ndef predict_knock_probability_incremental_p75(\n    spot: SpotRecord,\n    rng: random.Random,\n    n_worlds: int,\n    strategy: CandidateStrategy = None,\n) -> Tuple[float, int]:\n    \"\"\"\n    Phase 75: Compute knock probability with early-exit + opponent-model quality improvements.\n    Returns (probability, worlds_actually_used).\n    \"\"\"\n    knock_ev, continue_ev, worlds_used = compute_spot_values_incremental_p75(\n        spot, n_worlds, rng\n    )\n\n    ev_gap = knock_ev - continue_ev\n    direct_prob = 1.0 / (1.0 + math.exp(-ev_gap * 3.0))\n\n    if strategy is not None and USE_CFR_PRIOR:\n        info_set = compute_candidate_info_set(spot)\n        cfr_prob = strategy.get_average_strategy(info_set)[ACTION_KNOCK]\n        # Directive 109: use compute_eval_weight mutation surface\n        n_trace = (\n            len(spot.known_opponent_pickups)\n            + len(spot.known_opponent_discards)\n            + len(spot.upcard_declines)\n        )\n        w = compute_eval_weight(\n            hero_deadwood=spot.hero_deadwood,\n            stock_size=spot.stock_size,\n            n_trace_events=n_trace,\n            ev_gap=ev_gap,\n        )\n        blended = w * direct_prob + (1.0 - w) * cfr_prob\n        return blended, worlds_used\n    else:\n        return direct_prob, worlds_used\n\n\ndef calibrate_threshold_on_training(\n    strategy: CandidateStrategy,\n    calibration_spots: List[SpotRecord],\n    n_worlds: int,\n    rng: random.Random,\n    manifest: Dict,\n    use_p75_model: bool = True,\n) -> Tuple[float, Dict]:\n    \"\"\"\n    Phase 76: Select the best threshold using ONLY calibration data.\n\n    CRITICAL CHANGE from Phase 75:\n    - Calibration probabilities now come from predict_knock_probability_incremental_p75\n      (the same candidate path scored at eval time), NOT predict_knock_probability_direct.\n    - The reference EV computation also uses compute_spot_values_p75 when the P75 model\n      is enabled, for consistency.\n    \"\"\"\n    print(f\"\\n--- Calibrating threshold on {len(calibration_spots)} training spots ---\")\n    print(f\"  Phase 76: calibration predictor = {'P75 incremental' if use_p75_model else 'legacy direct'}\")\n    print(f\"  Phase 76: calibration n_worlds = {n_worlds}\")\n\n    # Compute probabilities for calibration spots using the SAME model path as eval\n    cal_probabilities = []\n    cal_worlds_used_total = 0\n    for i, spot in enumerate(calibration_spots):\n        if use_p75_model:\n            prob, worlds_used = predict_knock_probability_incremental_p75(\n                spot, rng, n_worlds, strategy=strategy\n            )\n            cal_worlds_used_total += worlds_used\n        else:\n            prob = predict_knock_probability_direct(spot, rng, n_worlds, strategy=strategy)\n            cal_worlds_used_total += n_worlds\n        cal_probabilities.append(prob)\n        if (i + 1) % 20 == 0:\n            print(f\"  Calibrated {i+1}/{len(calibration_spots)} spots\")\n\n    print(f\"  Total calibration worlds consumed: {cal_worlds_used_total}\")\n\n    # For each calibration spot, determine the ground-truth best action\n    # Phase 76: use the P75 model path for reference EV too, for consistency\n    cal_reference_entries = []\n    for spot in calibration_spots:\n        ref_rng = random.Random(rng.randint(0, 2**31 - 1))\n        if use_p75_model:\n            knock_ev_cal, continue_ev_cal = compute_spot_values_p75(\n                spot, 30, ref_rng\n            )\n        else:\n            knock_ev_cal, continue_ev_cal = compute_spot_values(\n                spot, 30, ref_rng\n            )\n        best_action = \"knock\" if knock_ev_cal >= continue_ev_cal else \"continue\"\n        cal_reference_entries.append({\n            \"best_action\": best_action,\n            \"knock_ev\": knock_ev_cal,\n            \"continue_ev\": continue_ev_cal,\n            \"ev_gap\": abs(knock_ev_cal - continue_ev_cal),\n            \"actual_outcome\": spot.outcome,\n            \"hero_deadwood\": spot.hero_deadwood,\n            \"stock_size\": spot.stock_size,\n            \"n_worlds\": 30,\n            \"v6_action\": \"continue\",\n            \"v6_error\": None,\n        })\n\n    # Sweep thresholds on calibration data\n    best_threshold = KNOCK_THRESHOLD\n    best_score = -999.0\n    sweep_detail = {}\n\n    baseline_for_cal = manifest[\"baseline\"]\n\n    for t in THRESHOLD_CANDIDATES:\n        cal_actions = [\"knock\" if p >= t else \"continue\" for p in cal_probabilities]\n\n        from prepare import score_actions, _evaluate_actions_from_entries\n        cal_metrics = _evaluate_actions_from_entries(cal_reference_entries, cal_actions)\n        cal_score_result = score_actions(cal_reference_entries, cal_actions, baseline_for_cal)\n        cal_score = cal_score_result[\"score\"]\n\n        sweep_detail[str(t)] = {\n            \"score\": round(cal_score, 4),\n            \"knock_rate\": cal_score_result[\"knock_rate\"],\n            \"accuracy\": cal_score_result[\"accuracy_vs_best\"],\n        }\n\n        print(\n            f\"  cal_threshold={t:.2f} => score={cal_score:.4f} \"\n            f\"knock_rate={cal_score_result['knock_rate']:.4f} \"\n            f\"acc={cal_score_result['accuracy_vs_best']:.4f}\"\n        )\n\n        if cal_score > best_score:\n            best_score = cal_score\n            best_threshold = t\n\n    print(f\"\\n  Calibrated threshold: {best_threshold:.2f} (cal_score={best_score:.4f})\")\n    return best_threshold, sweep_detail\n\n\ndef compute_adaptive_world_count(\n    n_spots: int,\n    remaining_time_sec: float,\n    time_per_world_spot_estimate: float,\n) -> int:\n    \"\"\"\n    Given remaining time budget, compute how many worlds per spot we can afford.\n    Minimum is N_WORLDS_BASE (50), maximum is capped at 200.\n    \"\"\"\n    if remaining_time_sec <= 0 or time_per_world_spot_estimate <= 0:\n        return N_WORLDS_BASE\n\n    total_world_spots = remaining_time_sec / time_per_world_spot_estimate\n    worlds_per_spot = int(total_world_spots / n_spots)\n\n    return max(N_WORLDS_BASE, min(worlds_per_spot, 200))\n\n\ndef build_result_payload(\n    stats: CandidateStats,\n    manifest: Dict[str, Any],\n    probabilities: List[float],\n    threshold: float,\n    train_time_budget_sec: float,\n    calibration_sweep: Dict = None,\n    eval_diagnostic_sweep: Dict = None,\n    phase75_changes: Dict = None,\n) -> Dict[str, Any]:\n    metrics = evaluate_probabilities(probabilities, threshold, manifest=manifest)\n    payload = {\n        \"config\": {\n            \"train_time_budget_sec\": train_time_budget_sec,\n            \"n_worlds_base\": N_WORLDS_BASE,\n            \"n_worlds_used\": stats.n_worlds_used,\n            \"n_worlds_train\": N_WORLDS_TRAIN,\n            \"value_normalizer\": VALUE_NORMALIZER,\n            \"knock_threshold\": threshold,\n            \"knock_risk_penalty_base\": KNOCK_RISK_PENALTY_BASE,\n            \"dw_risk_scale\": DW_RISK_SCALE,\n            \"gin_bonus\": GIN_BONUS,\n            \"regret_clip\": REGRET_CLIP,\n            \"direct_eval_weight\": DIRECT_EVAL_WEIGHT,\n            \"use_cfr_prior\": USE_CFR_PRIOR,\n            \"cfr_budget_fraction\": CFR_BUDGET_FRACTION,\n            \"cfr_budget_sec\": round(stats.cfr_budget_sec, 2),\n            \"calibration_fraction\": CALIBRATION_FRACTION,\n            \"calibration_seed\": CALIBRATION_SEED,\n            \"threshold_selection_method\": stats.calibration_method,\n            \"phase74_early_exit_min_worlds\": EARLY_EXIT_MIN_WORLDS,\n            \"phase74_early_exit_confidence\": EARLY_EXIT_CONFIDENCE_THRESHOLD,\n            # Phase 75 config\n            \"phase75_stock_dw_prior_enabled\": STOCK_DW_PRIOR_ENABLED,\n            \"phase75_stock_dw_prior_std\": STOCK_DW_PRIOR_STD,\n            \"phase75_continuation_mix_enabled\": CONTINUATION_MIX_ENABLED,\n            \"phase75_champion_weight\": CONTINUATION_CHAMPION_WEIGHT,\n            \"phase75_greedy_weight\": CONTINUATION_GREEDY_WEIGHT,\n            \"phase75_trace_confidence_floor\": TRACE_CONFIDENCE_FLOOR,\n            \"phase75_trace_confidence_decay\": TRACE_CONFIDENCE_DECAY,\n            \"phase75_decline_same_rank_reduce\": DECLINE_SAME_RANK_REDUCE,\n            \"phase75_decline_adj_suit_reduce\": DECLINE_ADJ_SUIT_REDUCE,\n        },\n        \"protocol_compliance\": {\n            \"time_budget_requested_sec\": stats.time_budget_requested,\n            \"time_budget_honored\": stats.time_budget_honored,\n            \"actual_elapsed_sec\": stats.elapsed_seconds,\n            \"cfr_phase_sec\": round(stats.cfr_budget_sec, 2),\n            \"eval_phase_sec\": round(stats.eval_budget_sec, 2),\n            \"threshold_selected_on\": \"training_calibration_slice\",\n            \"eval_set_touched_for\": \"final_scoring_only\",\n        },\n        \"training\": {\n            \"iterations\": stats.iterations,\n            \"elapsed_seconds\": stats.elapsed_seconds,\n            \"iterations_per_sec\": stats.iterations_per_sec,\n            \"info_sets\": stats.info_sets,\n            \"exploitability_proxy\": stats.exploitability_proxy,\n            \"mean_knock_probability\": stats.mean_knock_probability,\n            \"direct_eval_spots\": stats.direct_eval_spots,\n        },\n        \"baseline\": manifest[\"baseline\"],\n        \"metrics\": metrics,\n    }\n    if calibration_sweep:\n        payload[\"calibration_sweep_on_training\"] = calibration_sweep\n    if eval_diagnostic_sweep:\n        payload[\"eval_diagnostic_sweep_NOT_USED_FOR_SELECTION\"] = eval_diagnostic_sweep\n    if phase75_changes:\n        payload[\"phase75_opponent_model_changes\"] = phase75_changes\n    return payload\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser(description=\"Run one Oracle autoresearch experiment\")\n    parser.add_argument(\n        \"--time-budget\",\n        type=float,\n        default=TRAIN_TIME_BUDGET_SEC,\n        help=\"Training time budget in seconds (honored in full)\",\n    )\n    parser.add_argument(\n        \"--threshold\",\n        type=float,\n        default=None,\n        help=\"Precommitted threshold (skips calibration if set)\",\n    )\n    parser.add_argument(\n        \"--tag\",\n        type=str,\n        default=\"latest\",\n        help=\"Short label used in the output filename\",\n    )\n    parser.add_argument(\n        \"--sweep\",\n        action=\"store_true\",\n        help=\"Report eval-set sweep as diagnostic (NOT used for selection)\",\n    )\n    parser.add_argument(\n        \"--no-early-exit\",\n        action=\"store_true\",\n        help=\"Disable Phase 74 early-exit optimization (for comparison)\",\n    )\n    parser.add_argument(\n        \"--no-p75-model\",\n        action=\"store_true\",\n        help=\"Disable Phase 75 opponent-model improvements (for comparison)\",\n    )\n    args = parser.parse_args()\n\n    use_early_exit = not args.no_early_exit\n    use_p75_model = not args.no_p75_model\n\n    if not os.path.exists(ARTIFACT_DIR):\n        os.makedirs(ARTIFACT_DIR, exist_ok=True)\n\n    prepare_lab(force=False)\n    manifest = load_manifest()\n    train_spots = load_train_spots()\n    eval_spots = load_eval_spots()\n\n    # \u2500\u2500 Budget allocation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    total_budget = args.time_budget\n    cfr_budget = total_budget * CFR_BUDGET_FRACTION if USE_CFR_PRIOR else 0.0\n    remaining_after_cfr = total_budget - cfr_budget\n\n    print(\"=\" * 72)\n    print(\"ORACLE AUTORESEARCH EXPERIMENT (Phase 76: Calibration Integrity Repair)\")\n    print(\"=\" * 72)\n    print(f\"Train spots:        {len(train_spots)}\")\n    print(f\"Eval spots:         {len(eval_spots)}\")\n    print(f\"Time budget (sec):  {total_budget}\")\n    print(f\"  CFR phase:        {cfr_budget:.1f}s ({CFR_BUDGET_FRACTION*100:.0f}%)\")\n    print(f\"  Eval+cal phase:   {remaining_after_cfr:.1f}s ({(1-CFR_BUDGET_FRACTION)*100:.0f}%)\")\n    print(f\"Baseline V6 score:  {manifest['baseline']['v6_score']:.4f}\")\n    print(f\"Phase 74 best:      0.5873\")\n    print(f\"Threshold method:   {'precommitted' if args.threshold else 'calibration on training'}\")\n    print(f\"Early-exit:         {'ENABLED' if use_early_exit else 'DISABLED'}\")\n    print(f\"Phase 75 model:     {'ENABLED' if use_p75_model else 'DISABLED'}\")\n    print(f\"Calibration cap:    {CALIBRATION_MAX_WORLDS} worlds (Phase 76 explicit cap)\")\n    if use_p75_model:\n        print(f\"  Decline signal:   ENABLED\")\n        print(f\"  DW prior:         {'ENABLED' if STOCK_DW_PRIOR_ENABLED else 'DISABLED'}\")\n        print(f\"  Mixed continuation: {'ENABLED' if CONTINUATION_MIX_ENABLED else 'DISABLED'}\")\n        print(f\"  Trace confidence: floor={TRACE_CONFIDENCE_FLOOR}, decay={TRACE_CONFIDENCE_DECAY}\")\n    print(\"  Calibration uses: SAME candidate path as eval (Phase 76 fix)\")\n    print(\"=\" * 72)\n\n    overall_start = time.perf_counter()\n\n    # \u2500\u2500 Phase 1: Train CFR prior (10% of budget) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    strategy = CandidateStrategy()\n    cfr_iters = 0\n    cfr_actual_sec = 0.0\n    if USE_CFR_PRIOR:\n        print(f\"\\n--- Phase 1: Training CFR prior ({cfr_budget:.1f}s budget) ---\")\n        cfr_start = time.perf_counter()\n        cfr_iters = train_cfr_prior(strategy, train_spots, cfr_budget)\n        cfr_actual_sec = time.perf_counter() - cfr_start\n        print(f\"  CFR prior done: {cfr_iters} iters, {len(strategy.regret_sum)} info sets, {cfr_actual_sec:.1f}s\")\n\n    # \u2500\u2500 Phase 2: Calibrate threshold on training data \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    cal_rng = random.Random(CALIBRATION_SEED)\n    n_cal = max(20, int(len(train_spots) * CALIBRATION_FRACTION))\n    cal_indices = cal_rng.sample(range(len(train_spots)), min(n_cal, len(train_spots)))\n    calibration_spots = [train_spots[i] for i in cal_indices]\n\n    if cfr_iters > 0 and cfr_actual_sec > 0:\n        time_per_world_spot = cfr_actual_sec / (cfr_iters * N_WORLDS_TRAIN)\n    else:\n        time_per_world_spot = 0.015\n\n    elapsed_so_far = time.perf_counter() - overall_start\n    remaining_budget = total_budget - elapsed_so_far\n\n    cal_proportion = len(calibration_spots) / (len(calibration_spots) + len(eval_spots))\n    cal_time_budget = remaining_budget * cal_proportion\n    eval_time_budget = remaining_budget * (1 - cal_proportion)\n\n    calibration_sweep = {}\n    if args.threshold is not None:\n        calibrated_threshold = args.threshold\n        calibration_method = f\"precommitted={args.threshold}\"\n        print(f\"\\n--- Using precommitted threshold: {calibrated_threshold:.2f} ---\")\n    else:\n        cal_n_worlds = compute_adaptive_world_count(\n            n_spots=len(calibration_spots),\n            remaining_time_sec=cal_time_budget,\n            time_per_world_spot_estimate=time_per_world_spot,\n        )\n        # Phase 76 fix: use explicit documented cap instead of silently clamping to N_WORLDS_BASE\n        cal_n_worlds_capped = min(cal_n_worlds, CALIBRATION_MAX_WORLDS)\n        print(f\"\\n  Calibration world count: {cal_n_worlds_capped} \"\n              f\"(adaptive={cal_n_worlds}, cap={CALIBRATION_MAX_WORLDS}, from {cal_time_budget:.1f}s budget)\")\n\n        calibrated_threshold, calibration_sweep = calibrate_threshold_on_training(\n            strategy=strategy,\n            calibration_spots=calibration_spots,\n            n_worlds=cal_n_worlds_capped,\n            rng=random.Random(CALIBRATION_SEED + 1),\n            manifest=manifest,\n            use_p75_model=use_p75_model,\n        )\n        calibration_method = f\"training_calibration_p76_n={len(calibration_spots)}_w={cal_n_worlds_capped}\"\n\n    # \u2500\u2500 Phase 3: Multi-pass evaluation on eval spots \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    elapsed_so_far = time.perf_counter() - overall_start\n    remaining_for_eval = total_budget - elapsed_so_far\n\n    print(f\"\\n--- Phase 3: Multi-pass direct evaluation on {len(eval_spots)} eval spots ---\")\n    print(f\"  Remaining budget: {remaining_for_eval:.1f}s\")\n    print(f\"  Using calibrated threshold: {calibrated_threshold:.2f}\")\n    print(f\"  Worlds per pass: {N_WORLDS_BASE}\")\n\n    eval_start = time.perf_counter()\n    n_passes = 0\n    probability_sums = [0.0] * len(eval_spots)\n\n    total_worlds_consumed = 0\n    total_worlds_possible = 0\n    total_early_exits = 0\n\n    budget_deadline = overall_start + total_budget - 5.0\n\n    while time.perf_counter() < budget_deadline:\n        n_passes += 1\n        pass_seed = 72 + (n_passes - 1) * 1000\n        pass_rng = random.Random(pass_seed)\n        pass_early_exits = 0\n        pass_worlds_used = 0\n\n        for i, spot in enumerate(eval_spots):\n            if time.perf_counter() >= budget_deadline:\n                break\n\n            if use_early_exit and use_p75_model:\n                prob, worlds_used = predict_knock_probability_incremental_p75(\n                    spot, pass_rng, N_WORLDS_BASE, strategy=strategy\n                )\n                if worlds_used < N_WORLDS_BASE:\n                    pass_early_exits += 1\n                pass_worlds_used += worlds_used\n                total_worlds_possible += N_WORLDS_BASE\n            elif use_p75_model:\n                # P75 model without early-exit\n                knock_ev, continue_ev = compute_spot_values_p75(\n                    spot, N_WORLDS_BASE, pass_rng\n                )\n                ev_gap = knock_ev - continue_ev\n                direct_prob = 1.0 / (1.0 + math.exp(-ev_gap * 3.0))\n                if strategy is not None and USE_CFR_PRIOR:\n                    info_set = compute_candidate_info_set(spot)\n                    cfr_prob = strategy.get_average_strategy(info_set)[ACTION_KNOCK]\n                    # Directive 109: use compute_eval_weight mutation surface\n                    n_trace = (\n                        len(spot.known_opponent_pickups)\n                        + len(spot.known_opponent_discards)\n                        + len(spot.upcard_declines)\n                    )\n                    w = compute_eval_weight(\n                        hero_deadwood=spot.hero_deadwood,\n                        stock_size=spot.stock_size,\n                        n_trace_events=n_trace,\n                        ev_gap=ev_gap,\n                    )\n                    prob = w * direct_prob + (1.0 - w) * cfr_prob\n                else:\n                    prob = direct_prob\n                pass_worlds_used += N_WORLDS_BASE\n            else:\n                # Legacy path (Phase 74 baseline)\n                prob = predict_knock_probability_direct(\n                    spot, pass_rng, N_WORLDS_BASE, strategy=strategy\n                )\n                pass_worlds_used += N_WORLDS_BASE\n\n            probability_sums[i] += prob\n\n        total_worlds_consumed += pass_worlds_used\n        total_early_exits += pass_early_exits\n\n        elapsed = time.perf_counter() - overall_start\n        avg_probs = [s / n_passes for s in probability_sums]\n        mean_p = sum(avg_probs) / len(avg_probs)\n        early_exit_str = f\" early_exits={pass_early_exits}\" if use_early_exit else \"\"\n        print(\n            f\"  Pass {n_passes} complete ({elapsed:.1f}s elapsed) | \"\n            f\"mean_p_knock={mean_p:.4f} | \"\n            f\"worlds_used={pass_worlds_used}{early_exit_str}\"\n        )\n\n    # Average across all passes\n    probabilities = [s / n_passes for s in probability_sums]\n\n    eval_actual_sec = time.perf_counter() - eval_start\n    elapsed_total = time.perf_counter() - overall_start\n    total_worlds_per_spot = N_WORLDS_BASE * n_passes\n\n    effective_worlds_per_spot = total_worlds_consumed // len(eval_spots) if eval_spots else 0\n\n    print(f\"  Total passes: {n_passes} | Nominal worlds/spot: {total_worlds_per_spot}\")\n    print(f\"  Effective worlds consumed: {total_worlds_consumed}\")\n    if use_early_exit and total_worlds_possible > 0:\n        savings = (1 - total_worlds_consumed / total_worlds_possible) * 100\n        print(f\"  Early-exit savings: {savings:.1f}% of continuation budget\")\n        print(f\"  Total early exits: {total_early_exits} / {n_passes * len(eval_spots)} spot-passes\")\n\n    # Phase 75 opponent-model changes summary\n    phase75_changes = {\n        \"p75_model_enabled\": use_p75_model,\n        \"upcard_decline_signal\": use_p75_model,\n        \"stock_dw_prior\": STOCK_DW_PRIOR_ENABLED and use_p75_model,\n        \"mixed_continuation\": CONTINUATION_MIX_ENABLED and use_p75_model,\n        \"trace_confidence_scaling\": use_p75_model,\n        \"n_passes\": n_passes,\n        \"effective_worlds_per_spot\": effective_worlds_per_spot,\n        \"nominal_worlds_per_spot\": total_worlds_per_spot,\n        \"early_exit_enabled\": use_early_exit,\n        \"total_early_exits\": total_early_exits,\n        \"early_exit_savings_pct\": round(\n            (1 - total_worlds_consumed / total_worlds_possible) * 100, 1\n        ) if use_early_exit and total_worlds_possible > 0 else 0.0,\n    }\n\n    stats = CandidateStats(\n        iterations=cfr_iters,\n        elapsed_seconds=round(elapsed_total, 2),\n        info_sets=len(strategy.regret_sum),\n        iterations_per_sec=round(cfr_iters / cfr_actual_sec, 1) if cfr_actual_sec else 0.0,\n        exploitability_proxy=round(strategy.get_exploitability_proxy(), 6),\n        mean_knock_probability=round(\n            sum(probabilities) / len(probabilities) if probabilities else 0.5, 4\n        ),\n        direct_eval_spots=len(eval_spots),\n        cfr_budget_sec=cfr_actual_sec,\n        eval_budget_sec=eval_actual_sec,\n        n_worlds_used=total_worlds_per_spot,\n        calibrated_threshold=calibrated_threshold,\n        calibration_method=calibration_method,\n        time_budget_requested=total_budget,\n        time_budget_honored=(elapsed_total >= total_budget * 0.80),\n    )\n\n    # \u2500\u2500 Diagnostic eval-set sweep (NOT used for model selection) \u2500\u2500\u2500\u2500\u2500\u2500\n    eval_diagnostic_sweep = {}\n    if args.sweep:\n        print(\"\\n--- Diagnostic Eval-Set Sweep (NOT used for threshold selection) ---\")\n        for t in THRESHOLD_CANDIDATES:\n            sweep_metrics = evaluate_probabilities(probabilities, t, manifest=manifest)\n            eval_diagnostic_sweep[str(t)] = {\n                \"score\": sweep_metrics[\"score\"],\n                \"knock_rate\": sweep_metrics[\"knock_rate\"],\n                \"accuracy_vs_best\": sweep_metrics[\"accuracy_vs_best\"],\n                \"overknock_vs_v6\": sweep_metrics[\"overknock_vs_v6\"],\n                \"false_positive_rate\": sweep_metrics[\"false_positive_rate\"],\n                \"undercut_rate_when_knock\": sweep_metrics[\"undercut_rate_when_knock\"],\n                \"avg_regret_points\": sweep_metrics[\"avg_regret_points\"],\n            }\n            print(\n                f\"  threshold={t:.2f} => score={sweep_metrics['score']:.4f} \"\n                f\"knock_rate={sweep_metrics['knock_rate']:.4f} \"\n                f\"acc={sweep_metrics['accuracy_vs_best']:.4f} \"\n                f\"overknock={sweep_metrics['overknock_vs_v6']:.4f}\"\n            )\n        print(\"  (Above sweep is diagnostic only. Threshold was selected on training data.)\")\n\n    # \u2500\u2500 Final scoring with calibrated threshold \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    result = build_result_payload(\n        stats,\n        manifest,\n        probabilities,\n        calibrated_threshold,\n        total_budget,\n        calibration_sweep=calibration_sweep if calibration_sweep else None,\n        eval_diagnostic_sweep=eval_diagnostic_sweep if args.sweep else None,\n        phase75_changes=phase75_changes,\n    )\n\n    timestamp = time.strftime(\"%Y%m%d-%H%M%S\")\n    latest_path = os.path.join(ARTIFACT_DIR, \"latest_run.json\")\n    tagged_path = os.path.join(ARTIFACT_DIR, f\"{timestamp}-{args.tag}.json\")\n\n    with open(latest_path, \"w\", encoding=\"utf-8\") as handle:\n        json.dump(result, handle, indent=2)\n    with open(tagged_path, \"w\", encoding=\"utf-8\") as handle:\n        json.dump(result, handle, indent=2)\n\n    metrics = result[\"metrics\"]\n\n    # \u2500\u2500 Directive 107: Multi-Lane Benchmark \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    print()\n    print(\"=\" * 72)\n    print(\"MULTI-LANE ORACLE PROXY BENCHMARK (Directive 107)\")\n    print(\"=\" * 72)\n    try:\n        from multi_lane_benchmark import run_multi_lane_benchmark\n        ml_result = run_multi_lane_benchmark(result, eval_spots)\n        result[\"multi_lane\"] = ml_result\n        aggregate_score = ml_result[\"aggregate\"][\"aggregate_score\"]\n\n        # Re-save with multi-lane data\n        with open(latest_path, \"w\", encoding=\"utf-8\") as handle:\n            json.dump(result, handle, indent=2)\n        with open(tagged_path, \"w\", encoding=\"utf-8\") as handle:\n            json.dump(result, handle, indent=2)\n    except Exception as exc:\n        print(f\"  [MULTI-LANE] Error: {exc}\")\n        aggregate_score = metrics['score']  # fallback to knock-only\n    print(\"=\" * 72)\n\n    print()\n    print(\"=\" * 72)\n    print(\"RESULTS (Multi-Lane, Directive 107)\")\n    print(\"=\" * 72)\n    print(f\"Time budget:       {total_budget:.0f}s requested, {elapsed_total:.1f}s actual\")\n    print(f\"Budget honored:    {stats.time_budget_honored}\")\n    print(f\"CFR phase:         {cfr_actual_sec:.1f}s ({cfr_iters} iterations)\")\n    print(f\"Eval phase:        {eval_actual_sec:.1f}s ({n_passes} passes \u00d7 {N_WORLDS_BASE} = {total_worlds_per_spot} worlds/spot)\")\n    print(f\"Early-exit:        {'ENABLED' if use_early_exit else 'DISABLED'} (savings: {phase75_changes['early_exit_savings_pct']:.1f}%)\")\n    print(f\"Phase 75 model:    {'ENABLED' if use_p75_model else 'DISABLED'}\")\n    print(f\"Effective w/spot:  {effective_worlds_per_spot}\")\n    print(f\"Threshold:         {calibrated_threshold:.2f} (via {calibration_method})\")\n    print(f\"Knock lane score:  {metrics['score']:.4f}\")\n    print(f\"Aggregate score:   {aggregate_score:.4f}\")\n    print(f\"Score vs V6:       {metrics['score_delta_vs_v6']:+.4f}\")\n    print(f\"Accuracy vs best:  {metrics['accuracy_vs_best']:.4f}\")\n    print(f\"Knock rate:        {metrics['knock_rate']:.4f}\")\n    print(f\"Overknock vs V6:   {metrics['overknock_vs_v6']:.4f}\")\n    print(f\"False positive:    {metrics['false_positive_rate']:.4f}\")\n    print(f\"Undercut on knock: {metrics['undercut_rate_when_knock']:.4f}\")\n    print(f\"Avg regret points: {metrics['avg_regret_points']:.4f}\")\n    print(f\"Saved:             {tagged_path}\")\n    print(\"=\" * 72)\n\n\nif __name__ == \"__main__\":\n    main()\n"
+}

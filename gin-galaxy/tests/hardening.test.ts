@@ -11,7 +11,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { startTestServer, stopTestServer, getBaseUrl, registerUser, loginUser, makeRequest } from "./helpers.js";
-import { loadConfig } from "../server/config.js";
+import { getLiveRoomRoutingMode, loadConfig, validateAndLogConfig } from "../server/config.js";
 
 let baseUrl: string;
 
@@ -61,6 +61,23 @@ describe("Health Endpoint", () => {
     expect(res.body.environment).toBeDefined();
     expect(typeof res.body.environment).toBe("string");
   });
+
+  it("should include deployment routing metadata", async () => {
+    const res = await makeRequest("GET", "/api/health");
+    expect(res.body.deployment).toMatchObject({
+      coordinatorMode: "memory",
+      liveRoomRouting: "single_node",
+    });
+  });
+
+  it("should include coordinator identity metadata", async () => {
+    const res = await makeRequest("GET", "/api/health");
+    expect(res.body.coordinator).toMatchObject({
+      mode: "memory",
+      healthy: true,
+    });
+    expect(typeof res.body.coordinator.nodeId).toBe("string");
+  });
 });
 
 // ─── Configuration Validation ──────────────────────────────────────────
@@ -74,6 +91,7 @@ describe("Configuration Module", () => {
     expect(typeof config.databasePath).toBe("string");
     expect(config.databasePath.length).toBeGreaterThan(0);
     expect(config.trustProxy).toBe(false);
+    expect(config.coordinatorNodeId).toBeUndefined();
     expect(Array.isArray(config.allowedOrigins)).toBe(true);
   });
 
@@ -121,6 +139,22 @@ describe("Configuration Module", () => {
     }
   });
 
+  it("should report multi-node relay routing in redis mode", () => {
+    expect(getLiveRoomRoutingMode("memory")).toBe("single_node");
+    expect(getLiveRoomRoutingMode("redis")).toBe("multi_node_relay");
+  });
+
+  it("should parse coordinator node identity from environment", () => {
+    const original = process.env.COORDINATOR_NODE_ID;
+    try {
+      process.env.COORDINATOR_NODE_ID = "gin-paradise-alpha";
+      expect(loadConfig().coordinatorNodeId).toBe("gin-paradise-alpha");
+    } finally {
+      if (original !== undefined) process.env.COORDINATOR_NODE_ID = original;
+      else delete process.env.COORDINATOR_NODE_ID;
+    }
+  });
+
   it("should treat missing GEMINI_API_KEY as undefined (not crash)", () => {
     const original = process.env.GEMINI_API_KEY;
     try {
@@ -129,6 +163,39 @@ describe("Configuration Module", () => {
       expect(config.geminiApiKey).toBeUndefined();
     } finally {
       if (original !== undefined) process.env.GEMINI_API_KEY = original;
+    }
+  });
+
+  it("should allow redis coordinator mode with stable node identity", () => {
+    const originalMode = process.env.COORDINATOR_MODE;
+    const originalNodeId = process.env.COORDINATOR_NODE_ID;
+    try {
+      process.env.COORDINATOR_MODE = "redis";
+      process.env.COORDINATOR_NODE_ID = "gin-paradise-alpha";
+      expect(() => validateAndLogConfig(loadConfig())).not.toThrow();
+    } finally {
+      if (originalMode !== undefined) process.env.COORDINATOR_MODE = originalMode;
+      else delete process.env.COORDINATOR_MODE;
+      if (originalNodeId !== undefined) process.env.COORDINATOR_NODE_ID = originalNodeId;
+      else delete process.env.COORDINATOR_NODE_ID;
+    }
+  });
+
+  it("should require a stable coordinator node id when redis coordinator is enabled", () => {
+    const originalMode = process.env.COORDINATOR_MODE;
+    const originalNodeId = process.env.COORDINATOR_NODE_ID;
+    try {
+      process.env.COORDINATOR_MODE = "redis";
+      delete process.env.COORDINATOR_NODE_ID;
+      expect(() => validateAndLogConfig(loadConfig())).toThrow(/COORDINATOR_NODE_ID/);
+
+      process.env.COORDINATOR_NODE_ID = "gin-paradise-alpha";
+      expect(() => validateAndLogConfig(loadConfig())).not.toThrow();
+    } finally {
+      if (originalMode !== undefined) process.env.COORDINATOR_MODE = originalMode;
+      else delete process.env.COORDINATOR_MODE;
+      if (originalNodeId !== undefined) process.env.COORDINATOR_NODE_ID = originalNodeId;
+      else delete process.env.COORDINATOR_NODE_ID;
     }
   });
 });

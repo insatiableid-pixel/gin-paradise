@@ -1,0 +1,86 @@
+{
+  "request_id": "gcli_0109",
+  "response_id": "gcli_0109_resp",
+  "timestamp": "2026-03-29T03:15:40.868883+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Integrate pickup_pressure to decrease direct EV trust and increase risk penalty floor when opponent signals strong meld threats.",
+  "edits": {
+    "    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)": "    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence) - (0.15 * pickup_pressure)",
+    "    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress)": "    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress) + (0.15 * pickup_pressure)"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "High pickup_pressure means the opponent is actively building specific melds, making our average belief-world EV less reliable. Reducing EV weight and raising the risk floor enforces appropriate caution.",
+  "confidence": "high",
+  "agent_prompt_hash": "6a4f67f53c4c",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0109.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0109.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 30.19,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 25457
+          },
+          "tokens": {
+            "input": 15652,
+            "prompt": 15652,
+            "candidates": 351,
+            "total": 18722,
+            "cached": 0,
+            "thoughts": 2719,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 25457,
+              "tokens": {
+                "input": 15652,
+                "prompt": 15652,
+                "candidates": 351,
+                "total": 18722,
+                "cached": 0,
+                "thoughts": 2719,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Integrate pickup_pressure to decrease direct EV trust and increase risk penalty floor when opponent signals strong meld threats.\",\n  \"edits\": {\n    \"    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\": \"    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence) - (0.15 * pickup_pressure)\",\n    \"    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress)\": \"    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress) + (0.15 * pickup_pressure)\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight, compute_trace_confidence_multiplier\",\n  \"rationale\": \"High pickup_pressure means the opponent is actively building specific melds, making our average belief-world EV less reliable. Reducing EV weight and raising the risk floor enforces appropriate caution.\",\n  \"confidence\": \"high\"\n}"
+}

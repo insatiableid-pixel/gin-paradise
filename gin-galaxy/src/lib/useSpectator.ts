@@ -81,6 +81,18 @@ export function useSpectator(targetRoomId: string | null) {
             }));
             break;
 
+          case "room_handoff_required":
+            setState(prev => ({
+              ...prev,
+              phase: "error",
+              roomId: null,
+              gameView: null,
+              matchOverMessage: null,
+              spectatorCount: 0,
+              error: msg.message,
+            }));
+            break;
+
           case "error":
             setState(prev => ({
               ...prev,

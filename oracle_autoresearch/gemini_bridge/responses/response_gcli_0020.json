@@ -1,0 +1,93 @@
+{
+  "request_id": "gcli_0020",
+  "response_id": "gcli_0020_resp",
+  "timestamp": "2026-03-28T00:00:32.579172+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Reducing TRACE_CONFIDENCE_DECAY from 0.08 to 0.06 will make the model slightly more conservative about trace signals, avoiding over-confidence from trace events and reducing false positive knocks.",
+  "edits": {
+    "TRACE_CONFIDENCE_DECAY = 0.08    # how much each trace event reduces risk multiplier": "TRACE_CONFIDENCE_DECAY = 0.06    # how much each trace event reduces risk multiplier"
+  },
+  "param_names": [
+    "TRACE_CONFIDENCE_DECAY"
+  ],
+  "param_changes": {
+    "TRACE_CONFIDENCE_DECAY": {
+      "old": 0.08,
+      "new": 0.06,
+      "delta": -0.02
+    }
+  },
+  "rationale": "Prior experiments showed increasing decay to 0.12 was catastrophic, implying we might be over-trusting trace events at 0.08. A slight reduction to 0.06 should provide a more robust regularization against undercuts.",
+  "confidence": "medium",
+  "agent_prompt_hash": "e26e456e52d4",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0020.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0020.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 30.63,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 25869
+          },
+          "tokens": {
+            "input": 44066,
+            "prompt": 44066,
+            "candidates": 271,
+            "total": 47547,
+            "cached": 0,
+            "thoughts": 3210,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 25869,
+              "tokens": {
+                "input": 44066,
+                "prompt": 44066,
+                "candidates": 271,
+                "total": 47547,
+                "cached": 0,
+                "thoughts": 3210,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Reducing TRACE_CONFIDENCE_DECAY from 0.08 to 0.06 will make the model slightly more conservative about trace signals, avoiding over-confidence from trace events and reducing false positive knocks.\",\n  \"edits\": {\n    \"TRACE_CONFIDENCE_DECAY = 0.08    # how much each trace event reduces risk multiplier\": \"TRACE_CONFIDENCE_DECAY = 0.06    # how much each trace event reduces risk multiplier\"\n  },\n  \"param_names\": [\n    \"TRACE_CONFIDENCE_DECAY\"\n  ],\n  \"param_changes\": {\n    \"TRACE_CONFIDENCE_DECAY\": {\n      \"old\": 0.08,\n      \"new\": 0.06,\n      \"delta\": -0.02\n    }\n  },\n  \"rationale\": \"Prior experiments showed increasing decay to 0.12 was catastrophic, implying we might be over-trusting trace events at 0.08. A slight reduction to 0.06 should provide a more robust regularization against undercuts.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

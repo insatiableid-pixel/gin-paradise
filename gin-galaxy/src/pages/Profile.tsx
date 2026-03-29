@@ -193,7 +193,7 @@ export function Profile() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-amber-500 border-t-transparent" />
       </div>
     );
   }
@@ -231,15 +231,15 @@ export function Profile() {
       )}
 
       {/* ── Player Identity Card ── */}
-      <div className="relative overflow-hidden rounded-2xl border border-zinc-800/60 bg-gradient-to-br from-zinc-900/80 via-zinc-900/60 to-zinc-950/80 p-6 md:p-8">
+      <div className="relative overflow-hidden rounded-2xl border border-emerald-800/40 bg-gradient-to-br from-emerald-950/30 via-[#0a2e1e]/60 to-emerald-950/30 p-6 md:p-8">
         {/* Background gradient accent */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-indigo-600/10 to-transparent rounded-full blur-3xl" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-amber-500/8 to-transparent rounded-full blur-3xl" />
 
         <div className="relative flex flex-col md:flex-row gap-6 md:gap-8 items-start md:items-center">
           {/* Avatar with Frame */}
           <div className={cn(
             "w-28 h-28 rounded-full bg-gradient-to-tr flex-shrink-0 flex items-center justify-center text-4xl font-bold text-white shadow-2xl",
-            RATING_TIER_COLORS[profileUser.ratingTier.color] || "from-indigo-500 to-purple-500",
+            RATING_TIER_COLORS[profileUser.ratingTier.color] || "from-emerald-500 to-emerald-600",
             frameClass
           )}>
             {profileUser.username?.[0]?.toUpperCase()}
@@ -262,7 +262,7 @@ export function Profile() {
 
               {/* Selected Title */}
               {selectedTitleLabel && (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   {selectedTitleLabel}
                 </span>
               )}
@@ -283,19 +283,19 @@ export function Profile() {
                   value={bioText}
                   onChange={e => setBioText(e.target.value)}
                   maxLength={200}
-                  className="bg-zinc-800 border border-zinc-700 rounded px-3 py-1 text-sm text-zinc-200 w-64 focus:outline-none focus:border-indigo-500"
+                  className="bg-[#0a2e1e] border border-emerald-700/40 rounded px-3 py-1 text-sm text-emerald-100 w-64 focus:outline-none focus:border-amber-500/50"
                   placeholder="Write a short bio..."
                 />
                 <Button size="sm" onClick={() => { updateProfile({ bio: bioText }); setEditingBio(false); }}>Save</Button>
                 <Button size="sm" variant="outline" className="border-zinc-700" onClick={() => setEditingBio(false)}>Cancel</Button>
               </div>
             ) : (
-              <p className="text-zinc-400 text-sm cursor-pointer hover:text-zinc-300 transition-colors" onClick={() => setEditingBio(true)}>
+              <p className="text-emerald-300/60 text-sm cursor-pointer hover:text-emerald-200 transition-colors" onClick={() => setEditingBio(true)}>
                 {profile.bio || "Click to add a bio..."}
               </p>
             )}
 
-            <p className="text-zinc-500 text-xs">
+            <p className="text-emerald-400/50 text-xs">
               Joined {new Date(profileUser.joinedAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               {" · "}{data.achievementCount} achievement{data.achievementCount !== 1 ? "s" : ""}
               {" · "}Rank #{profileUser.globalRank} of {profileUser.totalPlayers}
@@ -303,14 +303,14 @@ export function Profile() {
 
             {/* Action Bar */}
             <div className="flex gap-2 pt-1 flex-wrap">
-              <Button variant="outline" size="sm" className="border-zinc-700 hover:border-indigo-500/50 transition-colors" onClick={() => setShowCustomize(!showCustomize)}>
+              <Button variant="outline" size="sm" className="border-emerald-700/40 hover:border-amber-500/50 transition-colors" onClick={() => setShowCustomize(!showCustomize)}>
                 <Settings className="w-3.5 h-3.5 mr-1.5" /> Customize
               </Button>
-              <Button variant="outline" size="sm" className="border-zinc-700 hover:border-indigo-500/50 transition-colors" onClick={handleShareProfile}>
+              <Button variant="outline" size="sm" className="border-emerald-700/40 hover:border-amber-500/50 transition-colors" onClick={handleShareProfile}>
                 {copiedLink ? <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 mr-1.5" />}
                 {copiedLink ? "Link Copied!" : "Share Profile"}
               </Button>
-              <Button variant="outline" size="sm" className="border-zinc-700 hover:border-amber-500/50 transition-colors" onClick={handleBackfill}>
+              <Button variant="outline" size="sm" className="border-emerald-700/40 hover:border-amber-500/50 transition-colors" onClick={handleBackfill}>
                 <Award className="w-3.5 h-3.5 mr-1.5" /> Sync Achievements
               </Button>
             </div>
@@ -318,16 +318,16 @@ export function Profile() {
 
           {/* Key Stats Cards */}
           <div className="flex gap-3 flex-shrink-0">
-            <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl px-4 py-3 text-center min-w-[80px]">
-              <div className="text-xs text-zinc-500 mb-0.5">Rating</div>
-              <div className="text-xl font-bold text-zinc-100">{profileUser.rating}</div>
+            <div className="bg-emerald-950/40 border border-emerald-800/40 rounded-xl px-4 py-3 text-center min-w-[80px]">
+              <div className="text-xs text-emerald-400/50 mb-0.5">Rating</div>
+              <div className="text-xl font-bold text-amber-50">{profileUser.rating}</div>
             </div>
-            <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl px-4 py-3 text-center min-w-[80px]">
-              <div className="text-xs text-zinc-500 mb-0.5">Rank</div>
+            <div className="bg-emerald-950/40 border border-emerald-800/40 rounded-xl px-4 py-3 text-center min-w-[80px]">
+              <div className="text-xs text-emerald-400/50 mb-0.5">Rank</div>
               <div className="text-xl font-bold text-amber-500">#{profileUser.globalRank}</div>
             </div>
-            <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl px-4 py-3 text-center min-w-[80px]">
-              <div className="text-xs text-zinc-500 mb-0.5">Win Rate</div>
+            <div className="bg-emerald-950/40 border border-emerald-800/40 rounded-xl px-4 py-3 text-center min-w-[80px]">
+              <div className="text-xs text-emerald-400/50 mb-0.5">Win Rate</div>
               <div className="text-xl font-bold text-emerald-500">{profileUser.winRate}%</div>
             </div>
           </div>
@@ -335,18 +335,18 @@ export function Profile() {
 
         {/* Prestige Customization Panel */}
         {showCustomize && (
-          <div className="mt-6 pt-6 border-t border-zinc-800/60 space-y-4 animate-in slide-in-from-top-2">
-            <h3 className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-indigo-400" />
+          <div className="mt-6 pt-6 border-t border-emerald-800/40 space-y-4 animate-in slide-in-from-top-2">
+            <h3 className="text-sm font-medium text-emerald-200 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400" />
               Customize Your Identity
             </h3>
 
             <div className="grid md:grid-cols-3 gap-4">
               {/* Title Selector */}
               <div className="space-y-2">
-                <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Title</label>
+                <label className="text-xs text-emerald-400/50 font-medium uppercase tracking-wider">Title</label>
                 <select
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#0a2e1e] border border-emerald-700/40 rounded-lg px-3 py-2 text-sm text-emerald-100 focus:outline-none focus:border-amber-500/50"
                   value={profile.selectedTitle || ""}
                   onChange={e => updateProfile({ selectedTitle: e.target.value || null })}
                   disabled={saving}
@@ -360,9 +360,9 @@ export function Profile() {
 
               {/* Badge Selector */}
               <div className="space-y-2">
-                <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Badge</label>
+                <label className="text-xs text-emerald-400/50 font-medium uppercase tracking-wider">Badge</label>
                 <select
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#0a2e1e] border border-emerald-700/40 rounded-lg px-3 py-2 text-sm text-emerald-100 focus:outline-none focus:border-amber-500/50"
                   value={profile.selectedBadge || ""}
                   onChange={e => updateProfile({ selectedBadge: e.target.value || null })}
                   disabled={saving}
@@ -376,9 +376,9 @@ export function Profile() {
 
               {/* Frame Selector */}
               <div className="space-y-2">
-                <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Frame</label>
+                <label className="text-xs text-emerald-400/50 font-medium uppercase tracking-wider">Frame</label>
                 <select
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#0a2e1e] border border-emerald-700/40 rounded-lg px-3 py-2 text-sm text-emerald-100 focus:outline-none focus:border-amber-500/50"
                   value={profile.selectedFrame || ""}
                   onChange={e => updateProfile({ selectedFrame: e.target.value || null })}
                   disabled={saving}
@@ -395,7 +395,7 @@ export function Profile() {
       </div>
 
       {/* ── Tab Nav ── */}
-      <div className="flex gap-1 border-b border-zinc-800/60 pb-px">
+      <div className="flex gap-1 border-b border-emerald-800/40 pb-px">
         {(["overview", "achievements", "prestige"] as const).map(t => (
           <button
             key={t}
@@ -403,8 +403,8 @@ export function Profile() {
             className={cn(
               "px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors",
               tab === t
-                ? "bg-zinc-800/60 text-zinc-100 border-b-2 border-indigo-500"
-                : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/30"
+                ? "bg-emerald-950/40 text-amber-50 border-b-2 border-amber-500"
+                : "text-emerald-400/50 hover:text-emerald-200 hover:bg-emerald-950/30"
             )}
           >
             {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -417,13 +417,13 @@ export function Profile() {
         <div className="space-y-6">
           {/* Season Standing Card */}
           {seasonStats && seasonStats.seasonMatches > 0 && (
-            <div className="relative overflow-hidden rounded-xl border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-zinc-900/60 to-purple-950/40 p-5">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-indigo-500/10 to-transparent rounded-full blur-2xl" />
+            <div className="relative overflow-hidden rounded-xl border border-emerald-800/40 bg-gradient-to-r from-emerald-950/40 via-[#0a2e1e]/60 to-emerald-950/30 p-5">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-500/8 to-transparent rounded-full blur-2xl" />
               <div className="relative">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-indigo-400" />
-                    <h3 className="text-lg font-semibold text-zinc-100">{seasonStats.seasonName}</h3>
+                    <Calendar className="w-5 h-5 text-emerald-400" />
+                    <h3 className="text-lg font-semibold text-amber-50">{seasonStats.seasonName}</h3>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                       Active
                     </span>
@@ -435,12 +435,12 @@ export function Profile() {
                 </div>
                 <div className="grid grid-cols-4 gap-4">
                   <div className="text-center p-3 bg-zinc-900/40 rounded-xl">
-                    <div className="text-xl font-bold text-zinc-100">{seasonStats.seasonalRating}</div>
-                    <div className="text-xs text-zinc-500">Season Rating</div>
+                    <div className="text-xl font-bold text-amber-50">{seasonStats.seasonalRating}</div>
+                    <div className="text-xs text-emerald-400/50">Season Rating</div>
                   </div>
                   <div className="text-center p-3 bg-zinc-900/40 rounded-xl">
                     <div className="text-xl font-bold text-amber-500">#{seasonStats.seasonRank}</div>
-                    <div className="text-xs text-zinc-500">Season Rank</div>
+                    <div className="text-xs text-emerald-400/50">Season Rank</div>
                   </div>
                   <div className="text-center p-3 bg-zinc-900/40 rounded-xl">
                     <div className="text-xl font-bold">
@@ -448,18 +448,18 @@ export function Profile() {
                       <span className="text-zinc-600 mx-0.5">/</span>
                       <span className="text-rose-500">{seasonStats.seasonLosses}L</span>
                     </div>
-                    <div className="text-xs text-zinc-500">Season Record</div>
+                    <div className="text-xs text-emerald-400/50">Season Record</div>
                   </div>
                   <div className="text-center p-3 bg-zinc-900/40 rounded-xl">
-                    <div className="text-xl font-bold text-zinc-100">{seasonStats.seasonMatches}</div>
-                    <div className="text-xs text-zinc-500">Season Matches</div>
+                    <div className="text-xl font-bold text-amber-50">{seasonStats.seasonMatches}</div>
+                    <div className="text-xs text-emerald-400/50">Season Matches</div>
                   </div>
                 </div>
                 {/* Progress bar */}
                 <div className="mt-4">
-                  <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-[#0a2e1e]/80 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-indigo-600 to-purple-500 rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-500"
                       style={{ width: `${Math.min(100, Math.round(((Math.ceil((seasonStats.seasonEndAt - seasonStats.seasonStartAt) / (24*60*60*1000)) - seasonStats.daysRemaining) / Math.ceil((seasonStats.seasonEndAt - seasonStats.seasonStartAt) / (24*60*60*1000))) * 100))}%` }}
                     />
                   </div>
@@ -470,40 +470,40 @@ export function Profile() {
 
           <div className="grid gap-6 md:grid-cols-3">
           {/* Match Statistics */}
-          <Card className="bg-zinc-900/40 border-zinc-800/60">
+          <Card className="bg-emerald-950/30 border-emerald-800/40">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-400 flex items-center">
-                <BarChart3 className="w-4 h-4 mr-2 text-indigo-400" />
+              <CardTitle className="text-sm font-medium text-emerald-300/60 flex items-center">
+                <BarChart3 className="w-4 h-4 mr-2 text-emerald-400" />
                 Match Statistics
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-zinc-400 text-sm">Total Matches</span>
-                <span className="font-medium text-zinc-100">{profileUser.totalMatches}</span>
+                <span className="text-emerald-300/60 text-sm">Total Matches</span>
+                <span className="font-medium text-amber-50">{profileUser.totalMatches}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-zinc-400 text-sm">Wins</span>
+                <span className="text-emerald-300/60 text-sm">Wins</span>
                 <span className="font-medium text-emerald-500">{profileUser.wins}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-zinc-400 text-sm">Losses</span>
+                <span className="text-emerald-300/60 text-sm">Losses</span>
                 <span className="font-medium text-rose-500">{profileUser.losses}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-zinc-400 text-sm">Win Rate</span>
-                <span className="font-medium text-zinc-100">{profileUser.winRate}%</span>
+                <span className="text-emerald-300/60 text-sm">Win Rate</span>
+                <span className="font-medium text-amber-50">{profileUser.winRate}%</span>
               </div>
-              <div className="h-px bg-zinc-800 my-1" />
+              <div className="h-px bg-emerald-800/30 my-1" />
               <div className="flex justify-between items-center">
-                <span className="text-zinc-400 text-sm">Current Win Streak</span>
+                <span className="text-emerald-300/60 text-sm">Current Win Streak</span>
                 <span className={cn("font-medium", profileUser.currentWinStreak >= 3 ? "text-amber-500" : "text-zinc-100")}>
                   {profileUser.currentWinStreak > 0 ? `${profileUser.currentWinStreak} 🔥` : "—"}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-zinc-400 text-sm">Recent Form (10)</span>
-                <span className="font-medium text-zinc-100">
+                <span className="text-emerald-300/60 text-sm">Recent Form (10)</span>
+                <span className="font-medium text-amber-50">
                   <span className="text-emerald-500">{recentRecord.wins}W</span>
                   {" "}
                   <span className="text-rose-500">{recentRecord.losses}L</span>
@@ -513,29 +513,29 @@ export function Profile() {
           </Card>
 
           {/* Tournament Stats */}
-          <Card className="bg-zinc-900/40 border-zinc-800/60">
+          <Card className="bg-emerald-950/30 border-emerald-800/40">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-400 flex items-center">
+              <CardTitle className="text-sm font-medium text-emerald-300/60 flex items-center">
                 <Trophy className="w-4 h-4 mr-2 text-amber-500" />
                 Tournament Record
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-zinc-400 text-sm">Tournaments Entered</span>
+                <span className="text-emerald-300/60 text-sm">Tournaments Entered</span>
                 <span className="font-medium text-zinc-100">{tournamentStats.entered}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-zinc-400 text-sm">Tournaments Won</span>
+                <span className="text-emerald-300/60 text-sm">Tournaments Won</span>
                 <span className="font-medium text-amber-500">{tournamentStats.won}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-zinc-400 text-sm">Best Finish</span>
+                <span className="text-emerald-300/60 text-sm">Best Finish</span>
                 <span className="font-medium text-zinc-100">{tournamentStats.bestFinish}</span>
               </div>
               <div className="h-px bg-zinc-800 my-1" />
               <div className="flex justify-between items-center">
-                <span className="text-zinc-400 text-sm">Engine Accuracy</span>
+                <span className="text-emerald-300/60 text-sm">Engine Accuracy</span>
                 <span className={cn(
                   "font-medium",
                   profileUser.recentAccuracy && profileUser.recentAccuracy >= 80 ? "text-emerald-500" :
@@ -548,16 +548,16 @@ export function Profile() {
           </Card>
 
           {/* Recent Achievements */}
-          <Card className="bg-zinc-900/40 border-zinc-800/60">
+          <Card className="bg-emerald-950/30 border-emerald-800/40">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-400 flex items-center">
+              <CardTitle className="text-sm font-medium text-emerald-300/60 flex items-center">
                 <Award className="w-4 h-4 mr-2 text-amber-500" />
                 Recent Achievements
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {achievements.length === 0 ? (
-                <p className="text-sm text-zinc-500">No achievements yet. Play more to unlock!</p>
+                <p className="text-sm text-emerald-400/50">No achievements yet. Play more to unlock!</p>
               ) : (
                 achievements.slice(0, 5).map(a => {
                   const def = a.definition;
@@ -574,7 +574,7 @@ export function Profile() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className={cn("text-sm font-medium truncate", colors?.text || "text-zinc-200")}>{def.name}</div>
-                        <div className="text-xs text-zinc-500">{def.description}</div>
+                        <div className="text-xs text-emerald-400/50">{def.description}</div>
                       </div>
                     </div>
                   );
@@ -582,7 +582,7 @@ export function Profile() {
               )}
               {achievements.length > 5 && (
                 <button
-                  className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                  className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
                   onClick={() => setTab("achievements")}
                 >
                   View all {achievements.length} achievements →
@@ -598,19 +598,19 @@ export function Profile() {
       {tab === "achievements" && (
         <div className="space-y-6">
           {/* Progress Bar */}
-          <Card className="bg-zinc-900/40 border-zinc-800/60">
+          <Card className="bg-emerald-950/30 border-emerald-800/40">
             <CardContent className="py-5">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-zinc-300">
+                <span className="text-sm font-medium text-emerald-200">
                   Achievement Progress
                 </span>
-                <span className="text-sm text-zinc-400">
+                <span className="text-sm text-emerald-300/60">
                   {achievements.length} / {allAchievements.length}
                 </span>
               </div>
-              <div className="h-2.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div className="h-2.5 bg-[#0a2e1e]/80 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-indigo-600 to-purple-500 rounded-full transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
                   style={{ width: `${(achievements.length / allAchievements.length) * 100}%` }}
                 />
               </div>
@@ -631,8 +631,8 @@ export function Profile() {
                   onClick={() => setExpandedCategory(expandedCategory === catKey ? null : catKey)}
                 >
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-zinc-200">{catLabel}</h3>
-                    <span className="text-xs text-zinc-500">{earnedCount}/{items.length}</span>
+                    <h3 className="text-sm font-semibold text-emerald-100">{catLabel}</h3>
+                    <span className="text-xs text-emerald-400/50">{earnedCount}/{items.length}</span>
                   </div>
                   {isExpanded ? (
                     <ChevronUp className="w-4 h-4 text-zinc-500" />
@@ -678,7 +678,7 @@ export function Profile() {
                               </p>
                             )}
                             {a.prestigeUnlock && (
-                              <p className="text-[10px] text-indigo-400 mt-0.5">
+                              <p className="text-[10px] text-amber-400 mt-0.5">
                                 Unlocks: {a.prestigeUnlock.label} ({a.prestigeUnlock.type})
                               </p>
                             )}
@@ -701,16 +701,16 @@ export function Profile() {
       {tab === "prestige" && (
         <div className="space-y-6">
           {/* Unlocked Items */}
-          <Card className="bg-zinc-900/40 border-zinc-800/60">
+          <Card className="bg-emerald-950/30 border-emerald-800/40">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-zinc-400 flex items-center">
+              <CardTitle className="text-sm font-medium text-emerald-300/60 flex items-center">
                 <Crown className="w-4 h-4 mr-2 text-amber-500" />
                 Unlocked Prestige Items ({prestige.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
               {prestige.length === 0 ? (
-                <p className="text-sm text-zinc-500">
+                <p className="text-sm text-emerald-400/50">
                   No prestige items unlocked yet. Earn achievements to unlock titles, badges, and avatar frames!
                 </p>
               ) : (
@@ -725,10 +725,10 @@ export function Profile() {
                       <div
                         key={`${p.type}-${p.key}`}
                         className={cn(
-                          "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer hover:border-indigo-500/40",
+                          "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer hover:border-amber-500/40",
                           isSelected
-                            ? "bg-indigo-500/10 border-indigo-500/40"
-                            : "bg-zinc-900/30 border-zinc-800/40"
+                            ? "bg-amber-500/10 border-amber-500/40"
+                            : "bg-emerald-950/20 border-emerald-800/30"
                         )}
                         onClick={() => {
                           if (p.type === "title") updateProfile({ selectedTitle: isSelected ? null : p.key });
@@ -738,11 +738,11 @@ export function Profile() {
                       >
                         <div className={cn(
                           "w-10 h-10 rounded-full flex items-center justify-center",
-                          p.type === "title" ? "bg-indigo-500/20" :
+                          p.type === "title" ? "bg-emerald-500/20" :
                           p.type === "badge" ? "bg-amber-500/20" :
                           "bg-cyan-500/20"
                         )}>
-                          {p.type === "title" && <Crown className="w-5 h-5 text-indigo-400" />}
+                          {p.type === "title" && <Crown className="w-5 h-5 text-emerald-400" />}
                           {p.type === "badge" && <Award className="w-5 h-5 text-amber-400" />}
                           {p.type === "frame" && <Shield className="w-5 h-5 text-cyan-400" />}
                         </div>
@@ -751,24 +751,24 @@ export function Profile() {
                             <span className="text-sm font-medium text-zinc-200">{p.label}</span>
                             <span className={cn(
                               "text-[10px] uppercase font-bold px-1.5 py-0.5 rounded",
-                              p.type === "title" ? "bg-indigo-500/20 text-indigo-400" :
+                              p.type === "title" ? "bg-emerald-500/20 text-emerald-400" :
                               p.type === "badge" ? "bg-amber-500/15 text-amber-400" :
                               "bg-cyan-500/15 text-cyan-400"
                             )}>
                               {p.type}
                             </span>
                           </div>
-                          <p className="text-xs text-zinc-500 mt-0.5">
+                          <p className="text-xs text-emerald-400/50 mt-0.5">
                             From: {ACHIEVEMENT_MAP_FROM_IDS[p.sourceAchievement] || p.sourceAchievement}
                           </p>
-                          <p className="text-[10px] text-zinc-600">
+                          <p className="text-[10px] text-emerald-500/40">
                             Unlocked {new Date(p.unlockedAt).toLocaleDateString()}
                           </p>
                         </div>
                         {isSelected && (
-                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30">
-                            <Check className="w-3 h-3 text-indigo-400" />
-                            <span className="text-[10px] text-indigo-400 font-medium">Active</span>
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
+                            <Check className="w-3 h-3 text-amber-400" />
+                            <span className="text-[10px] text-amber-400 font-medium">Active</span>
                           </div>
                         )}
                       </div>
@@ -788,10 +788,10 @@ export function Profile() {
             if (lockedPrestige.length === 0) return null;
 
             return (
-              <Card className="bg-zinc-900/40 border-zinc-800/60">
+              <Card className="bg-emerald-950/30 border-emerald-800/40">
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium text-zinc-400 flex items-center">
-                    <Target className="w-4 h-4 mr-2 text-zinc-500" />
+                  <CardTitle className="text-sm font-medium text-emerald-300/60 flex items-center">
+                    <Target className="w-4 h-4 mr-2 text-emerald-400/50" />
                     Locked Items ({lockedPrestige.length})
                   </CardTitle>
                 </CardHeader>
@@ -800,16 +800,16 @@ export function Profile() {
                     {lockedPrestige.map(p => (
                       <div
                         key={`locked-${p.type}-${p.key}`}
-                        className="flex items-center gap-3 p-3 rounded-xl border bg-zinc-900/20 border-zinc-800/30 opacity-60 grayscale"
+                        className="flex items-center gap-3 p-3 rounded-xl border bg-emerald-950/15 border-emerald-800/20 opacity-60 grayscale"
                       >
-                        <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center">
-                          {p.type === "title" && <Crown className="w-5 h-5 text-zinc-600" />}
-                          {p.type === "badge" && <Award className="w-5 h-5 text-zinc-600" />}
-                          {p.type === "frame" && <Shield className="w-5 h-5 text-zinc-600" />}
+                        <div className="w-10 h-10 rounded-full bg-emerald-950/40 flex items-center justify-center">
+                          {p.type === "title" && <Crown className="w-5 h-5 text-emerald-600" />}
+                          {p.type === "badge" && <Award className="w-5 h-5 text-emerald-600" />}
+                          {p.type === "frame" && <Shield className="w-5 h-5 text-emerald-600" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-zinc-500">{p.label}</div>
-                          <div className="text-xs text-zinc-600">{p.achievementName}: {p.achievementDesc}</div>
+                          <div className="text-sm font-medium text-emerald-400/50">{p.label}</div>
+                          <div className="text-xs text-emerald-500/40">{p.achievementName}: {p.achievementDesc}</div>
                         </div>
                       </div>
                     ))}

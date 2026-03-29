@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0072",
+  "response_id": "gcli_0072_resp",
+  "timestamp": "2026-03-28T20:38:30.928648+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Shift early-game uncertainty trust toward the CFR prior by lowering the direct EV weight baseline, while smoothing trace_confidence with an exponential curve.",
+  "edits": {
+    "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))": "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 3.0)\n    trace_confidence = 1.0 - math.exp(-n_trace_events / 6.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.25) + (0.15 * gap_confidence) + (0.20 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "The current dynamic weight has a high floor (0.75 when DIRECT_EVAL_WEIGHT is 0.90) even under pure uncertainty (0 traces, 0 EV gap). By lowering the base offset from -0.15 to -0.25 and shifting the weight to an asymptotic trace_confidence curve, we rely more on the unexploitable CFR prior in the early game, but smoothly scale back up to 1.0 direct EV trust when decisions are clear and traces are rich.",
+  "confidence": "high",
+  "agent_prompt_hash": "b1cd77a97646",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0072.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0072.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 45.54,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 40756
+          },
+          "tokens": {
+            "input": 15829,
+            "prompt": 15829,
+            "candidates": 456,
+            "total": 20290,
+            "cached": 0,
+            "thoughts": 4005,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 40756,
+              "tokens": {
+                "input": 15829,
+                "prompt": 15829,
+                "candidates": 456,
+                "total": 20290,
+                "cached": 0,
+                "thoughts": 4005,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Shift early-game uncertainty trust toward the CFR prior by lowering the direct EV weight baseline, while smoothing trace_confidence with an exponential curve.\",\n  \"edits\": {\n    \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\": \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 3.0)\\n    trace_confidence = 1.0 - math.exp(-n_trace_events / 6.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.25) + (0.15 * gap_confidence) + (0.20 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"The current dynamic weight has a high floor (0.75 when DIRECT_EVAL_WEIGHT is 0.90) even under pure uncertainty (0 traces, 0 EV gap). By lowering the base offset from -0.15 to -0.25 and shifting the weight to an asymptotic trace_confidence curve, we rely more on the unexploitable CFR prior in the early game, but smoothly scale back up to 1.0 direct EV trust when decisions are clear and traces are rich.\",\n  \"confidence\": \"high\"\n}"
+}

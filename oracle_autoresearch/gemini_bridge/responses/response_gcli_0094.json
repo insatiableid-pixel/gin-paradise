@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0094",
+  "response_id": "gcli_0094_resp",
+  "timestamp": "2026-03-29T01:40:15.576999+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Weight opponent pickups heavier than generic trace events to increase trust in the direct EV evaluation when belief worlds are highly constrained and accurate.",
+  "edits": {
+    "    trace_confidence = min(1.0, n_trace_events / 10.0)": "    trace_confidence = min(1.0, (n_trace_events + 2.0 * n_pickups) / 10.0)"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "Opponent pickups provide precise, deterministic constraints on their hand, drastically improving the quality of the belief worlds compared to generic declines or discards. Over-weighting pickups leverages this newly exposed feature to properly shift trust toward direct EV when we have strong reads.",
+  "confidence": "high",
+  "agent_prompt_hash": "4c7102306e6b",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0094.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0094.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 30.97,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 24613
+          },
+          "tokens": {
+            "input": 15875,
+            "prompt": 15875,
+            "candidates": 225,
+            "total": 18823,
+            "cached": 0,
+            "thoughts": 2723,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 24613,
+              "tokens": {
+                "input": 15875,
+                "prompt": 15875,
+                "candidates": 225,
+                "total": 18823,
+                "cached": 0,
+                "thoughts": 2723,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Weight opponent pickups heavier than generic trace events to increase trust in the direct EV evaluation when belief worlds are highly constrained and accurate.\",\n  \"edits\": {\n    \"    trace_confidence = min(1.0, n_trace_events / 10.0)\": \"    trace_confidence = min(1.0, (n_trace_events + 2.0 * n_pickups) / 10.0)\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"Opponent pickups provide precise, deterministic constraints on their hand, drastically improving the quality of the belief worlds compared to generic declines or discards. Over-weighting pickups leverages this newly exposed feature to properly shift trust toward direct EV when we have strong reads.\",\n  \"confidence\": \"high\"\n}"
+}

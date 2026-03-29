@@ -223,7 +223,7 @@ export function Dashboard() {
         }
         return (
           <section key={offer.id} id={`offer-banner-${offer.id}`}>
-            <Card className="bg-gradient-to-br from-violet-950/40 via-indigo-950/30 to-zinc-900/30 border-violet-500/30 ring-1 ring-violet-500/10 relative overflow-hidden">
+            <Card className="bg-gradient-to-br from-emerald-950/40 via-[#0a2e1e]/30 to-[#0d3828]/30 border-amber-600/30 ring-1 ring-amber-500/10 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-36 h-36 opacity-10">
                 <Gift className="w-36 h-36 text-violet-400" />
               </div>
@@ -251,7 +251,7 @@ export function Dashboard() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-violet-200/80">{offer.tagline}</p>
+                      <p className="text-sm text-emerald-200/80">{offer.tagline}</p>
                       {/* Contents */}
                       <div className="flex flex-wrap gap-3 mt-2">
                         {offer.contents.coins && (
@@ -313,14 +313,14 @@ export function Dashboard() {
 
       {/* ─── Step 2: Bankroll + Play CTA ───────────────────────────── */}
       <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="col-span-full lg:col-span-2 bg-gradient-to-br from-indigo-950/50 to-zinc-900/50 border-indigo-900/50 relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent" />
+        <Card className="col-span-full lg:col-span-2 bg-gradient-to-br from-emerald-950/50 to-[#0a2e1e]/80 border-emerald-800/40 relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-t from-[#071a12] via-transparent to-transparent" />
           <CardContent className="relative p-8 md:p-12 flex flex-col justify-center h-full space-y-6">
             <div className="space-y-2">
               <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-white">
                 Play Gin Rummy
               </h1>
-              <p className="text-lg text-indigo-200/80 max-w-md">
+              <p className="text-lg text-emerald-200/80 max-w-md">
                 Compete against players worldwide. Analyze your games. Climb the leaderboard.
               </p>
             </div>
@@ -328,10 +328,10 @@ export function Dashboard() {
             {/* Bankroll indicator */}
             {balances && (
               <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900/60 border border-zinc-800/60">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-950/60 border border-emerald-800/40">
                   <Coins className="w-4 h-4 text-amber-400" />
                   <span className="text-lg font-bold text-zinc-100">{balances.gold_coins.toLocaleString()}</span>
-                  <span className="text-xs text-zinc-500">coins</span>
+                  <span className="text-xs text-emerald-400/60">coins</span>
                 </div>
                 {highestAffordable ? (
                   <span className="text-xs text-emerald-400/80 flex items-center gap-1">
@@ -354,12 +354,12 @@ export function Dashboard() {
                 </Button>
               </Link>
               <Link to="/play">
-                <Button variant="primary" size="lg" className="w-full sm:w-auto text-lg font-semibold h-14 px-8 rounded-xl bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_40px_-10px_rgba(79,70,229,0.5)]">
+                <Button variant="primary" size="lg" className="w-full sm:w-auto text-lg font-semibold h-14 px-8 rounded-xl bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_40px_-10px_rgba(16,185,129,0.4)]">
                   <Play className="mr-2 h-5 w-5 fill-current" /> Play vs AI
                 </Button>
               </Link>
               <Link to="/play/multiplayer">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto text-lg h-14 px-8 rounded-xl border-zinc-700 hover:bg-zinc-800">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto text-lg h-14 px-8 rounded-xl border-emerald-700/50 hover:bg-emerald-900/40 text-emerald-200">
                   <Users className="mr-2 h-5 w-5" /> Play Friend
                 </Button>
               </Link>
@@ -369,9 +369,9 @@ export function Dashboard() {
 
         {/* Quick Stats */}
         <div className="space-y-6 flex flex-col">
-          <Card className="flex-1 bg-zinc-900/40 border-zinc-800/60">
+          <Card className="flex-1 bg-emerald-950/40 border-emerald-800/30">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-400 flex items-center">
+              <CardTitle className="text-sm font-medium text-emerald-300/60 flex items-center">
                 <Activity className="w-4 h-4 mr-2 text-emerald-500" />
                 Current Rating
               </CardTitle>
@@ -391,9 +391,9 @@ export function Dashboard() {
             </CardContent>
           </Card>
           
-          <Card className="flex-1 bg-zinc-900/40 border-zinc-800/60">
+          <Card className="flex-1 bg-emerald-950/40 border-emerald-800/30">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-400 flex items-center">
+              <CardTitle className="text-sm font-medium text-emerald-300/60 flex items-center">
                 <Zap className="w-4 h-4 mr-2 text-amber-500" />
                 Win Rate
               </CardTitle>
@@ -402,7 +402,7 @@ export function Dashboard() {
               <div className="text-4xl font-bold tracking-tight text-zinc-50">
                 {stats ? `${stats.winRate}%` : "—"}
               </div>
-              <p className="text-xs text-zinc-500 mt-1">
+              <p className="text-xs text-emerald-400/50 mt-1">
                 {stats ? `Over ${stats.totalMatches} match${stats.totalMatches !== 1 ? "es" : ""}` : "Play your first match!"}
               </p>
             </CardContent>
@@ -434,7 +434,7 @@ export function Dashboard() {
                     "w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold",
                     dailyData.streak.currentStreak >= 3
                       ? "bg-gradient-to-br from-amber-500 to-orange-500 text-white"
-                      : "bg-zinc-800 text-zinc-400"
+                      : "bg-zinc-800 text-emerald-300/60"
                   )}>
                     {dailyData.streak.currentStreak}
                   </div>
@@ -443,7 +443,7 @@ export function Dashboard() {
                       <Flame className="w-3.5 h-3.5 text-amber-500" />
                       Day Streak
                     </div>
-                    <div className="text-xs text-zinc-500">
+                    <div className="text-xs text-emerald-400/50">
                       Checked in ✓
                     </div>
                   </div>
@@ -462,7 +462,7 @@ export function Dashboard() {
                     <div className="text-sm font-semibold text-zinc-200">
                       {dailyData.missions.filter((m: any) => m.completed).length}/{dailyData.missions.length} Missions
                     </div>
-                    <div className="text-xs text-zinc-500">
+                    <div className="text-xs text-emerald-400/50">
                       {dailyData.missions.filter((m: any) => m.completed && !m.claimed).length > 0
                         ? "Rewards ready to claim!"
                         : "Keep playing!"}
@@ -483,7 +483,7 @@ export function Dashboard() {
                     <div className="text-sm font-semibold text-zinc-200">
                       {dailyData.totalClaimedCoins}/{dailyData.totalAvailableCoins}
                     </div>
-                    <div className="text-xs text-zinc-500">
+                    <div className="text-xs text-emerald-400/50">
                       Daily coins earned
                     </div>
                   </div>
@@ -505,7 +505,7 @@ export function Dashboard() {
                   <p className="text-sm text-zinc-300">
                     <strong className="text-amber-300">Low balance</strong> — You need at least 100 coins for staked matches.
                   </p>
-                  <p className="text-xs text-zinc-500 mt-0.5">
+                  <p className="text-xs text-emerald-400/50 mt-0.5">
                     Earn free coins daily or grab a coin package.
                   </p>
                 </div>
@@ -531,7 +531,7 @@ export function Dashboard() {
               Recent Progress
             </h2>
             <Link to="/profile">
-              <Button variant="ghost" size="sm" className="text-indigo-400 hover:text-indigo-300">
+              <Button variant="ghost" size="sm" className="text-amber-400 hover:text-amber-300">
                 View All <ArrowRight className="ml-1 w-4 h-4" />
               </Button>
             </Link>
@@ -539,20 +539,20 @@ export function Dashboard() {
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {/* Summary card */}
-            <Card className="bg-gradient-to-br from-indigo-950/40 to-zinc-900/40 border-indigo-900/40">
+            <Card className="bg-gradient-to-br from-emerald-950/40 to-[#0a2e1e]/40 border-emerald-800/40">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-zinc-400">Progress</span>
+                  <span className="text-sm font-medium text-emerald-300/60">Progress</span>
                   <Star className="w-4 h-4 text-amber-500" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-baseline justify-between">
                     <span className="text-3xl font-bold text-zinc-50">{activity.totalAchievements}</span>
-                    <span className="text-xs text-zinc-500">achievements</span>
+                    <span className="text-xs text-emerald-400/50">achievements</span>
                   </div>
                   <div className="flex items-baseline justify-between">
                     <span className="text-lg font-semibold text-amber-400">{activity.totalPrestige}</span>
-                    <span className="text-xs text-zinc-500">prestige items</span>
+                    <span className="text-xs text-emerald-400/50">prestige items</span>
                   </div>
                 </div>
               </CardContent>
@@ -562,7 +562,7 @@ export function Dashboard() {
             {activity.recentAchievements.slice(0, 5).map((ach) => (
               <Card
                 key={ach.achievementId}
-                className="bg-zinc-900/30 border-zinc-800/40 hover:bg-zinc-800/40 transition-colors group"
+                className="bg-emerald-950/30 border-emerald-800/30 hover:bg-zinc-800/40 transition-colors group"
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
@@ -583,7 +583,7 @@ export function Dashboard() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-500 leading-snug truncate">
+                      <p className="text-xs text-emerald-400/50 leading-snug truncate">
                         {ach.definition?.description || ""}
                       </p>
                       <div className="flex items-center justify-between mt-1.5">
@@ -610,29 +610,29 @@ export function Dashboard() {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold tracking-tight">Recent Matches</h2>
-          <Button variant="ghost" size="sm" className="text-indigo-400 hover:text-indigo-300">
+          <Button variant="ghost" size="sm" className="text-amber-400 hover:text-amber-300">
             View All <ArrowRight className="ml-1 w-4 h-4" />
           </Button>
         </div>
         
         <div className="grid gap-3">
           {matches.length === 0 ? (
-            <Card className="bg-zinc-900/30 border-zinc-800/40 p-6 text-center">
-              <p className="text-zinc-500">No matches played yet. <Link to="/play" className="text-indigo-400 hover:text-indigo-300">Play your first game →</Link></p>
+            <Card className="bg-emerald-950/30 border-emerald-800/30 p-6 text-center">
+              <p className="text-emerald-400/50">No matches played yet. <Link to="/play" className="text-amber-400 hover:text-amber-300">Play your first game →</Link></p>
             </Card>
           ) : (
             matches.map((match) => {
               const ratingDelta = match.is_win ? "+15" : "-10";
               return (
-                <Card key={match.id} className="bg-zinc-900/30 border-zinc-800/40 hover:bg-zinc-800/40 transition-colors cursor-pointer group">
+                <Card key={match.id} className="bg-emerald-950/30 border-emerald-800/30 hover:bg-zinc-800/40 transition-colors cursor-pointer group">
                   <div className="flex items-center justify-between p-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-zinc-400 border border-zinc-700">
+                      <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-emerald-300/60 border border-zinc-700">
                         {match.opponent_name.substring(0, 2).toUpperCase()}
                       </div>
                       <div>
                         <div className="font-medium text-zinc-200">{match.opponent_name}</div>
-                        <div className="text-xs text-zinc-500 flex items-center">
+                        <div className="text-xs text-emerald-400/50 flex items-center">
                           <Clock className="w-3 h-3 mr-1" /> {timeAgo(match.created_at)}
                         </div>
                       </div>
@@ -641,7 +641,7 @@ export function Dashboard() {
                     <div className="flex items-center gap-6">
                       <div className="text-right hidden sm:block">
                         <div className="text-sm font-medium text-zinc-300">{match.user_score} - {match.opponent_score}</div>
-                        <div className="text-xs text-zinc-500">Score</div>
+                        <div className="text-xs text-emerald-400/50">Score</div>
                       </div>
                       <div className="text-right">
                         <div className={cn("text-sm font-bold", match.is_win ? "text-emerald-500" : "text-rose-500")}>

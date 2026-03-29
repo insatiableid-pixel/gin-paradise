@@ -154,50 +154,22 @@ export const OverlappingCard: React.FC<{
 export const CardBack: React.FC<{ className?: string; mini?: boolean }> = ({ className, mini = false }) => {
   return (
     <div className={cn(
-      "rounded-xl overflow-hidden shadow-lg",
+      "rounded-xl overflow-hidden",
       className
-    )}>
+    )} style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3)' }}>
       {/* Gold card edge */}
       <div className="w-full h-full rounded-xl p-[2px]" style={{ background: 'linear-gradient(135deg, #d4a843, #b8860b, #d4a843)' }}>
-        {/* Inner burgundy field */}
+        {/* Tropical card back image */}
         <div
           className="w-full h-full rounded-[10px] relative overflow-hidden"
           style={{
-            backgroundColor: '#5c1a2f',
-            backgroundImage: [
-              'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(212,168,67,0.06) 5px, rgba(212,168,67,0.06) 6px)',
-              'repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(212,168,67,0.06) 5px, rgba(212,168,67,0.06) 6px)',
-            ].join(', '),
+            backgroundImage: 'url(/assets/card-back.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
           }}
         >
-          {/* Inner gold border frame */}
-          <div className="absolute inset-[3px] sm:inset-[4px] rounded-lg border border-[#d4a843]/40" />
-          {/* Second inner frame */}
-          <div className="absolute inset-[6px] sm:inset-[7px] rounded border border-[#d4a843]/20" />
-          
-          {/* Center branding */}
-          {!mini ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="w-6 h-[1px] bg-[#d4a843]/40 mb-1" />
-              <span className="text-[8px] sm:text-[9px] font-bold tracking-[0.2em] uppercase text-[#d4a843]/70" style={{ fontFamily: 'Georgia, serif' }}>Gin</span>
-              <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.15em] uppercase text-[#d4a843]/80 -mt-0.5" style={{ fontFamily: 'Georgia, serif' }}>Paradise</span>
-              <div className="w-6 h-[1px] bg-[#d4a843]/40 mt-1" />
-            </div>
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-2.5 h-2.5 rotate-45 border border-[#d4a843]/40 rounded-sm" />
-            </div>
-          )}
-          
-          {/* Corner diamonds */}
-          {!mini && (
-            <>
-              <div className="absolute top-[10px] left-[10px] w-2 h-2 rotate-45 border border-[#d4a843]/30" />
-              <div className="absolute top-[10px] right-[10px] w-2 h-2 rotate-45 border border-[#d4a843]/30" />
-              <div className="absolute bottom-[10px] left-[10px] w-2 h-2 rotate-45 border border-[#d4a843]/30" />
-              <div className="absolute bottom-[10px] right-[10px] w-2 h-2 rotate-45 border border-[#d4a843]/30" />
-            </>
-          )}
+          {/* Subtle inner glow for depth */}
+          <div className="absolute inset-0 rounded-[10px]" style={{ boxShadow: 'inset 0 0 6px rgba(0,0,0,0.2)' }} />
         </div>
       </div>
     </div>
@@ -248,7 +220,7 @@ export const SuitRowCard: React.FC<{
 }> = ({ suit, rank, selected, onClick, leftPx, zIdx, isMyTurn, hasDrawn, fourColor = false, meldColorCls, animationsEnabled = true }) => {
   const colorCls = getSuitColor(suit, fourColor);
   const accentColor = getSuitAccentColor(suit, fourColor);
-  const suitCardW = 88;
+  const suitCardW = 78;
 
   const reducedMotion = prefersReducedMotion();
   const shouldAnim = animationsEnabled && !reducedMotion;
@@ -256,11 +228,11 @@ export const SuitRowCard: React.FC<{
   return (
     <motion.div
       animate={shouldAnim ? {
-        y: selected ? -14 : 0,
-        scale: selected ? 1.06 : 1,
+        y: selected ? -10 : 0,
+        scale: selected ? 1.05 : 1,
         opacity: 1,
       } : {
-        y: selected ? -14 : 0,
+        y: selected ? -10 : 0,
         opacity: 1,
       }}
       whileHover={shouldAnim && isMyTurn && hasDrawn ? { y: -6, scale: 1.03 } : {}}
@@ -274,7 +246,7 @@ export const SuitRowCard: React.FC<{
         touchAction: "none",
       }}
       className={cn(
-        "h-[112px] sm:h-[124px] rounded-xl border-2 cursor-pointer select-none transition-shadow overflow-hidden",
+        "h-[88px] sm:h-[94px] rounded-xl border-2 cursor-pointer select-none transition-shadow overflow-hidden",
         selected
           ? "ring-2 ring-amber-400 shadow-[0_0_16px_rgba(245,158,11,0.4)] border-amber-300 z-50"
           : "border-zinc-300/80 shadow-sm hover:shadow-[0_2px_12px_rgba(245,158,11,0.15)]",
@@ -285,14 +257,14 @@ export const SuitRowCard: React.FC<{
       <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl" style={{ backgroundColor: accentColor }} />
       
       {/* Large rank + suit — left-aligned so always visible when overlapped */}
-      <div className={cn("absolute top-3 left-3 flex flex-col items-start leading-none", colorCls)}>
-        <span className="text-2xl font-black">{rank}</span>
-        <span className="text-lg -mt-0.5">{suit}</span>
+      <div className={cn("absolute top-2 left-2.5 flex flex-col items-start leading-none", colorCls)}>
+        <span className="text-xl font-black">{rank}</span>
+        <span className="text-base -mt-0.5">{suit}</span>
       </div>
       
       {/* Large faded suit watermark on right side — visible on exposed cards */}
-      <div className={cn("absolute bottom-2 right-2 opacity-[0.08]", colorCls)}>
-        <span className="text-5xl">{suit}</span>
+      <div className={cn("absolute bottom-1 right-1.5 opacity-[0.08]", colorCls)}>
+        <span className="text-4xl">{suit}</span>
       </div>
     </motion.div>
   );

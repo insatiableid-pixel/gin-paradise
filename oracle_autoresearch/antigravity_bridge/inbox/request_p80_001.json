@@ -1,0 +1,367 @@
+{
+  "request_id": "p80_001",
+  "timestamp": "2026-03-24T20:18:05.495824+00:00",
+  "agent_prompt": "# Oracle Autoresearch Agent Prompt\n\nYou are an autonomous Oracle research agent running inside Antigravity.\n\n## Your Mission\n\nEdit `train.py` to improve the Oracle's knock/continue decision quality on a frozen low-stock benchmark. The score to beat is the **incumbent score** recorded in `loop_state.json`.\n\n## What You Can Edit\n\n- **Only `train.py`** in the `oracle_autoresearch/` directory.\n- Do not edit `prepare.py`, the eval benchmark, or any other files.\n\n## What The Score Measures\n\nThe score rewards:\n- Matching the reference `best_action` on held-out eval spots\n- Low overknock rate relative to solver_v6\n- Low false-positive knock rate\n- Low undercut rate when choosing to knock\n- Low average EV regret\n\nHigher score is better. Current incumbent: see `loop_state.json`.\n\n## Phase 77 Ablation Findings (Your Prior)\n\nFrom the Phase 77 campaign:\n\n| Component              | Score  | Delta vs 0.5873 |\n|------------------------|--------|------------------|\n| trace_confidence_only  | 0.5719 | -0.0154 (best)   |\n| stock_dw_prior_only    | 0.5626 | -0.0247          |\n| upcard_decline_only    | 0.5545 | -0.0328          |\n| mixed_continuation_only| 0.5523 | -0.0350          |\n| phase74_baseline_repro | 0.5325 | -0.0548          |\n| full_p75_bundle        | 0.4897 | -0.0976 (worst)  |\n\n## Phase 78 Agent Search Findings (Additional Prior)\n\n| Candidate                      | Score  | Delta    | Key insight                       |\n|--------------------------------|--------|----------|-----------------------------------|\n| refine_trace_floor_0.45        | 0.5735 | -0.0138  | Floor 0.45 too aggressive         |\n| refine_trace_decay_0.12        | 0.4983 | -0.0890  | Decay 0.12 is catastrophic        |\n| disable_mixed_continuation     | 0.5876 | +0.0003  | Essentially tied, near-neutral    |\n\n**Key Implications:**\n- Trace-confidence scaling is the strongest individual P75 component\n- Trace floor 0.45 is too aggressive; current 0.6 is near-optimal\n- Trace decay is very sensitive; increasing it is catastrophic\n- Mixed continuation is nearly neutral \u2014 disabling it doesn't help enough alone\n- The incumbent at 0.5873 appears robust\n\n## How Candidates Are Generated (Phase 79)\n\nCandidates are now generated **at runtime** by `candidate_generator.py`, NOT from a static list.\n\nThe generator reads THIS file, extracts live parameter values from `train.py`, and analyzes experiment history to propose novel edits using 5 strategies:\n\n1. **Gradient-informed**: move in directions that previously scored closest to incumbent\n2. **Unexplored**: test parameters that have never been perturbed\n3. **Combination**: combine multiple near-neutral changes that might accumulate\n4. **Fine perturbation**: systematic grid search around promising parameter regions\n5. **Reversal**: try the opposite direction of changes that were harmful\n\n## Editable Parameters\n\nThe following `train.py` parameters are in the mutable research surface:\n\n| Parameter | Current | Group | Description |\n|-----------|---------|-------|-------------|\n| TRACE_CONFIDENCE_FLOOR | 0.6 | trace | Min risk multiplier |\n| TRACE_CONFIDENCE_DECAY | 0.08 | trace | Per-event risk reduction |\n| KNOCK_RISK_PENALTY_BASE | 0.05 | risk | Base undercut penalty |\n| DW_RISK_SCALE | 0.012 | risk | Per-DW-point penalty |\n| GIN_BONUS | 0.04 | risk | Bonus for gin hands |\n| EARLY_EXIT_CONFIDENCE_THRESHOLD | 2.5 | eval | T-stat for early exit |\n| EARLY_EXIT_MIN_WORLDS | 20 | eval | Min worlds before exit |\n| N_WORLDS_BASE | 50 | sampling | Base worlds per spot |\n| DIRECT_EVAL_WEIGHT | 0.70 | blend | Direct eval vs CFR blend |\n| DECLINE_SAME_RANK_REDUCE | 0.35 | decline | Same-rank weight reduction |\n| DECLINE_ADJ_SUIT_REDUCE | 0.30 | decline | Adjacent same-suit reduction |\n| DECLINE_FAR_SUIT_REDUCE | 0.15 | decline | 2-distant same-suit reduction |\n| CONTINUATION_MIX_ENABLED | True | continuation | Mixed continuation toggle |\n| CONTINUATION_CHAMPION_WEIGHT | 0.80 | continuation | Champion policy weight |\n| STOCK_DW_PRIOR_ENABLED | True | prior | DW prior toggle |\n| STOCK_DW_PRIOR_STD | 3.5 | prior | Gaussian kernel spread |\n| CALIBRATION_MAX_WORLDS | 100 | calibration | Max worlds for calibration |\n| CFR_BUDGET_FRACTION | 0.10 | blend | CFR time budget fraction |\n| CALIBRATION_FRACTION | 0.15 | calibration | Training data for calibration |\n| WORLD_GEN_OVERSAMPLE | 2 | sampling | World generation oversample |\n\n## Rules\n\n1. Each edit should be a focused, testable hypothesis\n2. Keep changes small and reviewable\n3. Do not alter the eval set or scoring formula\n4. Do not edit prepare.py\n5. Log your hypothesis clearly\n\n## Process\n\nThe `agent_loop.py` runner will:\n1. Create a CandidateGenerator that reads THIS prompt and incumbent state\n2. Generate the next candidate at runtime (not from a static list)\n3. Apply string replacement edits to train.py\n4. Benchmark the modified file as a subprocess (300s budget)\n5. Keep if it beats incumbent by margin (>= 0.005), discard if not\n6. Restore incumbent on discard\n7. Log full provenance: prompt hash, generation strategy, param changes\n8. Repeat until max experiments or queue exhaustion\n",
+  "agent_prompt_hash": "ad4b3618005c",
+  "incumbent_score": 0.5873,
+  "incumbent_params": {
+    "TRACE_CONFIDENCE_FLOOR": 0.6,
+    "TRACE_CONFIDENCE_DECAY": 0.08,
+    "KNOCK_RISK_PENALTY_BASE": 0.05,
+    "DW_RISK_SCALE": 0.012,
+    "GIN_BONUS": 0.04,
+    "EARLY_EXIT_CONFIDENCE_THRESHOLD": 2.5,
+    "EARLY_EXIT_MIN_WORLDS": 20,
+    "N_WORLDS_BASE": 50,
+    "DIRECT_EVAL_WEIGHT": 0.7,
+    "DECLINE_SAME_RANK_REDUCE": 0.35,
+    "DECLINE_ADJ_SUIT_REDUCE": 0.3,
+    "DECLINE_FAR_SUIT_REDUCE": 0.15,
+    "CONTINUATION_MIX_ENABLED": true,
+    "CONTINUATION_CHAMPION_WEIGHT": 0.8,
+    "STOCK_DW_PRIOR_ENABLED": true,
+    "STOCK_DW_PRIOR_STD": 3.5,
+    "CALIBRATION_MAX_WORLDS": 100,
+    "CFR_BUDGET_FRACTION": 0.1,
+    "CALIBRATION_FRACTION": 0.15,
+    "WORLD_GEN_OVERSAMPLE": 2
+  },
+  "experiment_history_summary": [
+    {
+      "id": 1,
+      "variant": "phase74_baseline_repro",
+      "score": 0.5325,
+      "delta": -0.0548,
+      "decision": "discard"
+    },
+    {
+      "id": 2,
+      "variant": "upcard_decline_only",
+      "score": 0.5545,
+      "delta": -0.0328,
+      "decision": "discard"
+    },
+    {
+      "id": 3,
+      "variant": "stock_dw_prior_only",
+      "score": 0.5626,
+      "delta": -0.0247,
+      "decision": "discard"
+    },
+    {
+      "id": 4,
+      "variant": "mixed_continuation_only",
+      "score": 0.5523,
+      "delta": -0.035,
+      "decision": "discard"
+    },
+    {
+      "id": 5,
+      "variant": "trace_confidence_only",
+      "score": 0.5719,
+      "delta": -0.0154,
+      "decision": "discard"
+    },
+    {
+      "id": 6,
+      "variant": "full_p75_bundle",
+      "score": 0.4897,
+      "delta": -0.0976,
+      "decision": "discard"
+    },
+    {
+      "id": 7,
+      "variant": "refine_trace_confidence_floor_045",
+      "score": 0.5735,
+      "delta": -0.0138,
+      "decision": "discard",
+      "strategy": "unknown",
+      "phase": "unknown"
+    },
+    {
+      "id": 8,
+      "variant": "refine_trace_decay_012",
+      "score": 0.4983,
+      "delta": -0.089,
+      "decision": "discard",
+      "strategy": "unknown",
+      "phase": "unknown"
+    },
+    {
+      "id": 9,
+      "variant": "disable_mixed_continuation",
+      "score": 0.5876,
+      "delta": 0.0003,
+      "decision": "discard",
+      "strategy": "unknown",
+      "phase": "unknown"
+    },
+    {
+      "id": 10,
+      "variant": "combo_decline_weaker",
+      "score": 0.4983,
+      "delta": -0.089,
+      "decision": "discard",
+      "strategy": "combination",
+      "phase": 79
+    },
+    {
+      "id": 11,
+      "variant": "gen_continuation_champion_weight_0p85",
+      "score": 0.5568,
+      "delta": -0.0305,
+      "decision": "discard",
+      "strategy": "gradient_informed",
+      "phase": 79
+    }
+  ],
+  "constraints": {
+    "editable_file": "train.py",
+    "forbidden_files": [
+      "prepare.py",
+      "program.md"
+    ],
+    "promotion_margin": 0.005,
+    "time_budget_sec": 300,
+    "edit_type": "string_replacement",
+    "edit_format": "dict of {old_text: new_text}"
+  },
+  "param_registry": [
+    {
+      "name": "TRACE_CONFIDENCE_FLOOR",
+      "min_val": 0.2,
+      "max_val": 0.9,
+      "step_sizes": [
+        0.05,
+        0.1,
+        0.15
+      ],
+      "param_type": "float",
+      "description": "Minimum risk multiplier when trace data is rich",
+      "group": "trace"
+    },
+    {
+      "name": "TRACE_CONFIDENCE_DECAY",
+      "min_val": 0.02,
+      "max_val": 0.2,
+      "step_sizes": [
+        0.02,
+        0.04
+      ],
+      "param_type": "float",
+      "description": "Per-event reduction in risk multiplier",
+      "group": "trace"
+    },
+    {
+      "name": "KNOCK_RISK_PENALTY_BASE",
+      "min_val": 0.01,
+      "max_val": 0.15,
+      "step_sizes": [
+        0.01,
+        0.02
+      ],
+      "param_type": "float",
+      "description": "Base undercut penalty on knock payoff",
+      "group": "risk"
+    },
+    {
+      "name": "DW_RISK_SCALE",
+      "min_val": 0.004,
+      "max_val": 0.025,
+      "step_sizes": [
+        0.002,
+        0.004
+      ],
+      "param_type": "float",
+      "description": "Per-deadwood-point penalty scale",
+      "group": "risk"
+    },
+    {
+      "name": "GIN_BONUS",
+      "min_val": 0.01,
+      "max_val": 0.1,
+      "step_sizes": [
+        0.01,
+        0.02
+      ],
+      "param_type": "float",
+      "description": "Bonus for gin hands",
+      "group": "risk"
+    },
+    {
+      "name": "EARLY_EXIT_CONFIDENCE_THRESHOLD",
+      "min_val": 1.5,
+      "max_val": 4.0,
+      "step_sizes": [
+        0.25,
+        0.5
+      ],
+      "param_type": "float",
+      "description": "T-stat threshold for early exit in incremental eval",
+      "group": "eval"
+    },
+    {
+      "name": "EARLY_EXIT_MIN_WORLDS",
+      "min_val": 10,
+      "max_val": 40,
+      "step_sizes": [
+        5,
+        10
+      ],
+      "param_type": "int",
+      "description": "Minimum worlds before early exit is allowed",
+      "group": "eval"
+    },
+    {
+      "name": "N_WORLDS_BASE",
+      "min_val": 30,
+      "max_val": 100,
+      "step_sizes": [
+        10,
+        20
+      ],
+      "param_type": "int",
+      "description": "Base worlds per spot for evaluation",
+      "group": "sampling"
+    },
+    {
+      "name": "DIRECT_EVAL_WEIGHT",
+      "min_val": 0.5,
+      "max_val": 1.0,
+      "step_sizes": [
+        0.05,
+        0.1
+      ],
+      "param_type": "float",
+      "description": "Blend weight: direct eval vs CFR prior",
+      "group": "blend"
+    },
+    {
+      "name": "DECLINE_SAME_RANK_REDUCE",
+      "min_val": 0.1,
+      "max_val": 0.6,
+      "step_sizes": [
+        0.05,
+        0.1
+      ],
+      "param_type": "float",
+      "description": "Weight reduction for same-rank cards on upcard decline",
+      "group": "decline"
+    },
+    {
+      "name": "DECLINE_ADJ_SUIT_REDUCE",
+      "min_val": 0.1,
+      "max_val": 0.55,
+      "step_sizes": [
+        0.05,
+        0.1
+      ],
+      "param_type": "float",
+      "description": "Weight reduction for adjacent same-suit on upcard decline",
+      "group": "decline"
+    },
+    {
+      "name": "DECLINE_FAR_SUIT_REDUCE",
+      "min_val": 0.05,
+      "max_val": 0.35,
+      "step_sizes": [
+        0.05,
+        0.1
+      ],
+      "param_type": "float",
+      "description": "Weight reduction for 2-distant same-suit on upcard decline",
+      "group": "decline"
+    },
+    {
+      "name": "CONTINUATION_MIX_ENABLED",
+      "min_val": 0,
+      "max_val": 1,
+      "step_sizes": [
+        1
+      ],
+      "param_type": "bool",
+      "description": "Enable/disable mixed continuation policy blend",
+      "group": "continuation"
+    },
+    {
+      "name": "CONTINUATION_CHAMPION_WEIGHT",
+      "min_val": 0.5,
+      "max_val": 1.0,
+      "step_sizes": [
+        0.05,
+        0.1
+      ],
+      "param_type": "float",
+      "description": "Champion policy weight in mixed continuation",
+      "group": "continuation"
+    },
+    {
+      "name": "STOCK_DW_PRIOR_ENABLED",
+      "min_val": 0,
+      "max_val": 1,
+      "step_sizes": [
+        1
+      ],
+      "param_type": "bool",
+      "description": "Enable/disable stock-size deadwood prior",
+      "group": "prior"
+    },
+    {
+      "name": "STOCK_DW_PRIOR_STD",
+      "min_val": 1.5,
+      "max_val": 6.0,
+      "step_sizes": [
+        0.5,
+        1.0
+      ],
+      "param_type": "float",
+      "description": "Gaussian kernel spread for deadwood prior",
+      "group": "prior"
+    },
+    {
+      "name": "CALIBRATION_MAX_WORLDS",
+      "min_val": 50,
+      "max_val": 200,
+      "step_sizes": [
+        25,
+        50
+      ],
+      "param_type": "int",
+      "description": "Max worlds for threshold calibration",
+      "group": "calibration"
+    },
+    {
+      "name": "CFR_BUDGET_FRACTION",
+      "min_val": 0.0,
+      "max_val": 0.25,
+      "step_sizes": [
+        0.05
+      ],
+      "param_type": "float",
+      "description": "Fraction of time budget allocated to CFR prior",
+      "group": "blend"
+    },
+    {
+      "name": "CALIBRATION_FRACTION",
+      "min_val": 0.05,
+      "max_val": 0.3,
+      "step_sizes": [
+        0.05
+      ],
+      "param_type": "float",
+      "description": "Fraction of training data for threshold calibration",
+      "group": "calibration"
+    },
+    {
+      "name": "WORLD_GEN_OVERSAMPLE",
+      "min_val": 1,
+      "max_val": 4,
+      "step_sizes": [
+        1
+      ],
+      "param_type": "int",
+      "description": "Oversample factor for world generation",
+      "group": "sampling"
+    }
+  ]
+}

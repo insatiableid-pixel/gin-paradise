@@ -1,0 +1,27 @@
+{
+  "request_id": "p80_001",
+  "response_id": "p80_resp_001",
+  "timestamp": "2026-03-24T20:19:00+00:00",
+  "source": "claude_opus_4.6_antigravity",
+  "agent_prompt_hash": "ad4b3618005c",
+  "hypothesis": "Reduce CFR budget fraction from 0.10 to 0.05 and increase DIRECT_EVAL_WEIGHT from 0.70 to 0.75. Rationale: The CFR prior is trained on only 15 worlds per iteration with simple info-set buckets — it provides a weak signal compared to the direct incremental P75 evaluation which uses 50+ worlds with enhanced card weights, trace-confidence scaling, and early-exit optimization. Allocating less time to CFR and trusting direct eval more should improve decision quality on borderline spots where the CFR prior may be adding noise. The Phase 77 ablation showed the full P75 stack (which direct eval benefits from most) scored best among individual components. This is an unexplored combination that addresses the eval-time signal quality by shifting budget toward the stronger evaluation pathway.",
+  "edits": {
+    "CFR_BUDGET_FRACTION = 0.10": "CFR_BUDGET_FRACTION = 0.05",
+    "DIRECT_EVAL_WEIGHT = 0.70": "DIRECT_EVAL_WEIGHT = 0.75"
+  },
+  "param_names": ["CFR_BUDGET_FRACTION", "DIRECT_EVAL_WEIGHT"],
+  "param_changes": {
+    "CFR_BUDGET_FRACTION": {
+      "old": 0.10,
+      "new": 0.05,
+      "delta": -0.05
+    },
+    "DIRECT_EVAL_WEIGHT": {
+      "old": 0.70,
+      "new": 0.75,
+      "delta": 0.05
+    }
+  },
+  "rationale": "The CFR prior component trains with only 15 worlds (N_WORLDS_TRAIN=15) using simple info-set bucketing, producing a noisy signal. Meanwhile, the direct evaluation path uses the full P75 stack with 50 worlds, enhanced card weights, trace-confidence, and early-exit. By reducing CFR budget from 10% to 5%, more total time goes to direct eval spots. Simultaneously increasing the blend weight from 70% to 75% direct eval means the final probability leans harder on the stronger signal. This is a conservative compound change that addresses time allocation and signal blending together. Neither parameter has been perturbed in any prior experiment.",
+  "confidence": "medium"
+}

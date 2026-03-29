@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0041",
+  "response_id": "gcli_0041_resp",
+  "timestamp": "2026-03-28T16:54:41.915480+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Trust direct evaluation more when EV gap is large or in late game; rely slightly more on CFR prior when EV gap is marginal early on.",
+  "edits": {
+    "        # \u2500\u2500 MUTATION TARGET \u2500\u2500\n        # Incumbent: flat constant. Gemini should explore state-dependent\n        # functions here \u2014 continuous math, schedules, or asymmetric rules.\n        return DIRECT_EVAL_WEIGHT": "        # \u2500\u2500 MUTATION TARGET \u2500\u2500\n        # Trust direct eval more when EV gap is large (high confidence)\n        # and in the late game (world model is more constrained).\n        gap_conf = 1.0 - math.exp(-abs(ev_gap) * 5.0)\n        late_game = 1.0 - (stock_size / 31.0)\n        weight = (DIRECT_EVAL_WEIGHT - 0.1) + (0.1 * gap_conf) + (0.05 * late_game)\n        return min(1.0, max(0.5, weight))"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "Direct evaluation can be noisy early in the game or when the EV difference is small, so falling back slightly to the CFR prior should improve calibration. Conversely, late game or high-gap scenarios should heavily trust the direct rollout.",
+  "confidence": "medium",
+  "agent_prompt_hash": "bc3bf765b34d",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0041.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0041.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 38.97,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 33112
+          },
+          "tokens": {
+            "input": 48835,
+            "prompt": 48835,
+            "candidates": 365,
+            "total": 53055,
+            "cached": 0,
+            "thoughts": 3855,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 33112,
+              "tokens": {
+                "input": 48835,
+                "prompt": 48835,
+                "candidates": 365,
+                "total": 53055,
+                "cached": 0,
+                "thoughts": 3855,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Trust direct evaluation more when EV gap is large or in late game; rely slightly more on CFR prior when EV gap is marginal early on.\",\n  \"edits\": {\n    \"        # \u2500\u2500 MUTATION TARGET \u2500\u2500\\n        # Incumbent: flat constant. Gemini should explore state-dependent\\n        # functions here \u2014 continuous math, schedules, or asymmetric rules.\\n        return DIRECT_EVAL_WEIGHT\": \"        # \u2500\u2500 MUTATION TARGET \u2500\u2500\\n        # Trust direct eval more when EV gap is large (high confidence)\\n        # and in the late game (world model is more constrained).\\n        gap_conf = 1.0 - math.exp(-abs(ev_gap) * 5.0)\\n        late_game = 1.0 - (stock_size / 31.0)\\n        weight = (DIRECT_EVAL_WEIGHT - 0.1) + (0.1 * gap_conf) + (0.05 * late_game)\\n        return min(1.0, max(0.5, weight))\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"Direct evaluation can be noisy early in the game or when the EV difference is small, so falling back slightly to the CFR prior should improve calibration. Conversely, late game or high-gap scenarios should heavily trust the direct rollout.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0075",
+  "response_id": "gcli_0075_resp",
+  "timestamp": "2026-03-28T20:55:13.705114+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Convert linear trace_confidence to exponential decay and add a progress boost to increase reliance on direct evaluation as the stock depletes and the game tree shrinks.",
+  "edits": {
+    "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))": "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = 1.0 - math.exp(-n_trace_events / 8.0)\n    progress_boost = 0.05 * (31.0 - stock_size) / 31.0\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + progress_boost\n    return max(0.5, min(1.0, dynamic_weight))"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "Direct evaluation accuracy improves late in the game due to a smaller unseen state space, so dynamic weight should incorporate a stock_size progression boost. Switching trace_confidence to an exponential curve also matches the structure of other successful risk multipliers.",
+  "confidence": "high",
+  "agent_prompt_hash": "b1cd77a97646",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0075.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0075.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 29.5,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 24416
+          },
+          "tokens": {
+            "input": 15861,
+            "prompt": 15861,
+            "candidates": 437,
+            "total": 18100,
+            "cached": 0,
+            "thoughts": 1802,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 24416,
+              "tokens": {
+                "input": 15861,
+                "prompt": 15861,
+                "candidates": 437,
+                "total": 18100,
+                "cached": 0,
+                "thoughts": 1802,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Convert linear trace_confidence to exponential decay and add a progress boost to increase reliance on direct evaluation as the stock depletes and the game tree shrinks.\",\n  \"edits\": {\n    \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\": \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = 1.0 - math.exp(-n_trace_events / 8.0)\\n    progress_boost = 0.05 * (31.0 - stock_size) / 31.0\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + progress_boost\\n    return max(0.5, min(1.0, dynamic_weight))\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"Direct evaluation accuracy improves late in the game due to a smaller unseen state space, so dynamic weight should incorporate a stock_size progression boost. Switching trace_confidence to an exponential curve also matches the structure of other successful risk multipliers.\",\n  \"confidence\": \"high\"\n}\n```"
+}

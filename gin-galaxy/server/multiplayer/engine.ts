@@ -225,6 +225,7 @@ export interface MatchState {
   roomId: string;
   players: [MatchPlayer, MatchPlayer];
   currentPlayerIndex: number;
+  turnNumber?: number;
   stock: Card[];
   discard: Card[];
   status: "playing" | "round_over" | "game_over";
@@ -254,6 +255,7 @@ export function createMatch(
       { ...p2, hand: h2, score: 0 },
     ],
     currentPlayerIndex: 0,
+    turnNumber: 1,
     stock: deck,
     discard,
     status: "playing",
@@ -289,6 +291,7 @@ export function createMatchWithDeck(
       { ...p2, hand: h2, score: 0 },
     ],
     currentPlayerIndex: 0,
+    turnNumber: 1,
     stock: deck,
     discard,
     status: "playing",
@@ -363,6 +366,7 @@ export function handleDiscard(state: MatchState, userId: string, cardIndex: numb
   const [card] = player.hand.splice(cardIndex, 1);
   state.discard.push(card);
   state.currentPlayerIndex = (state.currentPlayerIndex + 1) % 2;
+  state.turnNumber = (state.turnNumber ?? 1) + 1;
   state.message = `${player.username} discarded ${card.rank}${card.suit}.`;
   return { ok: true, state, discardedCard: card };
 }
@@ -515,6 +519,7 @@ export function handleNextRound(state: MatchState, userId: string, deckOrder?: n
   state.discard = discard;
   state.status = "playing";
   state.currentPlayerIndex = 0;
+  state.turnNumber = 1;
   state.roundWinnerId = null;
   state.roundPoints = 0;
   state.roundNumber = (state.roundNumber || 1) + 1;
@@ -548,6 +553,7 @@ export function getPlayerView(state: MatchState, userId: string): PlayerGameView
     opponentUsername: op.username,
     topDiscard: topDiscard ? cardToView(topDiscard) : null,
     stockCount: state.stock.length,
+    turnNumber: state.turnNumber ?? 1,
     isMyTurn: state.currentPlayerIndex === myIdx,
     hasDrawn: me.hand.length > 10,
     status: state.status,

@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0065",
+  "response_id": "gcli_0065_resp",
+  "timestamp": "2026-03-28T19:54:02.713572+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Non-linearizing trace_confidence and adding a late-game stock depletion bonus will better calibrate our trust in direct EV versus the CFR prior, trusting direct EV more when the game state is deep and heavily constrained.",
+  "edits": {
+    "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)": "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = 1.0 - math.exp(-n_trace_events / 8.0)\n    stock_bonus = 0.05 * max(0.0, (21.0 - stock_size) / 21.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + stock_bonus"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "The direct EV becomes more accurate relative to the CFR prior as the stock depletes and the hand is constrained by trace events. Shifting trace_confidence to an exponential curve matches the winning trace_confidence_multiplier shape, and a late-game stock bonus appropriately increases EV reliance in deep spots.",
+  "confidence": "medium",
+  "agent_prompt_hash": "b1cd77a97646",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0065.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0065.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 51.83,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 47509
+          },
+          "tokens": {
+            "input": 15846,
+            "prompt": 15846,
+            "candidates": 430,
+            "total": 20290,
+            "cached": 0,
+            "thoughts": 4014,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 47509,
+              "tokens": {
+                "input": 15846,
+                "prompt": 15846,
+                "candidates": 430,
+                "total": 20290,
+                "cached": 0,
+                "thoughts": 4014,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Non-linearizing trace_confidence and adding a late-game stock depletion bonus will better calibrate our trust in direct EV versus the CFR prior, trusting direct EV more when the game state is deep and heavily constrained.\",\n  \"edits\": {\n    \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\": \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = 1.0 - math.exp(-n_trace_events / 8.0)\\n    stock_bonus = 0.05 * max(0.0, (21.0 - stock_size) / 21.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + stock_bonus\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"The direct EV becomes more accurate relative to the CFR prior as the stock depletes and the hand is constrained by trace events. Shifting trace_confidence to an exponential curve matches the winning trace_confidence_multiplier shape, and a late-game stock bonus appropriately increases EV reliance in deep spots.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

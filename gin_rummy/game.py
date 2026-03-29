@@ -13,6 +13,7 @@ UNDERCUT_BONUS = 25
 TARGET_SCORE = 100
 MIN_STOCK_CARDS = 2  # Hand is void if stock reaches this
 MAX_HANDS_PER_GAME = 200  # Safety limit to prevent infinite void-hand loops
+MAX_TURNS_PER_HAND = 50  # Per-hand turn limit to prevent degenerate draw/discard loops
 
 
 class HandResult:
@@ -161,6 +162,11 @@ class GinRummyGame:
         hr = HandResult()
 
         while True:
+            # Check per-hand turn limit to prevent degenerate loops
+            if turn_number >= MAX_TURNS_PER_HAND:
+                hr.is_void = True
+                return hr
+
             # Check if stock is depleted
             if len(stock) <= MIN_STOCK_CARDS:
                 hr.is_void = True

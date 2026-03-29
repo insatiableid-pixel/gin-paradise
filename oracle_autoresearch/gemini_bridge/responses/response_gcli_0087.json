@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0087",
+  "response_id": "gcli_0087_resp",
+  "timestamp": "2026-03-28T23:31:57.664012+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Couple game progress to trace confidence inside compute_eval_weight to increase direct evaluation trust in late-game situations.",
+  "edits": {
+    "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))": "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    progress = max(0.0, 31.0 - stock_size) / 31.0\n    trace_confidence = min(1.0, (n_trace_events / 10.0) * (1.0 + 0.5 * progress))\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "By scaling trace_confidence with game progress (similar to the logic in compute_trace_confidence_multiplier), we unify the heuristics and trust direct EV more when the stock is depleted and trace signals are richer.",
+  "confidence": "medium",
+  "agent_prompt_hash": "73d51a4f96bd",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0087.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0087.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 24.84,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 19801
+          },
+          "tokens": {
+            "input": 16157,
+            "prompt": 16157,
+            "candidates": 426,
+            "total": 18268,
+            "cached": 0,
+            "thoughts": 1685,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 19801,
+              "tokens": {
+                "input": 16157,
+                "prompt": 16157,
+                "candidates": 426,
+                "total": 18268,
+                "cached": 0,
+                "thoughts": 1685,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Couple game progress to trace confidence inside compute_eval_weight to increase direct evaluation trust in late-game situations.\",\n  \"edits\": {\n    \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\": \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    progress = max(0.0, 31.0 - stock_size) / 31.0\\n    trace_confidence = min(1.0, (n_trace_events / 10.0) * (1.0 + 0.5 * progress))\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"By scaling trace_confidence with game progress (similar to the logic in compute_trace_confidence_multiplier), we unify the heuristics and trust direct EV more when the stock is depleted and trace signals are richer.\",\n  \"confidence\": \"medium\"\n}"
+}

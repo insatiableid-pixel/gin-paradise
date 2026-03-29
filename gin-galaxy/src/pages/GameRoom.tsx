@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Settings, RotateCcw, Volume2, VolumeX, Sparkles } from "lucide-react";
+import { ArrowLeft, Settings, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/components/ui/Button";
 import { motion, AnimatePresence } from "motion/react";
@@ -12,6 +12,7 @@ import { computeMeldHighlights, getMeldColor, getCardMeldIndex, type MeldHighlig
 import { useHandDrag, type DragCard } from "@/src/lib/handDrag";
 import { playDrawSound, playDiscardSound, playDealSound, playKnockSound, playResultSound, prefersReducedMotion } from "@/src/lib/audio";
 import { PlayingCard, OverlappingCard, CardBack, SuitRowCard, ShowdownCardMini, TABLE_FELT_GRADIENT, TABLE_NOISE_STYLE, SHOWDOWN_OVERLAY_BG, SHOWDOWN_PANEL_BG, SHOWDOWN_PANEL_BORDER } from "@/src/components/cards";
+import * as MP from "@/src/lib/motionPresets";
 
 // ── Sort helpers ─────────────────────────────────────────────────────
 const SUIT_ORDER: Record<string, number> = { "♣": 0, "♦": 1, "♥": 2, "♠": 3 };
@@ -48,6 +49,9 @@ export function GameRoom() {
   const [drawAnimating, setDrawAnimating] = useState<"stock" | "discard" | null>(null);
   const [discardAnimating, setDiscardAnimating] = useState(false);
   const [knockAnimating, setKnockAnimating] = useState(false);
+  const [lastDrawSource, setLastDrawSource] = useState<"stock" | "discard" | null>(null);
+  const [showdownRevealing, setShowdownRevealing] = useState(false);
+  const prevIsMyTurn = useRef<boolean | null>(null);
 
   const reducedMotion = prefersReducedMotion();
   const shouldAnimate = animationsEnabled && !reducedMotion;
@@ -263,9 +267,10 @@ export function GameRoom() {
   const handleDraw = (source: "stock" | "discard") => {
     if (!isMyTurn || myPlayer.hand.length > 10) return;
     playSound(playDrawSound);
+    setLastDrawSource(source);
     if (shouldAnimate) {
       setDrawAnimating(source);
-      setTimeout(() => setDrawAnimating(null), 300);
+      setTimeout(() => setDrawAnimating(null), 400);
     }
     setGameState(drawCard(gameState, user.id, source));
   };
@@ -273,9 +278,10 @@ export function GameRoom() {
   const handleDiscard = () => {
     if (!isMyTurn || myPlayer.hand.length <= 10 || selectedCardIndex === null) return;
     playSound(playDiscardSound);
+    setLastDrawSource(null);
     if (shouldAnimate) {
       setDiscardAnimating(true);
-      setTimeout(() => setDiscardAnimating(false), 300);
+      setTimeout(() => setDiscardAnimating(false), 400);
     }
     setGameState(discardCard(gameState, user.id, selectedCardIndex));
     setSelectedCardIndex(null);
@@ -334,9 +340,12 @@ export function GameRoom() {
     }
 
     playSound(playKnockSound);
+    setLastDrawSource(null);
     if (shouldAnimate) {
       setKnockAnimating(true);
-      setTimeout(() => setKnockAnimating(false), 400);
+      setShowdownRevealing(true);
+      setTimeout(() => setKnockAnimating(false), MP.KNOCK_FLASH_DURATION * 1000);
+      setTimeout(() => setShowdownRevealing(false), 800);
     }
     setGameState(knock(gameState, user.id, selectedCardIndex));
     setSelectedCardIndex(null);
@@ -344,354 +353,464 @@ export function GameRoom() {
 
   const handleNextRound = () => {
     setShowdown(null);
+    setLastDrawSource(null);
     setGameState(nextRound(gameState));
     playSound(playDealSound);
     if (shouldAnimate) {
       setDealAnimating(true);
-      setTimeout(() => setDealAnimating(false), 500);
+      setTimeout(() => setDealAnimating(false), 600);
     }
   };
 
   const topDiscard = gameState.discard[gameState.discard.length - 1];
+  const tableTelemetry = [
+    { label: "Turn", value: gameState.turnNumber ?? 1 },
+    { label: "Cards Remaining", value: gameState.stock.length },
+  ];
 
   return (
-    <div className="fixed inset-0 bg-[#0a1f15] flex flex-col font-sans">
-      {/* Game Header — Warm wood-tone bar */}
-      <header className="h-11 border-b border-emerald-900/50 bg-[#0d1a12]/90 backdrop-blur flex items-center justify-between px-3 z-20">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="text-emerald-700 hover:text-emerald-300 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <span className="text-xs font-medium text-emerald-400/70">vs {opponent.name}</span>
-          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-400/80 border border-amber-500/25">RATED</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="text-[11px] text-emerald-600/60 hidden sm:block">{gameState.message}</div>
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="w-7 h-7 rounded-full bg-emerald-900/40 hover:bg-emerald-800/50 flex items-center justify-center transition-colors"
-            title={soundEnabled ? "Mute sounds" : "Enable sounds"}
-          >
-            {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-600" /> : <VolumeX className="w-3.5 h-3.5 text-emerald-800" />}
-          </button>
-          <div className="relative">
-            <button
-              onClick={() => setShowPrefs(!showPrefs)}
-              className="w-7 h-7 rounded-full bg-emerald-900/40 hover:bg-emerald-800/50 flex items-center justify-center transition-colors"
-              title="Preferences"
-            >
-              <Settings className="w-3.5 h-3.5 text-emerald-600" />
-            </button>
-            {showPrefs && (
-              <div className="absolute right-0 top-9 w-52 bg-[#0d1a12] border border-emerald-800/50 rounded-xl shadow-xl p-3 space-y-3 z-50">
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-xs text-emerald-300/80">Show Deadwood Count</span>
-                  <input
-                    type="checkbox"
-                    checked={showDeadwoodCount}
-                    onChange={(e) => setShowDeadwoodCount(e.target.checked)}
-                    className="accent-amber-500"
-                  />
-                </label>
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-xs text-emerald-300/80">Four-Color Deck</span>
-                  <input
-                    type="checkbox"
-                    checked={fourColorDeck}
-                    onChange={(e) => setFourColorDeck(e.target.checked)}
-                    className="accent-amber-500"
-                  />
-                </label>
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-xs text-emerald-300/80">Sound Effects</span>
-                  <input
-                    type="checkbox"
-                    checked={soundEnabled}
-                    onChange={(e) => setSoundEnabled(e.target.checked)}
-                    className="accent-amber-500"
-                  />
-                </label>
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-xs text-emerald-300/80">Enhanced Animations</span>
-                  <input
-                    type="checkbox"
-                    checked={animationsEnabled}
-                    onChange={(e) => setAnimationsEnabled(e.target.checked)}
-                    className="accent-amber-500"
-                  />
-                </label>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+    <div className="fixed inset-0 flex flex-col font-sans overflow-hidden">
+      {/* Tropical paradise background image */}
+      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'url(/assets/tropical-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+      {/* Subtle dark overlay so the header text is readable */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0.3) 100%)' }} />
 
-      {/* Game Board — Emerald Felt Table */}
-      <main className="flex-1 relative overflow-hidden">
-        {/* Felt table surface — rich emerald gradient with dark vignette edges */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_50%_50%,_#0f3d2a_0%,_#0a2e1e_40%,_#061a11_75%,_#030d08_100%)] pointer-events-none" />
-        {/* Subtle noise/grain overlay for cloth texture */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%270 0 256 256%27 xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.9%27 numOctaves=%274%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27/%3E%3C/svg%3E")', backgroundSize: '128px 128px' }} />
-
-        {/* Knock emphasis flash */}
-        <AnimatePresence>
-          {knockAnimating && shouldAnimate && (
-            <motion.div
-              initial={{ opacity: 0.3 }}
-              animate={{ opacity: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              className="absolute inset-0 z-30 bg-amber-400/10 pointer-events-none"
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Opponent Area — Upper Right (absolute) */}
-        <div className="absolute top-3 right-4 sm:right-6 lg:right-10 z-10 flex flex-col items-end">
-          <div className={cn("flex items-center gap-3 bg-[#0a2e1e]/80 border rounded-full px-3 py-1.5 backdrop-blur-sm shadow-md transition-colors", !isMyTurn ? "border-amber-500/60" : "border-emerald-800/50")}>
-            <div className="w-7 h-7 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 font-bold text-xs">
-              {opponent.name[0]}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-emerald-100 leading-none">{opponent.name}</span>
-              <span className="text-[9px] text-emerald-500/60">{opponent.hand.length} cards</span>
-            </div>
-            <div className="ml-2 flex flex-col items-end">
-              <span className="text-[9px] text-emerald-600/50">Score</span>
-              <span className="text-base font-mono font-bold text-emerald-100 leading-none">{opponent.score}</span>
-            </div>
-          </div>
-          
-          {/* Opponent Cards (Hidden) */}
-          <div className="mt-2 flex justify-end scale-[0.65] sm:scale-[0.8] origin-top-right opacity-50">
-            <div className="relative" style={{ width: opponent.hand.length > 0 ? (opponent.hand.length - 1) * 18 + 48 : 0, height: 68 }}>
-              {opponent.hand.map((_, i) => (
-                <motion.div
-                  key={i}
-                  initial={shouldAnimate && dealAnimating ? { y: -60, opacity: 0, rotate: -8 } : {}}
-                  animate={{ y: 0, opacity: 1, rotate: 0 }}
-                  transition={shouldAnimate ? { delay: i * 0.03, type: "spring", stiffness: 300, damping: 20 } : { duration: 0 }}
-                  className="absolute rounded-lg overflow-hidden"
-                  style={{ left: i * 18, zIndex: i, width: 48, height: 68 }}
+      {/* Game Board — Table with integrated header on wood trim */}
+      <main className="flex-1 relative overflow-hidden flex items-center justify-center p-3 sm:p-5 z-10">
+        {/* Outer bevel / blonde wood trim frame with integrated title */}
+        <div className="relative w-full h-full max-w-[1050px] rounded-[16px] sm:rounded-[24px] overflow-hidden" style={{ background: 'linear-gradient(180deg, #c9a96e 0%, #b89356 15%, #a88248 30%, #9a7440 50%, #8d6838 70%, #b89356 90%, #c9a96e 100%)', padding: '8px 8px 10px 8px', boxShadow: '0 10px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.2)' }}>
+          {/* Title + controls on the wood trim — sits on top edge like reference */}
+          <div className="flex items-center justify-between px-3 sm:px-5 -mt-0.5 mb-1.5 relative z-30">
+            <Link to="/" className="text-emerald-900/60 hover:text-emerald-900 transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-[0.18em] text-emerald-950" style={{ fontFamily: 'Georgia, "Times New Roman", serif', textShadow: '0 1px 0 rgba(255,255,255,0.3)' }}>GIN PARADISE</h1>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className="flex flex-col items-center gap-0.5 text-emerald-900/60 hover:text-emerald-900 transition-colors"
+                title={soundEnabled ? "Mute sounds" : "Enable sounds"}
+              >
+                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                <span className="text-[7px] tracking-wide font-semibold">Sound</span>
+              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowPrefs(!showPrefs)}
+                  className="flex flex-col items-center gap-0.5 text-emerald-900/60 hover:text-emerald-900 transition-colors"
+                  title="Settings"
                 >
-                  <CardBack className="w-full h-full" mini />
-                </motion.div>
+                  <Settings className="w-4 h-4" />
+                  <span className="text-[7px] tracking-wide font-semibold">Settings</span>
+                </button>
+                {showPrefs && (
+                  <div className="absolute right-0 top-10 w-52 bg-[#0d2b1c]/95 border border-emerald-700/50 rounded-xl shadow-2xl p-3 space-y-3 z-50 backdrop-blur-md">
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className="text-xs text-emerald-200/80">Show Deadwood Count</span>
+                      <input type="checkbox" checked={showDeadwoodCount} onChange={(e) => setShowDeadwoodCount(e.target.checked)} className="accent-amber-500" />
+                    </label>
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className="text-xs text-emerald-200/80">Four-Color Deck</span>
+                      <input type="checkbox" checked={fourColorDeck} onChange={(e) => setFourColorDeck(e.target.checked)} className="accent-amber-500" />
+                    </label>
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className="text-xs text-emerald-200/80">Sound Effects</span>
+                      <input type="checkbox" checked={soundEnabled} onChange={(e) => setSoundEnabled(e.target.checked)} className="accent-amber-500" />
+                    </label>
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className="text-xs text-emerald-200/80">Enhanced Animations</span>
+                      <input type="checkbox" checked={animationsEnabled} onChange={(e) => setAnimationsEnabled(e.target.checked)} className="accent-amber-500" />
+                    </label>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="mb-2 flex justify-center px-3 sm:px-5 relative z-30">
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-amber-950/15 bg-[#f6e7be]/45 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.3)] backdrop-blur-sm">
+              {tableTelemetry.map((item) => (
+                <div
+                  key={item.label}
+                  className="min-w-[118px] rounded-full border border-emerald-950/10 bg-[#fff7dd]/60 px-3 py-1 text-center"
+                >
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.24em] text-emerald-950/55">
+                    {item.label}
+                  </div>
+                  <div className="text-sm font-semibold text-emerald-950">
+                    {item.value}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
-        </div>
+          {/* Inner dark border before felt */}
+          <div className="relative w-full flex-1 rounded-[10px] sm:rounded-[16px] overflow-hidden" style={{ boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.5), 0 -1px 0 rgba(255,255,255,0.15)' }}>
+            {/* Inner felt surface — flex column to prevent all overlap */}
+            <div className="relative w-full h-full rounded-[10px] sm:rounded-[16px] overflow-hidden flex flex-col" style={{ background: 'radial-gradient(ellipse 90% 80% at 50% 45%, #2a8a6a 0%, #1d7a5a 25%, #186e50 50%, #135e44 75%, #0e5038 100%)' }}>
+            {/* Felt cloth texture */}
+            <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%270 0 256 256%27 xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.9%27 numOctaves=%274%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27/%3E%3C/svg%3E")', backgroundSize: '128px 128px' }} />
+            {/* Inner bevel highlight */}
+            <div className="absolute inset-0 rounded-[10px] sm:rounded-[16px] pointer-events-none z-20" style={{ boxShadow: 'inset 0 2px 6px rgba(255,255,255,0.05), inset 0 -3px 10px rgba(0,0,0,0.3)' }} />
 
-        {/* ── Center-anchored content: Stock/Discard above hand, hand vertically centered ── */}
-        {(() => {
-          const HAND_W = 780;
-          const CARD_W = 88;
-          const RANK_STEP = (HAND_W - CARD_W) / 12;
-          const ROW_H = 118; // tightened from 128 to prevent bottom clipping
+            {/* Knock / outcome emphasis flash */}
+            <AnimatePresence>
+              {knockAnimating && shouldAnimate && (
+                <motion.div
+                  initial={MP.KNOCK_FLASH_INITIAL}
+                  animate={MP.KNOCK_FLASH_ANIMATE}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: MP.KNOCK_FLASH_DURATION }}
+                  className="absolute inset-0 z-30 pointer-events-none"
+                  style={{ backgroundColor: showdown ? MP.getOutcomeFlashColor(showdown.knockOutcome) : MP.KNOCK_FLASH_COLOR }}
+                />
+              )}
+            </AnimatePresence>
 
-          return (
-            <div className="absolute inset-0 flex flex-col items-center z-10" style={{ top: 0, bottom: 0 }}>
-              {/* Top spacer — pushes Clubs row to vertical center */}
-              <div className="flex-1" style={{ minHeight: 0 }} />
+            {/* Turn change pulse — subtle flash when it becomes your turn */}
+            <AnimatePresence>
+              {isMyTurn && !hasDrawn && shouldAnimate && (
+                <motion.div
+                  key="turn-pulse"
+                  initial={{ opacity: 0.08 }}
+                  animate={{ opacity: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="absolute inset-0 z-30 bg-amber-400/10 pointer-events-none"
+                />
+              )}
+            </AnimatePresence>
 
-              {/* Stock & Discard — Centered Tray */}
-              <div className="flex items-end justify-center gap-8 sm:gap-10 mb-4 flex-shrink-0">
-                {/* Stock Pile */}
-                <div className="group cursor-pointer" onClick={() => handleDraw("stock")}>
-                  <div className="relative">
-                    <div className={cn("absolute inset-0 blur-xl rounded-full transition-colors", isMyTurn && myPlayer.hand.length === 10 ? "bg-amber-500/20" : "bg-transparent")} />
-                    <motion.div
-                      animate={shouldAnimate && drawAnimating === "stock" ? { scale: [1, 0.95, 1] } : {}}
-                      transition={{ duration: 0.2 }}
-                      className={cn("relative transition-colors", isMyTurn && myPlayer.hand.length === 10 ? "ring-2 ring-amber-400 rounded-xl" : "")}
+            {/* ═══════ ZONE 1: Opponent seat (top-center) — unified identity + cards ═══════ */}
+            <div className="flex flex-col items-center pt-2 sm:pt-3 md:pt-3 pb-0.5 sm:pb-1 z-10 flex-shrink-0">
+              {/* Opponent seat pill — avatar + name/score + fanned cards as one coherent unit */}
+              <div className="flex items-center gap-2 sm:gap-3 bg-[#0a2e1e]/40 md:bg-[#0a2e1e]/55 border border-emerald-700/20 md:border-emerald-700/35 rounded-full px-3 sm:px-5 py-1.5 sm:py-2 backdrop-blur-sm shadow-lg shadow-black/10">
+                {/* Avatar */}
+                <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-amber-700 to-amber-900 border-2 border-amber-500/50 flex items-center justify-center text-amber-200 font-bold text-xs sm:text-sm md:text-base shadow-lg flex-shrink-0">
+                  {opponent.name[0]}
+                </div>
+                {/* Name + Score */}
+                <div className="flex flex-col mr-1 sm:mr-2">
+                  <span className="text-xs sm:text-sm font-bold text-emerald-50 leading-none">{opponent.name}</span>
+                  <span className="text-[9px] sm:text-[10px] text-emerald-300/60 uppercase tracking-wider">Score: {opponent.score}</span>
+                </div>
+                {/* Fanned cards inline */}
+                <div className="relative" style={{ width: opponent.hand.length > 0 ? (opponent.hand.length - 1) * 24 + 48 : 0, height: 66 }}>
+                  {opponent.hand.map((_, i) => {
+                    const fanAngle = opponent.hand.length > 1 ? -18 + (36 / (opponent.hand.length - 1)) * i : 0;
+                    const fanY = Math.abs(i - (opponent.hand.length - 1) / 2) * 2.5;
+                    return (
+                      <motion.div
+                        key={i}
+                        initial={shouldAnimate && dealAnimating ? { y: -60, opacity: 0, rotate: -8 } : {}}
+                        animate={{ y: fanY, opacity: 1, rotate: fanAngle }}
+                        transition={shouldAnimate ? { delay: i * 0.03, type: "spring", stiffness: 300, damping: 20 } : { duration: 0 }}
+                        className="absolute rounded-lg overflow-hidden"
+                        style={{ left: i * 24, zIndex: i, width: 48, height: 66, transformOrigin: 'bottom center' }}
+                      >
+                        <CardBack className="w-full h-full" mini />
+                      </motion.div>
+                    );
+                  })}
+                </div>
+                {/* Card count badge */}
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-900/80 border border-emerald-500/40 flex items-center justify-center text-emerald-100 text-xs sm:text-sm font-bold shadow-md ml-0.5">
+                  {opponent.hand.length}
+                </div>
+              </div>
+            </div>
+
+            {/* ═══════ ZONE 2: Draw area — centered, lifted to upper-middle ═══════ */}
+            <div className="flex-1 flex flex-col items-center z-10 min-h-0 relative">
+              {/* Stock/Discard — positioned in upper portion, not dead-center */}
+              <div className="flex flex-col items-center pt-1 sm:pt-2 md:pt-3">
+                {/* Turn indicator above piles — animated entrance on turn change */}
+                <div className="text-center mb-1.5 md:mb-2 flex-shrink-0">
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={isMyTurn ? (hasDrawn ? "act" : "draw") : "wait"}
+                      initial={shouldAnimate ? MP.TURN_INDICATOR_INITIAL : {}}
+                      animate={MP.TURN_INDICATOR_ANIMATE}
+                      exit={shouldAnimate ? { opacity: 0, y: 8 } : {}}
+                      transition={shouldAnimate ? { duration: 0.25 } : { duration: 0 }}
+                      className={cn(
+                        "text-xs sm:text-sm font-bold tracking-[0.2em] uppercase inline-block",
+                        isMyTurn ? "text-amber-300" : "text-emerald-400/50"
+                      )}
                     >
-                      <CardBack className="w-[80px] h-[112px] sm:w-[88px] sm:h-[124px]" />
-                    </motion.div>
-                  </div>
-                  <div className="mt-1.5 flex flex-col items-center text-center">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-500/50">Stock</span>
-                    <span className="text-[10px] text-emerald-600/40">{gameState.stock.length} cards</span>
-                  </div>
+                      {isMyTurn ? (hasDrawn ? "SELECT & ACT" : "YOUR TURN") : "OPPONENT'S TURN"}
+                    </motion.span>
+                  </AnimatePresence>
                 </div>
 
-                {/* Discard Pile */}
-                <div className="cursor-pointer" onClick={() => handleDraw("discard")}>
-                  <div className="relative">
-                    {topDiscard ? (
+                {/* Stock & Discard — centered horizontal pair */}
+                <div className="flex items-start gap-4 sm:gap-6 md:gap-10">
+                  {/* Stockpile */}
+                  <div className="flex flex-col items-center cursor-pointer" onClick={() => handleDraw("stock")}>
+                    <span className="text-[10px] sm:text-xs font-semibold text-emerald-200/60 tracking-wide mb-1">Stock</span>
+                    <div className="relative">
+                      <div className={cn("absolute inset-0 blur-xl rounded-full transition-colors", isMyTurn && myPlayer.hand.length === 10 ? "bg-amber-500/20" : "bg-transparent")} />
                       <motion.div
-                        key={`${topDiscard.rank}${topDiscard.suit}`}
-                        initial={shouldAnimate && discardAnimating ? { y: 40, opacity: 0, rotate: 5 } : {}}
-                        animate={{ y: 0, opacity: 1, rotate: 0 }}
-                        transition={shouldAnimate ? { type: "spring", stiffness: 400, damping: 20 } : { duration: 0 }}
-                        className={cn("transition-transform", isMyTurn && myPlayer.hand.length === 10 ? "hover:-translate-y-2" : "")}
+                        animate={shouldAnimate ? {
+                          scale: drawAnimating === "stock" ? [1, 0.92, 1] : 1,
+                          ...(isMyTurn && myPlayer.hand.length === 10 ? MP.DRAW_TARGET_PULSE : {}),
+                        } : {}}
+                        transition={shouldAnimate ? {
+                          scale: { duration: 0.25 },
+                          boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                        } : { duration: 0 }}
+                        className={cn("relative", isMyTurn && myPlayer.hand.length === 10 ? "ring-2 ring-amber-400 rounded-xl" : "")}
                       >
-                        <PlayingCard suit={topDiscard.suit} rank={topDiscard.rank} fourColor={fourColorDeck} animate={shouldAnimate} className={cn("!w-[80px] !h-[112px] sm:!w-[88px] sm:!h-[124px]", isMyTurn && myPlayer.hand.length === 10 ? "ring-2 ring-amber-400" : "")} />
+                        <CardBack className="w-[68px] h-[96px] sm:w-[80px] sm:h-[112px]" />
                       </motion.div>
-                    ) : (
-                      <div className="w-[80px] h-[112px] sm:w-[88px] sm:h-[124px] rounded-xl border-2 border-dashed border-emerald-700/50 flex items-center justify-center">
-                        <span className="text-emerald-600/40 text-xs">Empty</span>
+                    </div>
+                  </div>
+
+                  {/* Swap arrows */}
+                  <div className="flex items-center self-center mt-6 text-emerald-400/30">
+                    <span className="text-lg">⇄</span>
+                  </div>
+
+                  {/* Discard Pile */}
+                  <div className="flex flex-col items-center cursor-pointer" onClick={() => handleDraw("discard")}>
+                    <span className="text-[10px] sm:text-xs font-semibold text-emerald-200/60 tracking-wide mb-1">Discard</span>
+                    <div className="relative">
+                      {topDiscard ? (
+                        <motion.div
+                          key={`${topDiscard.rank}${topDiscard.suit}`}
+                          initial={shouldAnimate && discardAnimating ? MP.DISCARD_PILE_ENTRY_INITIAL : {}}
+                          animate={shouldAnimate ? {
+                            ...MP.DISCARD_PILE_ENTRY_ANIMATE,
+                            ...(isMyTurn && myPlayer.hand.length === 10 ? MP.DRAW_TARGET_PULSE : {}),
+                          } : MP.DISCARD_PILE_ENTRY_ANIMATE}
+                          transition={shouldAnimate ? {
+                            ...MP.CARD_SPRING,
+                            boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                          } : { duration: 0 }}
+                          className={cn("transition-transform", isMyTurn && myPlayer.hand.length === 10 ? "hover:-translate-y-2" : "")}
+                        >
+                          <PlayingCard suit={topDiscard.suit} rank={topDiscard.rank} fourColor={fourColorDeck} animate={shouldAnimate} className={cn("!w-[68px] !h-[96px] sm:!w-[80px] sm:!h-[112px]", isMyTurn && myPlayer.hand.length === 10 ? "ring-2 ring-amber-400" : "")} />
+                        </motion.div>
+                      ) : (
+                        <div className="w-[68px] h-[96px] sm:w-[80px] sm:h-[112px] rounded-xl border-2 border-dashed border-emerald-600/40 flex items-center justify-center">
+                          <span className="text-emerald-500/30 text-xs">Empty</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {/* DRAW button */}
+                <button
+                  onClick={() => handleDraw("stock")}
+                  disabled={!isMyTurn || myPlayer.hand.length > 10}
+                  className={cn(
+                    "mt-2 md:mt-3 px-6 sm:px-8 py-1.5 rounded-lg text-xs sm:text-sm font-bold uppercase tracking-wider transition-all",
+                    isMyTurn && myPlayer.hand.length === 10
+                      ? "bg-emerald-700 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-900/50 border border-emerald-500/40"
+                      : "bg-emerald-900/40 text-emerald-500/40 border border-emerald-800/30 cursor-not-allowed"
+                  )}
+                >
+                  Draw
+                </button>
+              </div>
+
+              {/* Open felt spacer — deliberate breathing room between draw area and player hand */}
+              <div className="flex-1 min-h-[28px] sm:min-h-[48px] md:min-h-[72px]" />
+            </div>
+
+            {/* ═══════ ZONE 3: Player seat + Hand + Buttons (bottom) ═══════ */}
+            {(() => {
+              const HAND_W = 680;
+              const CARD_W = 78;
+              const RANK_STEP = (HAND_W - CARD_W) / 12;
+              const ROW_H = 90;
+
+              return (
+                <div className="flex flex-col items-center z-10 flex-shrink-0">
+                  {/* Player seat bar — avatar + name/score + deadwood as a unified anchor */}
+                  <div className="flex items-center gap-2 sm:gap-3 bg-[#0a2e1e]/40 md:bg-[#0a2e1e]/55 border border-emerald-700/20 md:border-emerald-700/35 rounded-full px-3 sm:px-5 py-1.5 sm:py-2 mb-1.5 md:mb-2.5 backdrop-blur-sm shadow-lg shadow-black/10">
+                    {/* Player avatar */}
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-emerald-300/50 flex items-center justify-center text-white font-bold text-xs sm:text-sm md:text-base shadow-lg flex-shrink-0">
+                      {myPlayer.name[0]}
+                    </div>
+                    {/* Name + Score */}
+                    <div className="flex flex-col mr-1">
+                      <span className="text-xs sm:text-sm font-bold text-emerald-100 leading-none">You</span>
+                      <span className="text-[9px] sm:text-[10px] text-emerald-300/60 uppercase tracking-wider">Score: {myPlayer.score}</span>
+                    </div>
+                    {/* Deadwood indicator inline */}
+                    {showDeadwoodCount && (
+                      <div className="ml-2 sm:ml-4 px-2.5 sm:px-3 py-0.5 rounded-full bg-emerald-900/50 border border-emerald-700/30">
+                        <span className={cn(
+                          "text-xs sm:text-sm font-bold",
+                          hasDrawn && selectedCardIndex !== null && currentDeadwood <= 10
+                            ? "text-emerald-300"
+                            : hasDrawn && selectedCardIndex !== null && currentDeadwood > 10
+                            ? "text-rose-400"
+                            : "text-emerald-200/70"
+                        )}>
+                          DW: {currentDeadwood}
+                        </span>
                       </div>
                     )}
                   </div>
-                  <div className="mt-1.5 flex flex-col items-center text-center">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-500/50">Discard</span>
-                    <span className="text-[10px] text-emerald-600/40">{topDiscard ? "Top card" : "Empty"}</span>
+
+                  {/* Player Hand — 4 suit rows */}
+                  <div className="w-full px-3 sm:px-4">
+                    <div style={{ width: HAND_W + 44 }} className="mx-auto bg-[#0d2b1c]/30 border border-emerald-700/15 rounded-t-xl px-2 py-1">
+                      <div style={{ width: HAND_W + 20 }} className="mx-auto flex flex-col gap-0">
+                        {(["♣", "♦", "♥", "♠"] as const).map(suit => {
+                          const suitCards = suitRows[suit];
+                          return (
+                            <div key={suit} className="flex items-center gap-1">
+                              <span className={cn(
+                                "w-5 text-center text-lg font-bold flex-shrink-0 opacity-70",
+                                getSuitColor(suit, fourColorDeck, true)
+                              )}>
+                                {suit}
+                              </span>
+                              <div className="relative" style={{ width: HAND_W, height: ROW_H }}>
+                                {suitCards.length === 0 ? (
+                                  <div className="h-full flex items-center text-[10px] text-emerald-700/30">—</div>
+                                ) : (
+                                  suitCards.map((card, i) => {
+                                    const rankIdx = RANK_ORDER[card.rank] ?? 0;
+                                    const meldIdx = getCardMeldIndex(meldHighlights, card as unknown as EngineCard);
+                                    const meldColor = meldIdx !== undefined ? getMeldColor(meldIdx) : undefined;
+                                    return (
+                                      <SuitRowCard
+                                        key={`${card.rank}${card.suit}`}
+                                        suit={card.suit}
+                                        rank={card.rank}
+                                        selected={selectedCardIndex === card.originalIndex}
+                                        onClick={() => {
+                                          setSelectedCardIndex(
+                                            selectedCardIndex === card.originalIndex ? null : card.originalIndex
+                                          );
+                                        }}
+                                        leftPx={rankIdx * RANK_STEP}
+                                        zIdx={i}
+                                        isMyTurn={isMyTurn}
+                                        hasDrawn={hasDrawn}
+                                        fourColor={fourColorDeck}
+                                        meldColorCls={meldColor}
+                                        animationsEnabled={animationsEnabled}
+                                      />
+                                    );
+                                  })
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons Row — DISCARD, KNOCK, GIN — with animated enable/disable */}
+                  <div className="w-full flex justify-center gap-2 sm:gap-3 py-2 sm:py-2.5 bg-[#0a2e1e]/50 backdrop-blur-sm border-t border-emerald-700/15 rounded-b-[10px] sm:rounded-b-[16px]">
+                    <motion.button
+                      onClick={handleDiscard}
+                      disabled={!isMyTurn || !hasDrawn || selectedCardIndex === null}
+                      animate={shouldAnimate && isMyTurn && hasDrawn && selectedCardIndex !== null
+                        ? MP.BUTTON_ENABLE_SCALE : MP.BUTTON_DISABLE_SCALE}
+                      transition={MP.QUICK_TWEEN}
+                      className={cn(
+                        "px-5 sm:px-7 py-2 rounded-lg text-xs sm:text-sm font-bold uppercase tracking-wider transition-all border",
+                        isMyTurn && hasDrawn && selectedCardIndex !== null
+                          ? "bg-teal-700 hover:bg-teal-600 text-white border-teal-500/50 shadow-lg"
+                          : "bg-emerald-900/40 text-emerald-600/40 border-emerald-800/30 cursor-not-allowed"
+                      )}
+                    >
+                      Discard
+                    </motion.button>
+                    <motion.button
+                      onClick={handleKnock}
+                      disabled={!isMyTurn || !hasDrawn || selectedCardIndex === null || currentDeadwood > 10}
+                      animate={shouldAnimate && isMyTurn && hasDrawn && selectedCardIndex !== null && currentDeadwood <= 10
+                        ? MP.BUTTON_ENABLE_SCALE : MP.BUTTON_DISABLE_SCALE}
+                      transition={MP.QUICK_TWEEN}
+                      className={cn(
+                        "px-5 sm:px-7 py-2 rounded-lg text-xs sm:text-sm font-bold uppercase tracking-wider transition-all border",
+                        isMyTurn && hasDrawn && selectedCardIndex !== null && currentDeadwood <= 10
+                          ? "bg-teal-700 hover:bg-teal-600 text-white border-teal-500/50 shadow-lg"
+                          : "bg-emerald-900/40 text-emerald-600/40 border-emerald-800/30 cursor-not-allowed"
+                      )}
+                    >
+                      Knock
+                    </motion.button>
+                    <motion.button
+                      onClick={handleKnock}
+                      disabled={!isMyTurn || !hasDrawn || selectedCardIndex === null || currentDeadwood !== 0}
+                      animate={shouldAnimate && isMyTurn && hasDrawn && selectedCardIndex !== null && currentDeadwood === 0
+                        ? { scale: [0.95, 1.05, 1], boxShadow: ["0 0 0px rgba(245,158,11,0)", "0 0 20px rgba(245,158,11,0.4)", "0 0 10px rgba(245,158,11,0.2)"] }
+                        : MP.BUTTON_DISABLE_SCALE}
+                      transition={MP.QUICK_TWEEN}
+                      className={cn(
+                        "px-5 sm:px-7 py-2 rounded-lg text-xs sm:text-sm font-bold uppercase tracking-wider transition-all border",
+                        isMyTurn && hasDrawn && selectedCardIndex !== null && currentDeadwood === 0
+                          ? "bg-amber-600 hover:bg-amber-500 text-white border-amber-400/50 shadow-lg shadow-amber-600/30"
+                          : "bg-emerald-900/40 text-emerald-600/40 border-emerald-800/30 cursor-not-allowed"
+                      )}
+                    >
+                      Gin
+                    </motion.button>
                   </div>
                 </div>
-              </div>
-
-              {/* Action Buttons & Player Info */}
-              <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-shrink-0">
-                <div className={cn("flex items-center gap-2 bg-[#0a2e1e]/80 border rounded-full pl-2 pr-3 py-1 backdrop-blur-sm transition-colors", isMyTurn ? "border-amber-500/60" : "border-emerald-800/40")}>
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center text-[10px] font-bold text-emerald-950">
-                    {myPlayer.name[0]}
-                  </div>
-                  <span className="text-xs font-bold text-emerald-100">{myPlayer.score}</span>
-                  {isMyTurn && !hasDrawn && (
-                    <span className="text-[10px] text-amber-400 font-medium ml-1">· Draw</span>
-                  )}
-                  {isMyTurn && hasDrawn && (
-                    <span className="text-[10px] text-emerald-400 font-medium ml-1">· Pick & Act</span>
-                  )}
-                  {!isMyTurn && (
-                    <span className="text-[10px] text-emerald-600/60 font-medium ml-1">· Waiting…</span>
-                  )}
-                </div>
-                {showDeadwoodCount && (
-                  <div className={cn(
-                    "flex items-center gap-1.5 rounded-full px-2.5 py-1 border text-xs font-bold backdrop-blur-sm",
-                    hasDrawn && selectedCardIndex !== null && currentDeadwood <= 10
-                      ? "bg-emerald-900/60 border-emerald-500/50 text-emerald-400"
-                      : hasDrawn && selectedCardIndex !== null && currentDeadwood > 10
-                      ? "bg-rose-900/30 border-rose-600/40 text-rose-400"
-                      : "bg-[#0a2e1e]/60 border-emerald-800/40 text-emerald-300/80"
-                  )}>
-                    <span className="text-emerald-600/60 font-medium">DW</span>
-                    <span>{currentDeadwood}</span>
-                  </div>
-                )}
-                <Button 
-                  variant="primary" 
-                  onClick={handleDiscard}
-                  className="bg-amber-600 hover:bg-amber-500 shadow-[0_0_20px_-5px_rgba(217,119,6,0.5)] px-6 sm:px-8 text-sm text-white" 
-                  disabled={!isMyTurn || !hasDrawn || selectedCardIndex === null}
-                >
-                  Discard
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleKnock}
-                  className={cn(
-                    "bg-[#0a2e1e]/60 backdrop-blur border-emerald-600/50 text-emerald-400 hover:bg-emerald-900/40 hover:text-emerald-300 text-sm",
-                    hasDrawn && selectedCardIndex !== null && currentDeadwood <= 10 && "border-emerald-400 shadow-[0_0_14px_rgba(16,185,129,0.25)]"
-                  )}
-                  disabled={!isMyTurn || !hasDrawn || selectedCardIndex === null || currentDeadwood > 10}
-                >
-                  Knock
-                </Button>
-                {isCustomOrder && (
-                  <button
-                    onClick={resetToAutoSort}
-                    className="w-7 h-7 rounded-full bg-emerald-900/40 hover:bg-emerald-800/50 flex items-center justify-center transition-colors"
-                    title="Reset to auto-sort"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5 text-emerald-500/60" />
-                  </button>
-                )}
-              </div>
-
-              {/* Player Hand — 4-row grid (♣ ♦ ♥ ♠), Clubs at vertical center */}
-              {/* Subtle felt panel behind hand */}
-              <div className="w-full px-4 flex-shrink-0">
-                <div style={{ width: HAND_W + 48 }} className="mx-auto rounded-2xl bg-[#0d2b1c]/50 border border-emerald-800/30 px-3 py-2">
-                  <div style={{ width: HAND_W + 24 }} className="mx-auto flex flex-col gap-0">
-                    {(["♣", "♦", "♥", "♠"] as const).map(suit => {
-                      const suitCards = suitRows[suit];
-                      return (
-                        <div key={suit} className="flex items-center gap-1.5">
-                          <span className={cn(
-                            "w-6 text-center text-xl font-bold flex-shrink-0 opacity-70",
-                            getSuitColor(suit, fourColorDeck, true)
-                          )}>
-                            {suit}
-                          </span>
-                          <div className="relative" style={{ width: HAND_W, height: ROW_H }}>
-                            {suitCards.length === 0 ? (
-                              <div className="h-full flex items-center text-[10px] text-emerald-700/30">—</div>
-                            ) : (
-                              suitCards.map((card, i) => {
-                                const rankIdx = RANK_ORDER[card.rank] ?? 0;
-                                const meldIdx = getCardMeldIndex(meldHighlights, card as unknown as EngineCard);
-                                const meldColor = meldIdx !== undefined ? getMeldColor(meldIdx) : undefined;
-                                return (
-                                  <SuitRowCard
-                                    key={`${card.rank}${card.suit}`}
-                                    suit={card.suit}
-                                    rank={card.rank}
-                                    selected={selectedCardIndex === card.originalIndex}
-                                    onClick={() => {
-                                      setSelectedCardIndex(
-                                        selectedCardIndex === card.originalIndex ? null : card.originalIndex
-                                      );
-                                    }}
-                                    leftPx={rankIdx * RANK_STEP}
-                                    zIdx={i}
-                                    isMyTurn={isMyTurn}
-                                    hasDrawn={hasDrawn}
-                                    fourColor={fourColorDeck}
-                                    meldColorCls={meldColor}
-                                    animationsEnabled={animationsEnabled}
-                                  />
-                                );
-                              })
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom spacer — mirror to keep hand centered */}
-              <div className="flex-1" style={{ minHeight: 8 }} />
-            </div>
-          );
-        })()}
+              );
+            })()}
 
         {/* ── Round Over / Showdown ───────────────────────────── */}
         <AnimatePresence>
           {gameState.status === "round_over" && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={MP.SHOWDOWN_OVERLAY_INITIAL}
+              animate={MP.SHOWDOWN_OVERLAY_ANIMATE}
               exit={{ opacity: 0 }}
+              transition={MP.OVERLAY_TWEEN}
               className="absolute inset-0 z-50 flex items-center justify-center bg-[#030d08]/90 backdrop-blur-sm"
             >
               <motion.div
-                initial={shouldAnimate ? { scale: 0.9, opacity: 0 } : {}}
-                animate={{ scale: 1, opacity: 1 }}
+                initial={shouldAnimate ? MP.SHOWDOWN_PANEL_INITIAL : {}}
+                animate={MP.SHOWDOWN_PANEL_ANIMATE}
+                transition={shouldAnimate ? { ...MP.EMPHASIS_SPRING, delay: 0.1 } : { duration: 0 }}
                 className="bg-[#0d1a12] border border-emerald-800/50 p-6 rounded-2xl text-center max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
+                style={showdown && shouldAnimate ? { boxShadow: MP.getOutcomeBadgeShadow(showdown.knockOutcome) } : {}}
               >
-                <h2 className="text-2xl font-bold text-zinc-100 mb-1">Round Over</h2>
+                <motion.h2
+                  initial={shouldAnimate ? { opacity: 0, y: -10 } : {}}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={shouldAnimate ? { delay: 0.15 } : { duration: 0 }}
+                  className="text-2xl font-bold text-zinc-100 mb-1"
+                >Round Over</motion.h2>
                 {showdown && (
                   <>
-                    <div className={cn(
-                      "inline-flex px-3 py-1 rounded-full text-xs font-bold mb-3",
-                      showdown.knockOutcome === "gin"
-                        ? "bg-amber-500/20 text-amber-400"
-                        : showdown.knockOutcome === "undercut"
-                        ? "bg-rose-500/20 text-rose-400"
-                        : "bg-emerald-500/20 text-emerald-400"
-                    )}>
+                    <motion.div
+                      initial={shouldAnimate ? MP.OUTCOME_BADGE_INITIAL : {}}
+                      animate={MP.OUTCOME_BADGE_ANIMATE}
+                      transition={shouldAnimate ? { ...MP.EMPHASIS_SPRING, delay: 0.25 } : { duration: 0 }}
+                      className={cn(
+                        "inline-flex px-3 py-1 rounded-full text-xs font-bold mb-3",
+                        showdown.knockOutcome === "gin"
+                          ? "bg-amber-500/20 text-amber-400"
+                          : showdown.knockOutcome === "undercut"
+                          ? "bg-rose-500/20 text-rose-400"
+                          : "bg-emerald-500/20 text-emerald-400"
+                      )}
+                    >
                       {showdown.knockOutcome === "gin" ? "🔥 GIN" :
                        showdown.knockOutcome === "undercut" ? "⚡ UNDERCUT" :
                        "👊 KNOCK"}
                       {" — "}
                       {showdown.winnerName} wins {showdown.points} pts
-                    </div>
+                    </motion.div>
                     <div className="space-y-4 mt-4 text-left">
-                      {/* Knocker */}
-                      <div className="space-y-2">
+                      {/* Knocker — staggered card reveal */}
+                      <motion.div
+                        initial={shouldAnimate ? { opacity: 0 } : {}}
+                        animate={{ opacity: 1 }}
+                        transition={shouldAnimate ? { delay: 0.35 } : { duration: 0 }}
+                        className="space-y-2"
+                      >
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-zinc-100">{showdown.knockerName}</span>
                           <span className={cn(
@@ -705,75 +824,148 @@ export function GameRoom() {
                           <span className="text-[10px] text-emerald-600/60 ml-auto">{showDeadwoodCount ? `DW: ${showdown.knockerDW}` : ''}</span>
                         </div>
                         {showdown.knockerMelds.map((meld, mi) => (
-                          <div key={mi} className="flex items-center gap-0.5">
+                          <motion.div
+                            key={mi}
+                            initial={shouldAnimate ? MP.SHOWDOWN_CARD_INITIAL : {}}
+                            animate={MP.SHOWDOWN_CARD_ANIMATE}
+                            transition={shouldAnimate ? { delay: 0.4 + mi * MP.SHOWDOWN_MELD_STAGGER, ...MP.CARD_SPRING } : { duration: 0 }}
+                            className="flex items-center gap-0.5"
+                          >
                             <span className="text-[9px] text-emerald-500 w-8 flex-shrink-0 font-medium">
                               {meld.every(c => c.rank === meld[0].rank) ? "Set" : "Run"}
                             </span>
                             <div className="flex gap-0.5 flex-wrap">
                               {meld.map((c, ci) => (
-                                <ShowdownCardMini key={ci} suit={c.suit} rank={c.rank} highlight="meld" fourColor={fourColorDeck} />
+                                <motion.div
+                                  key={ci}
+                                  initial={shouldAnimate ? MP.SHOWDOWN_CARD_INITIAL : {}}
+                                  animate={MP.SHOWDOWN_CARD_ANIMATE}
+                                  transition={shouldAnimate ? { delay: 0.4 + mi * MP.SHOWDOWN_MELD_STAGGER + ci * MP.SHOWDOWN_CARD_STAGGER } : { duration: 0 }}
+                                >
+                                  <ShowdownCardMini suit={c.suit} rank={c.rank} highlight="meld" fourColor={fourColorDeck} />
+                                </motion.div>
                               ))}
                             </div>
-                          </div>
+                          </motion.div>
                         ))}
                         {showdown.knockerDeadwood.length > 0 && (
-                          <div className="flex items-center gap-0.5">
+                          <motion.div
+                            initial={shouldAnimate ? MP.SHOWDOWN_CARD_INITIAL : {}}
+                            animate={MP.SHOWDOWN_CARD_ANIMATE}
+                            transition={shouldAnimate ? { delay: 0.4 + showdown.knockerMelds.length * MP.SHOWDOWN_MELD_STAGGER } : { duration: 0 }}
+                            className="flex items-center gap-0.5"
+                          >
                             <span className="text-[9px] text-emerald-600/60 w-8 flex-shrink-0 font-medium">DW</span>
                             <div className="flex gap-0.5 flex-wrap">
                               {showdown.knockerDeadwood.map((c, ci) => (
-                                <ShowdownCardMini key={ci} suit={c.suit} rank={c.rank} highlight="deadwood" fourColor={fourColorDeck} />
+                                <motion.div
+                                  key={ci}
+                                  initial={shouldAnimate ? MP.SHOWDOWN_CARD_INITIAL : {}}
+                                  animate={MP.SHOWDOWN_CARD_ANIMATE}
+                                  transition={shouldAnimate ? { delay: 0.45 + showdown.knockerMelds.length * MP.SHOWDOWN_MELD_STAGGER + ci * MP.SHOWDOWN_CARD_STAGGER } : { duration: 0 }}
+                                >
+                                  <ShowdownCardMini suit={c.suit} rank={c.rank} highlight="deadwood" fourColor={fourColorDeck} />
+                                </motion.div>
                               ))}
                             </div>
-                          </div>
+                          </motion.div>
                         )}
-                      </div>
+                      </motion.div>
                       <div className="border-t border-emerald-800/40" />
-                      {/* Opponent */}
-                      <div className="space-y-2">
+                      {/* Opponent — staggered card reveal (delayed further) */}
+                      <motion.div
+                        initial={shouldAnimate ? { opacity: 0 } : {}}
+                        animate={{ opacity: 1 }}
+                        transition={shouldAnimate ? { delay: 0.6 } : { duration: 0 }}
+                        className="space-y-2"
+                      >
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-zinc-100">{showdown.opponentName}</span>
                           <span className="text-[10px] text-emerald-600/60 ml-auto">{showDeadwoodCount ? `DW: ${showdown.opponentDW}` : ''}</span>
                         </div>
                         {showdown.opponentMelds.map((meld, mi) => (
-                          <div key={mi} className="flex items-center gap-0.5">
+                          <motion.div
+                            key={mi}
+                            initial={shouldAnimate ? MP.SHOWDOWN_CARD_INITIAL : {}}
+                            animate={MP.SHOWDOWN_CARD_ANIMATE}
+                            transition={shouldAnimate ? { delay: 0.7 + mi * MP.SHOWDOWN_MELD_STAGGER, ...MP.CARD_SPRING } : { duration: 0 }}
+                            className="flex items-center gap-0.5"
+                          >
                             <span className="text-[9px] text-emerald-500 w-8 flex-shrink-0 font-medium">
                               {meld.every(c => c.rank === meld[0].rank) ? "Set" : "Run"}
                             </span>
                             <div className="flex gap-0.5 flex-wrap">
                               {meld.map((c, ci) => (
-                                <ShowdownCardMini key={ci} suit={c.suit} rank={c.rank} highlight="meld" fourColor={fourColorDeck} />
+                                <motion.div
+                                  key={ci}
+                                  initial={shouldAnimate ? MP.SHOWDOWN_CARD_INITIAL : {}}
+                                  animate={MP.SHOWDOWN_CARD_ANIMATE}
+                                  transition={shouldAnimate ? { delay: 0.7 + mi * MP.SHOWDOWN_MELD_STAGGER + ci * MP.SHOWDOWN_CARD_STAGGER } : { duration: 0 }}
+                                >
+                                  <ShowdownCardMini suit={c.suit} rank={c.rank} highlight="meld" fourColor={fourColorDeck} />
+                                </motion.div>
                               ))}
                             </div>
-                          </div>
+                          </motion.div>
                         ))}
                         {showdown.laidOffCards.length > 0 && (
-                          <div className="flex items-center gap-0.5">
+                          <motion.div
+                            initial={shouldAnimate ? MP.SHOWDOWN_CARD_INITIAL : {}}
+                            animate={MP.SHOWDOWN_CARD_ANIMATE}
+                            transition={shouldAnimate ? { delay: 0.8 + showdown.opponentMelds.length * MP.SHOWDOWN_MELD_STAGGER } : { duration: 0 }}
+                            className="flex items-center gap-0.5"
+                          >
                             <span className="text-[9px] text-amber-500 w-8 flex-shrink-0 font-medium">Laid</span>
                             <div className="flex gap-0.5 flex-wrap">
                               {showdown.laidOffCards.map((c, ci) => (
-                                <ShowdownCardMini key={ci} suit={c.suit} rank={c.rank} highlight="layoff" fourColor={fourColorDeck} />
+                                <motion.div
+                                  key={ci}
+                                  initial={shouldAnimate ? MP.SHOWDOWN_CARD_INITIAL : {}}
+                                  animate={MP.SHOWDOWN_CARD_ANIMATE}
+                                  transition={shouldAnimate ? { delay: 0.85 + showdown.opponentMelds.length * MP.SHOWDOWN_MELD_STAGGER + ci * MP.SHOWDOWN_CARD_STAGGER } : { duration: 0 }}
+                                >
+                                  <ShowdownCardMini suit={c.suit} rank={c.rank} highlight="layoff" fourColor={fourColorDeck} />
+                                </motion.div>
                               ))}
                             </div>
-                          </div>
+                          </motion.div>
                         )}
                         {showdown.opponentDeadwood.length > 0 && (
-                          <div className="flex items-center gap-0.5">
+                          <motion.div
+                            initial={shouldAnimate ? MP.SHOWDOWN_CARD_INITIAL : {}}
+                            animate={MP.SHOWDOWN_CARD_ANIMATE}
+                            transition={shouldAnimate ? { delay: 0.9 + showdown.opponentMelds.length * MP.SHOWDOWN_MELD_STAGGER } : { duration: 0 }}
+                            className="flex items-center gap-0.5"
+                          >
                             <span className="text-[9px] text-zinc-500 w-8 flex-shrink-0 font-medium">DW</span>
                             <div className="flex gap-0.5 flex-wrap">
                               {showdown.opponentDeadwood.map((c, ci) => (
-                                <ShowdownCardMini key={ci} suit={c.suit} rank={c.rank} highlight="deadwood" fourColor={fourColorDeck} />
+                                <motion.div
+                                  key={ci}
+                                  initial={shouldAnimate ? MP.SHOWDOWN_CARD_INITIAL : {}}
+                                  animate={MP.SHOWDOWN_CARD_ANIMATE}
+                                  transition={shouldAnimate ? { delay: 0.95 + showdown.opponentMelds.length * MP.SHOWDOWN_MELD_STAGGER + ci * MP.SHOWDOWN_CARD_STAGGER } : { duration: 0 }}
+                                >
+                                  <ShowdownCardMini suit={c.suit} rank={c.rank} highlight="deadwood" fourColor={fourColorDeck} />
+                                </motion.div>
                               ))}
                             </div>
-                          </div>
+                          </motion.div>
                         )}
-                      </div>
+                      </motion.div>
                     </div>
                   </>
                 )}
                 {!showdown && <p className="text-zinc-400 mb-4">{gameState.message}</p>}
-                <Button variant="primary" onClick={handleNextRound} className="w-full mt-4">
-                  Next Round
-                </Button>
+                <motion.div
+                  initial={shouldAnimate ? { opacity: 0, y: 10 } : {}}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={shouldAnimate ? { delay: 1.1 } : { duration: 0 }}
+                >
+                  <Button variant="primary" onClick={handleNextRound} className="w-full mt-4">
+                    Next Round
+                  </Button>
+                </motion.div>
               </motion.div>
             </motion.div>
           )}
@@ -892,6 +1084,9 @@ export function GameRoom() {
             </motion.div>
           )}
         </AnimatePresence>
+          </div>{/* end inner felt */}
+          </div>{/* end inner dark border */}
+        </div>{/* end outer blonde wood trim */}
       </main>
     </div>
   );

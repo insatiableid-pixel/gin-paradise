@@ -54,16 +54,19 @@ export function Layout() {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-50 font-sans selection:bg-indigo-500/30">
+    <div className="min-h-screen text-zinc-50 font-sans selection:bg-amber-500/30" style={{ background: 'linear-gradient(180deg, #0a2e1e 0%, #0d3828 30%, #0f3d2d 60%, #0a2e1e 100%)' }}>
+      {/* Subtle tropical texture overlay */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%270 0 256 256%27 xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.9%27 numOctaves=%274%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27/%3E%3C/svg%3E")', backgroundSize: '128px 128px' }} />
+
       {/* Top Navigation */}
-      <header className="sticky top-0 z-50 w-full border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur supports-[backdrop-filter]:bg-zinc-950/60">
+      <header className="sticky top-0 z-50 w-full border-b border-emerald-800/40 bg-[#0a2e1e]/90 backdrop-blur supports-[backdrop-filter]:bg-[#0a2e1e]/70">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-6 md:gap-10">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 font-bold text-white shadow-lg shadow-indigo-500/20">
-                G
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg font-bold text-white shadow-lg shadow-amber-500/20" style={{ background: 'linear-gradient(135deg, #d4a843, #b8860b)' }}>
+                🌴
               </div>
-              <span className="inline-block font-bold tracking-tight text-xl">Gin Paradise</span>
+              <span className="inline-block font-bold tracking-tight text-xl text-amber-100" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>Gin Paradise</span>
             </Link>
             <nav className="hidden md:flex gap-6">
               {allNav.map((item) => (
@@ -71,8 +74,8 @@ export function Layout() {
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "flex items-center text-sm font-medium transition-colors hover:text-zinc-50",
-                    location.pathname === item.path ? "text-zinc-50" : "text-zinc-400"
+                    "flex items-center text-sm font-medium transition-colors hover:text-amber-200",
+                    location.pathname === item.path ? "text-amber-200" : "text-emerald-300/60"
                   )}
                 >
                   {item.name}
@@ -81,18 +84,18 @@ export function Layout() {
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-medium text-zinc-300">1,248 Online</span>
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-900/50 border border-emerald-700/40">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-medium text-emerald-200/80">1,248 Online</span>
             </div>
-            <button onClick={handleLogout} className="flex items-center justify-center w-8 h-8 rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors" title="Logout">
-              <LogOut className="w-4 h-4 text-zinc-400" />
+            <button onClick={handleLogout} className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-900/50 hover:bg-emerald-800/60 border border-emerald-700/30 transition-colors" title="Logout">
+              <LogOut className="w-4 h-4 text-emerald-300/60" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 border border-zinc-700 cursor-pointer flex items-center justify-center text-xs font-bold">
+              <div className="w-8 h-8 rounded-full border border-amber-600/50 cursor-pointer flex items-center justify-center text-xs font-bold text-amber-200" style={{ background: 'linear-gradient(135deg, #d4a843, #b8860b)' }}>
                 {user?.username?.[0]?.toUpperCase()}
               </div>
-              <span className="hidden sm:inline-block text-sm font-medium text-zinc-300">{user?.username}</span>
+              <span className="hidden sm:inline-block text-sm font-medium text-emerald-200/80">{user?.username}</span>
             </div>
           </div>
         </div>
@@ -104,7 +107,7 @@ export function Layout() {
       </main>
 
       {/* Mobile Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-zinc-800/60 bg-zinc-950/80 backdrop-blur md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-emerald-800/40 bg-[#0a2e1e]/90 backdrop-blur md:hidden">
         {mobileNav.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
@@ -114,7 +117,7 @@ export function Layout() {
               to={item.path}
               className={cn(
                 "flex flex-col items-center justify-center w-full h-full space-y-1",
-                isActive ? "text-indigo-400" : "text-zinc-500 hover:text-zinc-300"
+                isActive ? "text-amber-400" : "text-emerald-400/50 hover:text-emerald-300"
               )}
             >
               <Icon className="w-5 h-5" />

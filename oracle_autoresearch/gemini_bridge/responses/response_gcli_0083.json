@@ -1,0 +1,86 @@
+{
+  "request_id": "gcli_0083",
+  "response_id": "gcli_0083_resp",
+  "timestamp": "2026-03-28T23:09:13.075356+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Integrate progress-sensitive direct-EV trust in eval weight while steepening late-game risk floor drops, explicitly coupling belief EV trust and risk calibration natively to game depth.",
+  "edits": {
+    "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)": "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    progress = max(0.0, 31.0 - stock_size) / 31.0\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + (0.15 * progress)",
+    "    # Risk matters more at high deadwood; lower the floor as game progresses\n    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress)": "    # Risk matters more at high deadwood; lower the floor as game progresses\n    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.10 * progress)"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "Candidate 0075 proved progress-sensitive EV trust is highly performant. Lowering early-game direct-eval weight (relying on CFR) but boosting it dynamically as the stock depletes, while simultaneously lowering the trace floor late-game, unifies the logic around depth-aware confidence.",
+  "confidence": "high",
+  "agent_prompt_hash": "73d51a4f96bd",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0083.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0083.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 58.17,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 53649
+          },
+          "tokens": {
+            "input": 16162,
+            "prompt": 16162,
+            "candidates": 539,
+            "total": 23090,
+            "cached": 0,
+            "thoughts": 6389,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 53649,
+              "tokens": {
+                "input": 16162,
+                "prompt": 16162,
+                "candidates": 539,
+                "total": 23090,
+                "cached": 0,
+                "thoughts": 6389,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Integrate progress-sensitive direct-EV trust in eval weight while steepening late-game risk floor drops, explicitly coupling belief EV trust and risk calibration natively to game depth.\",\n  \"edits\": {\n    \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\": \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    progress = max(0.0, 31.0 - stock_size) / 31.0\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + (0.15 * progress)\",\n    \"    # Risk matters more at high deadwood; lower the floor as game progresses\\n    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress)\": \"    # Risk matters more at high deadwood; lower the floor as game progresses\\n    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.10 * progress)\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"Candidate 0075 proved progress-sensitive EV trust is highly performant. Lowering early-game direct-eval weight (relying on CFR) but boosting it dynamically as the stock depletes, while simultaneously lowering the trace floor late-game, unifies the logic around depth-aware confidence.\",\n  \"confidence\": \"high\"\n}"
+}

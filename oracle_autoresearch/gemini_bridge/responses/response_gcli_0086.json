@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0086",
+  "response_id": "gcli_0086_resp",
+  "timestamp": "2026-03-28T23:26:37.205167+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Integrating the game-progress metric into the EV evaluation weight will create a unified late-game strategy, heavily discounting the CFR prior deep in the tree where direct evaluation is most reliable.",
+  "edits": {
+    "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))": "    progress = max(0.0, 31.0 - stock_size) / 31.0\n    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + (0.15 * progress)\n    return max(0.5, min(1.0, dynamic_weight))"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "Candidate 0075 showed progress-sensitive EV trust was extremely strong (0.8052). By directly applying the `progress` calculation from the successful 0073 risk multiplier to EV trust, we couple the two functions logically. Dropping base weight to -0.20 but adding +0.15 for progress amplifies the reliance on direct eval exclusively in the late game where CFR priors decay.",
+  "confidence": "high",
+  "agent_prompt_hash": "73d51a4f96bd",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0086.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0086.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 48.88,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 42988
+          },
+          "tokens": {
+            "input": 16162,
+            "prompt": 16162,
+            "candidates": 480,
+            "total": 20246,
+            "cached": 0,
+            "thoughts": 3604,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 42988,
+              "tokens": {
+                "input": 16162,
+                "prompt": 16162,
+                "candidates": 480,
+                "total": 20246,
+                "cached": 0,
+                "thoughts": 3604,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Integrating the game-progress metric into the EV evaluation weight will create a unified late-game strategy, heavily discounting the CFR prior deep in the tree where direct evaluation is most reliable.\",\n  \"edits\": {\n    \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\": \"    progress = max(0.0, 31.0 - stock_size) / 31.0\\n    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + (0.15 * progress)\\n    return max(0.5, min(1.0, dynamic_weight))\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"Candidate 0075 showed progress-sensitive EV trust was extremely strong (0.8052). By directly applying the `progress` calculation from the successful 0073 risk multiplier to EV trust, we couple the two functions logically. Dropping base weight to -0.20 but adding +0.15 for progress amplifies the reliance on direct eval exclusively in the late game where CFR priors decay.\",\n  \"confidence\": \"high\"\n}"
+}

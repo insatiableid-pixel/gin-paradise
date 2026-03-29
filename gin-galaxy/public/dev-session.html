@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gin Paradise Local Session Helper</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(circle at top, #134e3a 0%, #07130e 58%, #040907 100%);
+        color: #f5f5f4;
+        font: 16px/1.5 Inter, system-ui, sans-serif;
+      }
+
+      .card {
+        width: min(92vw, 520px);
+        padding: 28px;
+        border-radius: 24px;
+        border: 1px solid rgba(16, 185, 129, 0.22);
+        background: rgba(6, 18, 13, 0.84);
+        box-shadow: 0 28px 80px -36px rgba(0, 0, 0, 0.82);
+        text-align: center;
+        backdrop-filter: blur(14px);
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 1.4rem;
+      }
+
+      p {
+        margin: 0;
+        color: rgba(220, 252, 231, 0.78);
+      }
+
+      code {
+        display: inline-block;
+        margin-top: 14px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(16, 185, 129, 0.12);
+        color: #a7f3d0;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>Loading Gin Paradise…</h1>
+      <p id="message">Preparing your local session.</p>
+      <code id="status">Starting</code>
+    </main>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get("sessionId");
+      const target = params.get("target") || "/play";
+      const message = document.getElementById("message");
+      const status = document.getElementById("status");
+
+      if (!sessionId) {
+        message.textContent = "Missing session id. Open this page with a valid local session token.";
+        status.textContent = "Session missing";
+      } else {
+        localStorage.setItem("sessionId", sessionId);
+        status.textContent = "Session ready";
+        message.textContent = "Redirecting you to the table…";
+        window.location.replace(target);
+      }
+    </script>
+  </body>
+  </html>

@@ -1,0 +1,93 @@
+{
+  "request_id": "gcli_0022",
+  "response_id": "gcli_0022_resp",
+  "timestamp": "2026-03-28T00:11:00.116851+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Increasing DIRECT_EVAL_WEIGHT from 0.85 to 0.95 continues the trend of trusting direct evaluation more than the CFR prior, which recently yielded a substantial improvement.",
+  "edits": {
+    "DIRECT_EVAL_WEIGHT = 0.85": "DIRECT_EVAL_WEIGHT = 0.95"
+  },
+  "param_names": [
+    "DIRECT_EVAL_WEIGHT"
+  ],
+  "param_changes": {
+    "DIRECT_EVAL_WEIGHT": {
+      "old": 0.85,
+      "new": 0.95,
+      "delta": 0.1
+    }
+  },
+  "rationale": "The recent successful incumbent at 0.6189 used DIRECT_EVAL_WEIGHT = 0.85. Pushing this closer to 1.0 will test whether the CFR prior has become effectively noise compared to the enhanced P75 direct eval models.",
+  "confidence": "medium",
+  "agent_prompt_hash": "e26e456e52d4",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0022.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0022.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 20.11,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 14727
+          },
+          "tokens": {
+            "input": 44276,
+            "prompt": 44276,
+            "candidates": 241,
+            "total": 45898,
+            "cached": 0,
+            "thoughts": 1381,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 14727,
+              "tokens": {
+                "input": 44276,
+                "prompt": 44276,
+                "candidates": 241,
+                "total": 45898,
+                "cached": 0,
+                "thoughts": 1381,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Increasing DIRECT_EVAL_WEIGHT from 0.85 to 0.95 continues the trend of trusting direct evaluation more than the CFR prior, which recently yielded a substantial improvement.\",\n  \"edits\": {\n    \"DIRECT_EVAL_WEIGHT = 0.85\": \"DIRECT_EVAL_WEIGHT = 0.95\"\n  },\n  \"param_names\": [\n    \"DIRECT_EVAL_WEIGHT\"\n  ],\n  \"param_changes\": {\n    \"DIRECT_EVAL_WEIGHT\": {\n      \"old\": 0.85,\n      \"new\": 0.95,\n      \"delta\": 0.1\n    }\n  },\n  \"rationale\": \"The recent successful incumbent at 0.6189 used DIRECT_EVAL_WEIGHT = 0.85. Pushing this closer to 1.0 will test whether the CFR prior has become effectively noise compared to the enhanced P75 direct eval models.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

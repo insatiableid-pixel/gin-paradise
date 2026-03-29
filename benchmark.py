@@ -19,6 +19,20 @@ from gin_rummy.benchmark import (
     run_seeded_round_robin,
 )
 from gin_rummy.apex import Apex
+from gin_rummy.apex_cfr import ApexCFR
+from gin_rummy.apex_mcts import ApexMCTS
+from gin_rummy.apex_mcts_v2 import ApexMCTSv2
+from gin_rummy.apex_value import ApexValue
+from gin_rummy.apex_mcts_value import ApexMCTSValue
+from gin_rummy.apex_mcts_action import ApexMCTSAction
+from gin_rummy.apex_mcts_discard import ApexMCTSDiscard
+from gin_rummy.apex_mcts_knock import ApexMCTSKnock
+from gin_rummy.apex_mcts_gogin import ApexMCTSGoGin
+from gin_rummy.apex_mcts_clinch_gogin import ApexMCTSClinchGoGin
+from gin_rummy.apex_mcts_clinchonly_gogin import ApexMCTSClinchOnlyGoGin
+from gin_rummy.apex_mcts_lowstock_gogin import ApexMCTSLowStockGoGin
+from gin_rummy.apex_mcts_firstknock import ApexMCTSFirstKnock
+from gin_rummy.apex_mcts_paperknock import ApexMCTSPaperKnock
 from gin_rummy.deepknock import DeepKnock
 from gin_rummy.heisenbot import Heisenbot
 from gin_rummy.player import RandomPlayer, SimplePlayer
@@ -60,6 +74,20 @@ def _build_player_factories(player_names):
         "Titan": lambda: Titan("Titan"),
         "Apex": lambda: Apex("Apex"),
         "Nexus": lambda: Nexus("Nexus"),
+        "ApexCFR": lambda: ApexCFR("ApexCFR"),
+        "ApexMCTS": lambda: ApexMCTS("ApexMCTS"),
+        "ApexMCTSv2": lambda: ApexMCTSv2("ApexMCTSv2"),
+        "ApexValue": lambda: ApexValue("ApexValue"),
+        "ApexMCTSValue": lambda: ApexMCTSValue("ApexMCTSValue"),
+        "ApexMCTSAction": lambda: ApexMCTSAction("ApexMCTSAction"),
+        "ApexMCTSDiscard": lambda: ApexMCTSDiscard("ApexMCTSDiscard"),
+        "ApexMCTSKnock": lambda: ApexMCTSKnock("ApexMCTSKnock"),
+        "ApexMCTSGoGin": lambda: ApexMCTSGoGin("ApexMCTSGoGin"),
+        "ApexMCTSClinchGoGin": lambda: ApexMCTSClinchGoGin("ApexMCTSClinchGoGin"),
+        "ApexMCTSClinchOnlyGoGin": lambda: ApexMCTSClinchOnlyGoGin("ApexMCTSClinchOnlyGoGin"),
+        "ApexMCTSLowStockGoGin": lambda: ApexMCTSLowStockGoGin("ApexMCTSLowStockGoGin"),
+        "ApexMCTSFirstKnock": lambda: ApexMCTSFirstKnock("ApexMCTSFirstKnock"),
+        "ApexMCTSPaperKnock": lambda: ApexMCTSPaperKnock("ApexMCTSPaperKnock"),
     }
 
     factories = {}

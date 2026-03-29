@@ -58,10 +58,16 @@ import {
   getTimeoutCount,
   cleanupRoomTimers,
   setTurnTimeoutCallback,
+  recoverTurnTimerForRoom,
+  recoverTurnTimersFromCoordinator,
+  getRoomTimerSpeed,
+  setRoomTimerSpeed,
   _clearAllTimers,
   TURN_TIMEOUT_SECONDS,
   MAX_CONSECUTIVE_TIMEOUTS,
 } from "../server/multiplayer/turnTimer.js";
+import { initCoordinator, _resetCoordinator } from "../server/multiplayer/coordinatorFactory.js";
+import type { RealtimeCoordinator } from "../server/multiplayer/coordinator.js";
 
 // ── Mock WebSocket ───────────────────────────────────────────────────
 
@@ -187,6 +193,232 @@ describe("Server-Enforced Turn Timer", () => {
     cleanupRoomTimers("ROOM8");
     expect(getTurnTimerInfo("ROOM8")).toBeNull();
     expect(getTimeoutCount("ROOM8", "user-1")).toBe(0);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════
+// 1b. Timer Recovery
+// ════════════════════════════════════════════════════════════════════
+
+describe("Timer Recovery", () => {
+  let coord: RealtimeCoordinator;
+
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    _clearAllTimers();
+    await _resetCoordinator();
+    coord = await initCoordinator({ mode: "memory" });
+  });
+
+  afterEach(async () => {
+    _clearAllTimers();
+    vi.useRealTimers();
+    await _resetCoordinator();
+  });
+
+  it("restores timer speed from coordinator metadata after local cache is cleared", () => {
+    const roomId = "SPEED1";
+    coord.createRoom({
+      id: roomId,
+      hostId: "u1",
+      players: new Map(),
+      status: "waiting",
+      createdAt: Date.now(),
+      stakeId: "free",
+    });
+
+    setRoomTimerSpeed(roomId, "fast");
+    _clearAllTimers();
+
+    expect(getRoomTimerSpeed(roomId)).toBe("fast");
+  });
+
+  it("restores an active timer from the coordinator snapshot", () => {
+    const roomId = "RECOVER1";
+    const now = Date.now();
+
+    coord.createRoom({
+      id: roomId,
+      hostId: "u1",
+      players: new Map([
+        ["u1", { userId: "u1", username: "Alice", ws: null, connected: true }],
+        ["u2", { userId: "u2", username: "Bob", ws: null, connected: true }],
+      ]),
+      status: "playing",
+      createdAt: now,
+      stakeId: "free",
+      ownerNodeId: coord.getNodeId(),
+      ownerLeaseExpiresAt: now + 30_000,
+    });
+    coord.setRoomGameState(roomId, {
+      match: {
+        roomId,
+        players: [
+          { userId: "u1", username: "Alice", hand: [], score: 0 },
+          { userId: "u2", username: "Bob", hand: [], score: 0 },
+        ],
+        currentPlayerIndex: 0,
+        stock: [],
+        discard: [],
+        status: "playing",
+        winnerId: null,
+        roundWinnerId: null,
+        roundPoints: 0,
+        roundNumber: 1,
+      },
+      lastShowdown: null,
+      timer: {
+        activePlayerId: "u1",
+        startedAt: now - 8_000,
+        expiresAt: now + 22_000,
+        totalSeconds: 30,
+      },
+      timeoutCounts: {
+        u1: 1,
+      },
+      updatedAt: now,
+      nodeId: coord.getNodeId(),
+    });
+
+    const timeoutCallback = vi.fn();
+    setTurnTimeoutCallback(timeoutCallback);
+
+    recoverTurnTimersFromCoordinator();
+
+    const info = getTurnTimerInfo(roomId);
+    expect(info).not.toBeNull();
+    expect(info!.activePlayerId).toBe("u1");
+    expect(info!.totalSeconds).toBe(30);
+    expect(info!.remainingSeconds).toBeGreaterThan(20);
+    expect(info!.remainingSeconds).toBeLessThanOrEqual(22);
+
+    vi.advanceTimersByTime(22_000);
+    expect(timeoutCallback).toHaveBeenCalledWith(roomId, "u1", 2);
+  });
+
+  it("recovers a live timer after room ownership moves to the current node", () => {
+    const roomId = "RECOVER-ADOPT";
+    const now = Date.now();
+
+    coord.createRoom({
+      id: roomId,
+      hostId: "u1",
+      players: new Map([
+        ["u1", { userId: "u1", username: "Alice", ws: null, connected: true }],
+        ["u2", { userId: "u2", username: "Bob", ws: null, connected: true }],
+      ]),
+      status: "playing",
+      createdAt: now,
+      stakeId: "free",
+      ownerNodeId: "other-node",
+      ownerLeaseExpiresAt: now + 30_000,
+      timerOwnerNodeId: "other-node",
+      timerLeaseExpiresAt: now + 30_000,
+    });
+
+    coord.setRoomGameState(roomId, {
+      match: {
+        roomId,
+        players: [
+          { userId: "u1", username: "Alice", hand: [], score: 0 },
+          { userId: "u2", username: "Bob", hand: [], score: 0 },
+        ],
+        currentPlayerIndex: 1,
+        stock: [],
+        discard: [],
+        status: "playing",
+        winnerId: null,
+        roundWinnerId: null,
+        roundPoints: 0,
+        roundNumber: 2,
+        message: "Ownership recovery",
+      },
+      lastShowdown: null,
+      timer: {
+        activePlayerId: "u2",
+        startedAt: now - 5_000,
+        expiresAt: now + 25_000,
+        totalSeconds: 30,
+      },
+      timeoutCounts: {
+        u1: 0,
+        u2: 0,
+      },
+      updatedAt: now,
+      nodeId: "other-node",
+    });
+
+    expect(recoverTurnTimerForRoom(roomId)).toBe(false);
+    expect(getTurnTimerInfo(roomId)).toBeNull();
+
+    coord.updateRoomOwnership(roomId, {
+      ownerNodeId: coord.getNodeId(),
+      ownerLeaseExpiresAt: now + 30_000,
+    });
+
+    expect(recoverTurnTimerForRoom(roomId)).toBe(true);
+    expect(getTurnTimerInfo(roomId)).toMatchObject({
+      activePlayerId: "u2",
+      totalSeconds: 30,
+    });
+    expect(getTurnTimeRemaining(roomId)).toBeGreaterThan(0);
+  });
+
+  it("immediately catches up an expired recovered timer", () => {
+    const roomId = "RECOVER2";
+    const now = Date.now();
+
+    coord.createRoom({
+      id: roomId,
+      hostId: "u1",
+      players: new Map([
+        ["u1", { userId: "u1", username: "Alice", ws: null, connected: true }],
+        ["u2", { userId: "u2", username: "Bob", ws: null, connected: true }],
+      ]),
+      status: "playing",
+      createdAt: now,
+      stakeId: "free",
+      ownerNodeId: coord.getNodeId(),
+      ownerLeaseExpiresAt: now + 30_000,
+    });
+    coord.setRoomGameState(roomId, {
+      match: {
+        roomId,
+        players: [
+          { userId: "u1", username: "Alice", hand: [], score: 0 },
+          { userId: "u2", username: "Bob", hand: [], score: 0 },
+        ],
+        currentPlayerIndex: 1,
+        stock: [],
+        discard: [],
+        status: "playing",
+        winnerId: null,
+        roundWinnerId: null,
+        roundPoints: 0,
+        roundNumber: 1,
+      },
+      lastShowdown: null,
+      timer: {
+        activePlayerId: "u2",
+        startedAt: now - 35_000,
+        expiresAt: now - 5_000,
+        totalSeconds: 30,
+      },
+      timeoutCounts: {
+        u2: 2,
+      },
+      updatedAt: now,
+      nodeId: coord.getNodeId(),
+    });
+
+    const timeoutCallback = vi.fn();
+    setTurnTimeoutCallback(timeoutCallback);
+
+    recoverTurnTimersFromCoordinator();
+
+    expect(timeoutCallback).toHaveBeenCalledWith(roomId, "u2", 3);
+    expect(getTurnTimerInfo(roomId)).toBeNull();
+    expect(getTimeoutCount(roomId, "u2")).toBe(3);
   });
 });
 

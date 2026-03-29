@@ -1,5 +1,6 @@
 """Tests protecting Apex bot behavior after strength improvements."""
 import unittest
+import random
 from gin_rummy.card import make_card, rank, suit, deadwood_value
 from gin_rummy.meld import best_meld_arrangement, compute_deadwood
 from gin_rummy.apex import Apex
@@ -439,6 +440,84 @@ class ApexEndToEndTests(unittest.TestCase):
         )
         # Apex should beat random at least 80% of the time
         self.assertGreater(r.win_rate_a, 0.70)
+
+
+class ApexCyclePreventionTest(unittest.TestCase):
+    """Tests for cycle prevention in draw decisions."""
+
+    def test_refuses_to_take_back_last_discard(self):
+        """Apex should not take back a card it just discarded."""
+        a = Apex("Test")
+        hand = [
+            make_card(7, 0), make_card(8, 0), make_card(9, 0),  # 8-9-10 run
+            make_card(0, 1), make_card(1, 1), make_card(2, 1),  # A-2-3 run
+            make_card(4, 2), make_card(5, 2), make_card(6, 2),  # 5-6-7 run
+            make_card(12, 3),  # King (deadwood)
+        ]
+        a.new_hand(hand, 1)
+        gs = {'turn_number': 5, 'my_score': 0, 'opp_score': 0,
+              'deck_remaining': 20, 'discard_pile': []}
+
+        # Discard the King
+        discarded = a.discard_decision(hand, False, make_card(12, 3), gs)
+        self.assertEqual(rank(discarded), 12)  # Should discard the King
+
+        # Now if King appears on discard pile, should refuse it
+        new_hand = [c for c in hand if c != discarded]
+        result = a.draw_decision(discarded, new_hand, gs)
+        self.assertFalse(result, "Should refuse to take back own last discard")
+
+    def test_takes_back_discard_if_completes_meld(self):
+        """Apex should take back a discarded card if it now completes a meld."""
+        a = Apex("Test")
+        hand = [
+            make_card(7, 0), make_card(8, 0), make_card(9, 0),
+            make_card(0, 1), make_card(1, 1), make_card(2, 1),
+            make_card(4, 2), make_card(4, 3),
+            make_card(6, 2),
+            make_card(12, 0),
+        ]
+        a.new_hand(hand, 1)
+        gs = {'turn_number': 5, 'my_score': 0, 'opp_score': 0,
+              'deck_remaining': 20, 'discard_pile': []}
+
+        five_h = make_card(4, 2)
+        a._last_discard = five_h
+
+        new_hand = [c for c in hand if c != five_h] + [make_card(4, 0)]
+        result = a.draw_decision(five_h, new_hand, gs)
+        self.assertTrue(result, "Should take back discard if it completes a meld")
+
+
+class ApexTurnSensitiveKnockTest(unittest.TestCase):
+    """Tests for turn-sensitive knock EV threshold."""
+
+    def test_knock_runs_at_different_turns(self):
+        """Verify knock decision runs without error at different turns."""
+        a = Apex("Test")
+        hand = [
+            make_card(0, 0), make_card(1, 0), make_card(2, 0),
+            make_card(3, 1), make_card(4, 1), make_card(5, 1),
+            make_card(6, 2), make_card(7, 2), make_card(8, 2),
+            make_card(9, 3),
+        ]
+        a.new_hand(hand, 1)
+        gs_early = {'turn_number': 5, 'my_score': 0, 'opp_score': 0,
+                     'deck_remaining': 20, 'discard_pile': []}
+        gs_late = {'turn_number': 10, 'my_score': 0, 'opp_score': 0,
+                    'deck_remaining': 10, 'discard_pile': []}
+        a.knock_decision(hand, gs_early)
+        a.knock_decision(hand, gs_late)
+
+    def test_apex_vs_apex_completes_many_seeds(self):
+        """Apex vs Apex should complete across multiple seeds."""
+        from gin_rummy.game import GinRummyGame
+        for seed in [42, 0, 1, 100, 999, 2026]:
+            random.seed(seed)
+            g = GinRummyGame(Apex("A1"), Apex("A2"), target_score=100, verbose=False)
+            r = g.play_game()
+            self.assertIsNotNone(r.winner, f"Game should complete for seed {seed}")
+            self.assertGreater(r.hands_played, 0)
 
 
 if __name__ == '__main__':

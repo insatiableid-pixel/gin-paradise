@@ -1,0 +1,93 @@
+{
+  "request_id": "gcli_0018",
+  "response_id": "gcli_0018_resp",
+  "timestamp": "2026-03-27T23:49:49.135172+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Reduce DW_RISK_SCALE to test if the deadwood risk penalty is currently too conservative given the improved world generation quality.",
+  "edits": {
+    "DW_RISK_SCALE = 0.012            # per-deadwood-point penalty": "DW_RISK_SCALE = 0.008            # per-deadwood-point penalty"
+  },
+  "param_names": [
+    "DW_RISK_SCALE"
+  ],
+  "param_changes": {
+    "DW_RISK_SCALE": {
+      "old": 0.012,
+      "new": 0.008,
+      "delta": -0.004
+    }
+  },
+  "rationale": "With the enhanced opponent model (upcard declines, DW priors) introduced in Phase 75, our EV estimates are more accurate. We can afford to reduce the heuristic deadwood risk penalty to prevent over-folding without causing reckless undercuts.",
+  "confidence": "medium",
+  "agent_prompt_hash": "e26e456e52d4",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0018.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0018.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 17.05,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 12204
+          },
+          "tokens": {
+            "input": 43845,
+            "prompt": 43845,
+            "candidates": 245,
+            "total": 45204,
+            "cached": 0,
+            "thoughts": 1114,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 12204,
+              "tokens": {
+                "input": 43845,
+                "prompt": 43845,
+                "candidates": 245,
+                "total": 45204,
+                "cached": 0,
+                "thoughts": 1114,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Reduce DW_RISK_SCALE to test if the deadwood risk penalty is currently too conservative given the improved world generation quality.\",\n  \"edits\": {\n    \"DW_RISK_SCALE = 0.012            # per-deadwood-point penalty\": \"DW_RISK_SCALE = 0.008            # per-deadwood-point penalty\"\n  },\n  \"param_names\": [\n    \"DW_RISK_SCALE\"\n  ],\n  \"param_changes\": {\n    \"DW_RISK_SCALE\": {\n      \"old\": 0.012,\n      \"new\": 0.008,\n      \"delta\": -0.004\n    }\n  },\n  \"rationale\": \"With the enhanced opponent model (upcard declines, DW priors) introduced in Phase 75, our EV estimates are more accurate. We can afford to reduce the heuristic deadwood risk penalty to prevent over-folding without causing reckless undercuts.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

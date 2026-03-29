@@ -328,6 +328,26 @@ export function useMultiplayer() {
         }, 8000);
         break;
 
+      case "room_handoff_required":
+        setState(prev => ({
+          ...prev,
+          phase: "disconnected",
+          roomId: null,
+          room: null,
+          gameState: null,
+          error: msg.message,
+          opponentDisconnected: false,
+          matchFound: null,
+          turnTimer: null,
+          timeoutWarning: null,
+          insufficientFunds: null,
+          showdownData: null,
+          tournamentContext: null,
+          tournamentUpdate: null,
+          fairnessStatus: null,
+        }));
+        break;
+
       case "error":
         setState(prev => ({ ...prev, error: msg.message }));
         break;

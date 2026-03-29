@@ -1,0 +1,25 @@
+====================================================================================================
+PHASE 77 ABLATION CAMPAIGN RESULTS
+====================================================================================================
+Incumbent: phase74_baseline (score=0.5873)
+
+Variant                          Score   Delta  Decision  Accuracy  KnockRate  Overknock
+----------------------------------------------------------------------------------------------------
+phase74_baseline_repro          0.5325   -0.0548     discard      0.6500      0.5000      0.0750
+upcard_decline_only             0.5545   -0.0328     discard      0.6875      0.5375      0.1125
+stock_dw_prior_only             0.5626   -0.0247     discard      0.6875      0.5375      0.1125
+mixed_continuation_only         0.5523   -0.0350     discard      0.6500      0.4750      0.0500
+trace_confidence_only           0.5719   -0.0154     discard      0.7375      0.6125      0.1875
+full_p75_bundle                 0.4897   -0.0976     discard      0.5625      0.3375      0.0000
+
+Total experiments: 6
+Variants remaining: 0
+Campaign: phase75_ablation
+
+COMPONENT ANALYSIS:
+  phase74_baseline_repro         components=none                                               score=0.5325
+  upcard_decline_only            components=['upcard_decline']                                 score=0.5545
+  stock_dw_prior_only            components=['stock_dw_prior']                                 score=0.5626
+  mixed_continuation_only        components=['mixed_continuation']                             score=0.5523
+  trace_confidence_only          components=['trace_confidence']                               score=0.5719
+  full_p75_bundle                components=['upcard_decline', 'stock_dw_prior', 'mixed_continuation', 'trace_confidence'] score=0.4897

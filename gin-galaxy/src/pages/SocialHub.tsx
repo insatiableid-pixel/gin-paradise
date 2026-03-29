@@ -72,14 +72,14 @@ const STATUS_BADGE: Record<string, { bg: string; text: string; icon: React.Eleme
   pending: { bg: "bg-amber-500/15", text: "text-amber-400", icon: Clock },
   accepted: { bg: "bg-emerald-500/15", text: "text-emerald-400", icon: CheckCircle },
   declined: { bg: "bg-rose-500/15", text: "text-rose-400", icon: XCircle },
-  expired: { bg: "bg-zinc-500/15", text: "text-zinc-400", icon: AlertTriangle },
-  cancelled: { bg: "bg-zinc-500/15", text: "text-zinc-500", icon: XCircle },
+  expired: { bg: "bg-zinc-500/15", text: "text-emerald-300/60", icon: AlertTriangle },
+  cancelled: { bg: "bg-zinc-500/15", text: "text-emerald-400/50", icon: XCircle },
 };
 
 const AVAILABILITY_BADGE: Record<string, { color: string; label: string }> = {
   online: { color: "bg-emerald-400", label: "Online" },
   in_match: { color: "bg-amber-400", label: "In Match" },
-  in_queue: { color: "bg-indigo-400", label: "Searching" },
+  in_queue: { color: "bg-amber-400", label: "Searching" },
   offline: { color: "bg-zinc-600", label: "Offline" },
 };
 
@@ -245,7 +245,7 @@ export function SocialHub() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-amber-500 border-t-transparent" />
       </div>
     );
   }
@@ -255,17 +255,17 @@ export function SocialHub() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
             <Swords className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Social Hub</h1>
-            <p className="text-sm text-zinc-500">Challenges, matches, and rivalry</p>
+            <p className="text-sm text-emerald-400/50">Challenges, matches, and rivalry</p>
           </div>
         </div>
         <button
           onClick={fetchData}
-          className="px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 text-zinc-300 text-sm flex items-center gap-1.5 transition-colors"
+          className="px-3 py-1.5 rounded-lg bg-[#0a2e1e] border border-emerald-800/40 hover:bg-emerald-900/40 text-emerald-200 text-sm flex items-center gap-1.5 transition-colors"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Refresh
@@ -273,7 +273,7 @@ export function SocialHub() {
       </div>
 
       {/* Tab Bar */}
-      <div className="flex gap-1 bg-zinc-900/60 rounded-xl border border-zinc-800/60 p-1">
+      <div className="flex gap-1 bg-emerald-950/40 rounded-xl border border-emerald-800/30 p-1">
         {tabs.map(t => (
           <button
             key={t.key}
@@ -281,8 +281,8 @@ export function SocialHub() {
             className={cn(
               "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all",
               tab === t.key
-                ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30"
-                : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40"
+                ? "bg-emerald-950/40 text-amber-400 border border-amber-500/30"
+                : "text-emerald-400/50 hover:text-emerald-200 hover:bg-[#0a2e1e]/40"
             )}
           >
             <t.icon className="w-4 h-4" />
@@ -294,7 +294,7 @@ export function SocialHub() {
                   ? "bg-rose-500/20 text-rose-400"
                   : t.key === "active"
                     ? "bg-emerald-500/20 text-emerald-400"
-                    : "bg-zinc-700 text-zinc-300"
+                    : "bg-zinc-700 text-emerald-200"
               )}>
                 {t.count}
               </span>
@@ -307,16 +307,16 @@ export function SocialHub() {
       {tab === "inbox" && (
         <div className="space-y-3">
           {inbox.length === 0 ? (
-            <Card className="bg-zinc-900/40 border-zinc-800/60">
+            <Card className="bg-emerald-950/30 border-emerald-800/30">
               <CardContent className="py-12 text-center">
                 <Inbox className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-                <p className="text-zinc-500">No pending challenges</p>
-                <p className="text-sm text-zinc-600 mt-1">Challenge someone from the leaderboard or their profile</p>
+                <p className="text-emerald-400/50">No pending challenges</p>
+                <p className="text-sm text-emerald-500/40 mt-1">Challenge someone from the leaderboard or their profile</p>
               </CardContent>
             </Card>
           ) : (
             inbox.map(ch => (
-              <Card key={ch.id} className="bg-zinc-900/40 border-zinc-800/60 hover:border-indigo-500/30 transition-colors">
+              <Card key={ch.id} className="bg-emerald-950/30 border-emerald-800/30 hover:border-amber-500/30 transition-colors">
                 <CardContent className="py-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -327,20 +327,20 @@ export function SocialHub() {
                         <div className="flex items-center gap-2">
                           <Link
                             to={`/player/${ch.challengerUsername}`}
-                            className="font-semibold text-zinc-100 hover:text-indigo-400 transition-colors"
+                            className="font-semibold text-amber-50 hover:text-amber-400 transition-colors"
                           >
                             {ch.challengerUsername}
                           </Link>
                           <Swords className="w-4 h-4 text-amber-500" />
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-zinc-500">
+                        <div className="flex items-center gap-2 text-xs text-emerald-400/50">
                           <span>{timeAgo(ch.createdAt)}</span>
                           <span>·</span>
                           <span className="text-amber-400">{timeRemaining(ch.expiresAt)}</span>
                           {ch.message && (
                             <>
                               <span>·</span>
-                              <span className="text-zinc-400 italic">"{ch.message}"</span>
+                              <span className="text-emerald-300/60 italic">"{ch.message}"</span>
                             </>
                           )}
                         </div>
@@ -358,7 +358,7 @@ export function SocialHub() {
                       <button
                         onClick={() => declineChallenge(ch.id)}
                         disabled={actionLoading === ch.id}
-                        className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700 text-sm font-medium transition-colors disabled:opacity-50"
+                        className="px-4 py-2 rounded-lg bg-[#0a2e1e] text-emerald-300/60 border border-emerald-800/40 hover:bg-emerald-900/40 text-sm font-medium transition-colors disabled:opacity-50"
                       >
                         Decline
                       </button>
@@ -372,14 +372,14 @@ export function SocialHub() {
           {/* Pending rematches in inbox */}
           {rematches.filter(r => r.proposerId !== user?.id).length > 0 && (
             <div className="mt-4">
-              <h3 className="text-sm font-semibold text-zinc-400 mb-2 flex items-center gap-1.5">
+              <h3 className="text-sm font-semibold text-emerald-300/60 mb-2 flex items-center gap-1.5">
                 <Flame className="w-4 h-4 text-amber-400" />
                 Rematch Requests
               </h3>
               {rematches.filter(r => r.proposerId !== user?.id).map(r => {
                 const opponentName = r.player1Id === user?.id ? r.player2Username : r.player1Username;
                 return (
-                  <Card key={r.id} className="bg-zinc-900/40 border-amber-500/20 hover:border-amber-500/40 transition-colors mb-2">
+                  <Card key={r.id} className="bg-emerald-950/30 border-amber-500/20 hover:border-amber-500/40 transition-colors mb-2">
                     <CardContent className="py-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -388,13 +388,13 @@ export function SocialHub() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <Link to={`/player/${opponentName}`} className="font-semibold text-zinc-100 hover:text-amber-400 transition-colors">
+                              <Link to={`/player/${opponentName}`} className="font-semibold text-amber-50 hover:text-amber-400 transition-colors">
                                 {opponentName}
                               </Link>
                               <Flame className="w-4 h-4 text-amber-500" />
                               <span className="text-xs text-amber-400">Rematch</span>
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-zinc-500">
+                            <div className="flex items-center gap-2 text-xs text-emerald-400/50">
                               <span>{timeAgo(r.createdAt)}</span>
                               <span>·</span>
                               <span className="text-amber-400">{timeRemaining(r.expiresAt)}</span>
@@ -413,7 +413,7 @@ export function SocialHub() {
                           <button
                             onClick={() => declineRematch(r.id)}
                             disabled={actionLoading === r.id}
-                            className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700 text-sm font-medium transition-colors disabled:opacity-50"
+                            className="px-4 py-2 rounded-lg bg-[#0a2e1e] text-emerald-300/60 border border-emerald-800/40 hover:bg-emerald-900/40 text-sm font-medium transition-colors disabled:opacity-50"
                           >
                             Decline
                           </button>
@@ -431,11 +431,11 @@ export function SocialHub() {
       {tab === "active" && (
         <div className="space-y-3">
           {activeCount === 0 ? (
-            <Card className="bg-zinc-900/40 border-zinc-800/60">
+            <Card className="bg-emerald-950/30 border-emerald-800/30">
               <CardContent className="py-12 text-center">
                 <Zap className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-                <p className="text-zinc-500">No active matches</p>
-                <p className="text-sm text-zinc-600 mt-1">Accept a challenge or rematch to see joinable matches here</p>
+                <p className="text-emerald-400/50">No active matches</p>
+                <p className="text-sm text-emerald-500/40 mt-1">Accept a challenge or rematch to see joinable matches here</p>
               </CardContent>
             </Card>
           ) : (
@@ -443,21 +443,21 @@ export function SocialHub() {
               {accepted.map(ch => {
                 const opponentName = ch.challengerId === user?.id ? ch.targetUsername : ch.challengerUsername;
                 return (
-                  <Card key={ch.id} className="bg-zinc-900/40 border-emerald-500/20 hover:border-emerald-500/40 transition-colors">
+                  <Card key={ch.id} className="bg-emerald-950/30 border-emerald-500/20 hover:border-emerald-500/40 transition-colors">
                     <CardContent className="py-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-emerald-600 flex items-center justify-center">
                             <Play className="w-5 h-5 text-white" />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-zinc-400 text-sm">Challenge vs</span>
-                              <Link to={`/player/${opponentName}`} className="font-semibold text-zinc-100 hover:text-emerald-400 transition-colors">
+                              <span className="text-emerald-300/60 text-sm">Challenge vs</span>
+                              <Link to={`/player/${opponentName}`} className="font-semibold text-amber-50 hover:text-emerald-400 transition-colors">
                                 {opponentName}
                               </Link>
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-zinc-500">
+                            <div className="flex items-center gap-2 text-xs text-emerald-400/50">
                               <span className="text-emerald-400 font-medium">Ready to play</span>
                               <span>·</span>
                               <span>{timeAgo(ch.updatedAt)}</span>
@@ -467,7 +467,7 @@ export function SocialHub() {
                         {ch.roomId && (
                           <button
                             onClick={() => joinMatch(ch.roomId!)}
-                            className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all flex items-center gap-2"
+                            className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm font-bold shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all flex items-center gap-2"
                           >
                             <Play className="w-4 h-4" />
                             Join Match
@@ -481,7 +481,7 @@ export function SocialHub() {
               {rematches.filter(r => r.status === "proposed" && r.proposerId === user?.id).map(r => {
                 const opponentName = r.player1Id === user?.id ? r.player2Username : r.player1Username;
                 return (
-                  <Card key={r.id} className="bg-zinc-900/40 border-amber-500/10">
+                  <Card key={r.id} className="bg-emerald-950/30 border-amber-500/10">
                     <CardContent className="py-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -490,8 +490,8 @@ export function SocialHub() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-zinc-400 text-sm">Rematch with</span>
-                              <Link to={`/player/${opponentName}`} className="font-semibold text-zinc-100 hover:text-amber-400 transition-colors">{opponentName}</Link>
+                              <span className="text-emerald-300/60 text-sm">Rematch with</span>
+                              <Link to={`/player/${opponentName}`} className="font-semibold text-amber-50 hover:text-amber-400 transition-colors">{opponentName}</Link>
                             </div>
                             <div className="text-xs text-amber-400">Waiting for response...</div>
                           </div>
@@ -510,32 +510,32 @@ export function SocialHub() {
       {tab === "outbox" && (
         <div className="space-y-3">
           {outbox.length === 0 ? (
-            <Card className="bg-zinc-900/40 border-zinc-800/60">
+            <Card className="bg-emerald-950/30 border-emerald-800/30">
               <CardContent className="py-12 text-center">
                 <Send className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-                <p className="text-zinc-500">No pending outbound challenges</p>
+                <p className="text-emerald-400/50">No pending outbound challenges</p>
               </CardContent>
             </Card>
           ) : (
             outbox.map(ch => (
-              <Card key={ch.id} className="bg-zinc-900/40 border-zinc-800/60">
+              <Card key={ch.id} className="bg-emerald-950/30 border-emerald-800/30">
                 <CardContent className="py-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-500 flex items-center justify-center text-sm font-bold text-white">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-emerald-600 flex items-center justify-center text-sm font-bold text-white">
                         {ch.targetUsername?.[0]?.toUpperCase()}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-zinc-500 text-sm">Challenged</span>
+                          <span className="text-emerald-400/50 text-sm">Challenged</span>
                           <Link
                             to={`/player/${ch.targetUsername}`}
-                            className="font-semibold text-zinc-100 hover:text-indigo-400 transition-colors"
+                            className="font-semibold text-amber-50 hover:text-amber-400 transition-colors"
                           >
                             {ch.targetUsername}
                           </Link>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-zinc-500">
+                        <div className="flex items-center gap-2 text-xs text-emerald-400/50">
                           <span>{timeAgo(ch.createdAt)}</span>
                           <span>·</span>
                           <span className="text-amber-400">{timeRemaining(ch.expiresAt)}</span>
@@ -545,7 +545,7 @@ export function SocialHub() {
                     <button
                       onClick={() => cancelChallenge(ch.id)}
                       disabled={actionLoading === ch.id}
-                      className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-red-900/30 hover:text-red-400 hover:border-red-500/30 text-sm font-medium transition-colors disabled:opacity-50"
+                      className="px-4 py-2 rounded-lg bg-[#0a2e1e] text-emerald-300/60 border border-emerald-800/40 hover:bg-red-900/30 hover:text-red-400 hover:border-red-500/30 text-sm font-medium transition-colors disabled:opacity-50"
                     >
                       Cancel
                     </button>
@@ -560,10 +560,10 @@ export function SocialHub() {
       {tab === "history" && (
         <div className="space-y-2">
           {history.length === 0 ? (
-            <Card className="bg-zinc-900/40 border-zinc-800/60">
+            <Card className="bg-emerald-950/30 border-emerald-800/30">
               <CardContent className="py-12 text-center">
                 <Clock className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-                <p className="text-zinc-500">No challenge history yet</p>
+                <p className="text-emerald-400/50">No challenge history yet</p>
               </CardContent>
             </Card>
           ) : (
@@ -573,20 +573,20 @@ export function SocialHub() {
               const isMine = ch.challengerId === user?.id;
               const opponentName = isMine ? ch.targetUsername : ch.challengerUsername;
               return (
-                <div key={ch.id} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/40 border border-zinc-800/60">
+                <div key={ch.id} className="flex items-center gap-3 p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/30">
                   <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", badge.bg)}>
                     <Icon className={cn("w-4 h-4", badge.text)} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-zinc-400">{isMine ? "You →" : "←"}</span>
+                      <span className="text-emerald-300/60">{isMine ? "You →" : "←"}</span>
                       <Link
                         to={`/player/${opponentName}`}
-                        className="font-medium text-zinc-100 hover:text-indigo-400 truncate transition-colors"
+                        className="font-medium text-amber-50 hover:text-amber-400 truncate transition-colors"
                       >
                         {opponentName}
                       </Link>
-                      {!isMine && <span className="text-zinc-400">→ You</span>}
+                      {!isMine && <span className="text-emerald-300/60">→ You</span>}
                     </div>
                   </div>
                   {ch.status === "accepted" && ch.roomId && (
@@ -601,7 +601,7 @@ export function SocialHub() {
                   <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold border", badge.bg, badge.text, `border-${badge.text.replace("text-", "")}/30`)}>
                     {ch.status}
                   </span>
-                  <span className="text-[10px] text-zinc-600 flex-shrink-0">{timeAgo(ch.updatedAt)}</span>
+                  <span className="text-[10px] text-emerald-500/40 flex-shrink-0">{timeAgo(ch.updatedAt)}</span>
                 </div>
               );
             })
@@ -612,11 +612,11 @@ export function SocialHub() {
       {tab === "following" && (
         <div className="space-y-2">
           {following.length === 0 ? (
-            <Card className="bg-zinc-900/40 border-zinc-800/60">
+            <Card className="bg-emerald-950/30 border-emerald-800/30">
               <CardContent className="py-12 text-center">
                 <Users className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-                <p className="text-zinc-500">Not following anyone yet</p>
-                <p className="text-sm text-zinc-600 mt-1">Follow players from the leaderboard or profiles</p>
+                <p className="text-emerald-400/50">Not following anyone yet</p>
+                <p className="text-sm text-emerald-500/40 mt-1">Follow players from the leaderboard or profiles</p>
               </CardContent>
             </Card>
           ) : (
@@ -624,9 +624,9 @@ export function SocialHub() {
               const avail = followAvailability[f.userId] || "offline";
               const availInfo = AVAILABILITY_BADGE[avail] || AVAILABILITY_BADGE.offline;
               return (
-                <div key={f.userId} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/40 border border-zinc-800/60 hover:border-zinc-700 transition-colors">
+                <div key={f.userId} className="flex items-center gap-3 p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/30 hover:border-emerald-800/40 transition-colors">
                   <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-sm font-bold text-white">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-emerald-600 flex items-center justify-center text-sm font-bold text-white">
                       {f.username?.[0]?.toUpperCase()}
                     </div>
                     <div className={cn("absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-zinc-900", availInfo.color)} title={availInfo.label} />
@@ -635,7 +635,7 @@ export function SocialHub() {
                     <div className="flex items-center gap-2">
                       <Link
                         to={`/player/${f.username}`}
-                        className="font-medium text-zinc-100 hover:text-indigo-400 truncate block transition-colors"
+                        className="font-medium text-amber-50 hover:text-amber-400 truncate block transition-colors"
                       >
                         {f.username}
                       </Link>
@@ -643,18 +643,18 @@ export function SocialHub() {
                         "text-[9px] px-1.5 py-0.5 rounded-full font-semibold",
                         avail === "online" ? "bg-emerald-500/10 text-emerald-400" :
                         avail === "in_match" ? "bg-amber-500/10 text-amber-400" :
-                        avail === "in_queue" ? "bg-indigo-500/10 text-indigo-400" :
-                        "bg-zinc-800 text-zinc-500"
+                        avail === "in_queue" ? "bg-amber-500/10 text-amber-400" :
+                        "bg-[#0a2e1e] text-emerald-400/50"
                       )}>
                         {availInfo.label}
                       </span>
                     </div>
-                    <span className="text-[10px] text-zinc-600">Following since {timeAgo(f.followedAt)}</span>
+                    <span className="text-[10px] text-emerald-500/40">Following since {timeAgo(f.followedAt)}</span>
                   </div>
                   <div className="flex gap-2">
                     <Link
                       to={`/player/${f.username}`}
-                      className="px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700 text-xs font-medium transition-colors flex items-center gap-1"
+                      className="px-3 py-1.5 rounded-lg bg-[#0a2e1e] text-emerald-300/60 border border-emerald-800/40 hover:bg-emerald-900/40 text-xs font-medium transition-colors flex items-center gap-1"
                     >
                       <Eye className="w-3 h-3" />
                       Profile
@@ -662,7 +662,7 @@ export function SocialHub() {
                     <button
                       onClick={() => unfollowPlayer(f.userId)}
                       disabled={actionLoading === f.userId}
-                      className="px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-500 border border-zinc-700 hover:bg-red-900/20 hover:text-red-400 text-xs font-medium transition-colors disabled:opacity-50"
+                      className="px-3 py-1.5 rounded-lg bg-[#0a2e1e] text-emerald-400/50 border border-emerald-800/40 hover:bg-red-900/20 hover:text-red-400 text-xs font-medium transition-colors disabled:opacity-50"
                     >
                       <UserMinus className="w-3 h-3" />
                     </button>
@@ -680,17 +680,17 @@ export function SocialHub() {
             <div className="flex justify-end">
               <button
                 onClick={markAllRead}
-                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
               >
                 Mark all as read
               </button>
             </div>
           )}
           {notifications.length === 0 ? (
-            <Card className="bg-zinc-900/40 border-zinc-800/60">
+            <Card className="bg-emerald-950/30 border-emerald-800/30">
               <CardContent className="py-12 text-center">
                 <Bell className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-                <p className="text-zinc-500">No notifications</p>
+                <p className="text-emerald-400/50">No notifications</p>
               </CardContent>
             </Card>
           ) : (
@@ -700,10 +700,10 @@ export function SocialHub() {
                 className={cn(
                   "flex items-start gap-3 p-3 rounded-xl border transition-colors",
                   n.read
-                    ? "bg-zinc-900/20 border-zinc-800/40"
+                    ? "bg-emerald-950/15 border-emerald-800/25"
                     : n.type === "match_ready"
                       ? "bg-emerald-500/5 border-emerald-500/20"
-                      : "bg-zinc-900/50 border-indigo-500/20"
+                      : "bg-emerald-950/40 border-amber-500/20"
                 )}
               >
                 <div className={cn(
@@ -712,26 +712,26 @@ export function SocialHub() {
                     ? "bg-emerald-500/15"
                     : n.type.includes("challenge") || n.type === "rematch_received"
                       ? "bg-amber-500/15"
-                      : "bg-indigo-500/15"
+                      : "bg-amber-500/10"
                 )}>
                   {n.type === "match_ready" || n.type === "rematch_accepted" ? (
                     <Play className="w-4 h-4 text-emerald-400" />
                   ) : n.type.includes("challenge") || n.type === "rematch_received" ? (
                     <Swords className="w-4 h-4 text-amber-400" />
                   ) : n.type === "new_follower" ? (
-                    <UserPlus className="w-4 h-4 text-indigo-400" />
+                    <UserPlus className="w-4 h-4 text-amber-400" />
                   ) : (
-                    <Bell className="w-4 h-4 text-zinc-400" />
+                    <Bell className="w-4 h-4 text-emerald-300/60" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={cn("text-sm", n.read ? "text-zinc-500" : "text-zinc-200")}>
+                  <p className={cn("text-sm", n.read ? "text-emerald-400/50" : "text-emerald-100")}>
                     {n.message}
                   </p>
-                  <p className="text-[10px] text-zinc-600 mt-0.5">{timeAgo(n.createdAt)}</p>
+                  <p className="text-[10px] text-emerald-500/40 mt-0.5">{timeAgo(n.createdAt)}</p>
                 </div>
                 {!n.read && (
-                  <div className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0 mt-2" />
+                  <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0 mt-2" />
                 )}
               </div>
             ))

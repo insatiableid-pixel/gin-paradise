@@ -1,0 +1,93 @@
+{
+  "request_id": "gcli_0015",
+  "response_id": "gcli_0015_resp",
+  "timestamp": "2026-03-27T23:35:30.860023+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Trusting the direct evaluation more over the coarse CFR prior will improve accuracy, given the recent opponent-model enhancements.",
+  "edits": {
+    "DIRECT_EVAL_WEIGHT = 0.80": "DIRECT_EVAL_WEIGHT = 0.90"
+  },
+  "param_names": [
+    "DIRECT_EVAL_WEIGHT"
+  ],
+  "param_changes": {
+    "DIRECT_EVAL_WEIGHT": {
+      "old": 0.8,
+      "new": 0.9,
+      "delta": 0.1
+    }
+  },
+  "rationale": "Phase 75 introduced significant improvements to the world-sampling quality (upcard decline, DW prior, mixed continuation). The direct evaluation is now much higher fidelity than the CFR prior's coarse buckets, so we should weight it more heavily.",
+  "confidence": "medium",
+  "agent_prompt_hash": "e26e456e52d4",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0015.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0015.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 30.27,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 21957
+          },
+          "tokens": {
+            "input": 43531,
+            "prompt": 43531,
+            "candidates": 216,
+            "total": 46887,
+            "cached": 0,
+            "thoughts": 3140,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 21957,
+              "tokens": {
+                "input": 43531,
+                "prompt": 43531,
+                "candidates": 216,
+                "total": 46887,
+                "cached": 0,
+                "thoughts": 3140,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Trusting the direct evaluation more over the coarse CFR prior will improve accuracy, given the recent opponent-model enhancements.\",\n  \"edits\": {\n    \"DIRECT_EVAL_WEIGHT = 0.80\": \"DIRECT_EVAL_WEIGHT = 0.90\"\n  },\n  \"param_names\": [\n    \"DIRECT_EVAL_WEIGHT\"\n  ],\n  \"param_changes\": {\n    \"DIRECT_EVAL_WEIGHT\": {\n      \"old\": 0.8,\n      \"new\": 0.9,\n      \"delta\": 0.1\n    }\n  },\n  \"rationale\": \"Phase 75 introduced significant improvements to the world-sampling quality (upcard decline, DW prior, mixed continuation). The direct evaluation is now much higher fidelity than the CFR prior's coarse buckets, so we should weight it more heavily.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

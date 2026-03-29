@@ -14,6 +14,7 @@ import type { Card as EngineCard } from "@/src/lib/engine";
 import type { ShowdownData, ShowdownPlayerData, ShowdownMeld, CardView } from "../../server/multiplayer/types";
 import { SpectatorView } from "./SpectatorView";
 import { PlayingCard, OverlappingCard, CardBack, ShowdownCardMini, TABLE_FELT_GRADIENT, TABLE_NOISE_STYLE } from "@/src/components/cards";
+import * as MP from "@/src/lib/motionPresets";
 
 // ── Card display types ───────────────────────────────────────────────
 
@@ -696,7 +697,7 @@ export function MultiplayerRoom() {
   const handleDiscard = () => {
     if (!isMyTurn || !gs.hasDrawn || selectedCardIndex === null) return;
     playSound(playDiscardSound);
-    if (shouldAnimate) { setDiscardAnimating(true); setTimeout(() => setDiscardAnimating(false), 300); }
+    if (shouldAnimate) { setDiscardAnimating(true); setTimeout(() => setDiscardAnimating(false), 400); }
     mp.discard(selectedCardIndex);
     setSelectedCardIndex(null);
   };
@@ -704,27 +705,49 @@ export function MultiplayerRoom() {
   const handleKnock = () => {
     if (!isMyTurn || !gs.hasDrawn || selectedCardIndex === null) return;
     playSound(playKnockSound);
-    if (shouldAnimate) { setKnockAnimating(true); setTimeout(() => setKnockAnimating(false), 400); }
+    if (shouldAnimate) { setKnockAnimating(true); setTimeout(() => setKnockAnimating(false), MP.KNOCK_FLASH_DURATION * 1000); }
     mp.knock(selectedCardIndex);
     setSelectedCardIndex(null);
   };
 
+  const livePrompt = gs.status === "game_over"
+    ? "Match complete. Review the board and line up the next set."
+    : gs.status === "round_over"
+    ? "Round locked. Review the reveal and advance when both players are ready."
+    : isMyTurn
+    ? (gs.hasDrawn
+        ? "Your move: choose the cleanest discard or close the door with a knock."
+        : "Your move: read the discard and decide whether to draw blind or take the shown card.")
+    : `${gs.opponentUsername} is on the clock. Track the discard lane and be ready to answer.`;
+  const tableTelemetry = [
+    { label: "Turn", value: gs.turnNumber ?? 1 },
+    { label: "Cards Remaining", value: gs.stockCount },
+  ];
+
+  const roomCode = mp.roomId ?? gs.roomId;
+
   return (
     <div className="fixed inset-0 bg-[#0a1f15] flex flex-col font-sans">
       {/* Game Header — Compact */}
-      <header className="h-11 border-b border-emerald-900/40 bg-[#0d1a12]/80 backdrop-blur flex items-center justify-between px-3 z-20">
-        <div className="flex items-center gap-3">
+      <header className="h-14 border-b border-emerald-900/40 bg-[#0d1a12]/85 backdrop-blur-xl flex items-center justify-between px-3 sm:px-4 z-20">
+        <div className="flex min-w-0 items-center gap-3">
           <button onClick={mp.leaveRoom} className="text-emerald-700 hover:text-emerald-300 transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <span className="text-xs font-medium text-emerald-400/70">vs {gs.opponentUsername}</span>
-          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-400/80 border border-amber-500/20">MP</span>
-          {gs.stakeInfo && gs.stakeInfo.entryFee > 0 && (
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold border bg-amber-500/15 text-amber-400/80 border-amber-500/20 flex items-center gap-0.5">
-              <Trophy className="w-2.5 h-2.5" />
-              {gs.stakeInfo.prizePool.toLocaleString()}
-            </span>
-          )}
+          <div className="min-w-0">
+            <div className="text-[9px] uppercase tracking-[0.34em] text-emerald-500/45">Competitive Table</div>
+            <div className="flex min-w-0 items-center gap-2">
+              <span
+                className="truncate text-sm font-semibold text-zinc-100"
+                style={{ fontFamily: '"Fraunces", ui-serif, Georgia, serif' }}
+              >
+                vs {gs.opponentUsername}
+              </span>
+              <span className="hidden rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.24em] text-amber-200 sm:inline-flex">
+                Live
+              </span>
+            </div>
+          </div>
           {/* Trust Shield badge */}
           {mp.fairnessStatus && (
             <div className="relative group" id="trust-shield-badge">
@@ -768,7 +791,7 @@ export function MultiplayerRoom() {
           {/* Turn Timer Display */}
           {displayTimer !== null && (
             <div className={cn(
-              "flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold transition-colors",
+              "flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-mono font-bold transition-colors",
               displayTimer <= 10
                 ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
                 : displayTimer <= 30
@@ -785,7 +808,6 @@ export function MultiplayerRoom() {
               <span className="text-[9px] text-amber-400">DC</span>
             </div>
           )}
-          <div className="text-[11px] text-emerald-500/50 hidden sm:block">{gs.message}</div>
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             className="w-7 h-7 rounded-full bg-emerald-900/40 hover:bg-emerald-800/60 flex items-center justify-center transition-colors"
@@ -818,7 +840,7 @@ export function MultiplayerRoom() {
                     type="checkbox"
                     checked={fourColorDeck}
                     onChange={(e) => setFourColorDeck(e.target.checked)}
-                    className="accent-indigo-500"
+                    className="accent-emerald-500"
                   />
                 </label>
                 <label className="flex items-center justify-between cursor-pointer">
@@ -827,7 +849,7 @@ export function MultiplayerRoom() {
                     type="checkbox"
                     checked={soundEnabled}
                     onChange={(e) => setSoundEnabled(e.target.checked)}
-                    className="accent-indigo-500"
+                    className="accent-emerald-500"
                   />
                 </label>
                 <label className="flex items-center justify-between cursor-pointer">
@@ -836,7 +858,7 @@ export function MultiplayerRoom() {
                     type="checkbox"
                     checked={animationsEnabled}
                     onChange={(e) => setAnimationsEnabled(e.target.checked)}
-                    className="accent-indigo-500"
+                    className="accent-emerald-500"
                   />
                 </label>
               </div>
@@ -845,84 +867,87 @@ export function MultiplayerRoom() {
         </div>
       </header>
 
-      {/* Game Board — Table-first spatial composition */}
+      <div className="relative z-20 border-b border-emerald-950/40 bg-[#07140f]/78 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-2 px-3 py-2 sm:px-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-emerald-500/18 bg-emerald-500/8 px-3 py-1 text-[11px] font-medium text-emerald-100">
+              Room {roomCode}
+            </span>
+            <span className="rounded-full border border-emerald-500/18 bg-emerald-500/8 px-3 py-1 text-[11px] font-medium text-emerald-100">
+              {gs.stakeInfo?.entryFee ? gs.stakeInfo.label : "Practice Table"}
+            </span>
+            {tableTelemetry.map((item) => (
+              <span
+                key={item.label}
+                className="rounded-full border border-emerald-500/18 bg-emerald-500/8 px-3 py-1 text-[11px] font-medium text-emerald-100"
+              >
+                <span className="text-emerald-300/70">{item.label}:</span> {item.value}
+              </span>
+            ))}
+            {gs.stakeInfo && gs.stakeInfo.entryFee > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-100">
+                <Trophy className="h-3.5 w-3.5 text-amber-300" />
+                {gs.stakeInfo.prizePool.toLocaleString()} prize
+              </span>
+            )}
+            {mp.opponentDisconnected && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-100">
+                <WifiOff className="h-3.5 w-3.5 text-amber-300" />
+                Opponent reconnecting
+              </span>
+            )}
+          </div>
+
+          <div
+            className={cn(
+              "rounded-2xl border px-3 py-2 text-[11px] font-medium shadow-[0_12px_32px_-24px_rgba(0,0,0,0.85)] lg:max-w-[620px] lg:text-right",
+              gs.status === "game_over"
+                ? "border-rose-500/16 bg-rose-500/8 text-rose-100"
+                : gs.status === "round_over"
+                ? "border-amber-500/18 bg-amber-500/10 text-amber-100"
+                : isMyTurn
+                ? "border-emerald-500/18 bg-emerald-500/10 text-emerald-100"
+                : "border-emerald-500/12 bg-emerald-500/6 text-emerald-100/90",
+            )}
+          >
+            <div className="text-[10px] uppercase tracking-[0.28em] text-emerald-400/45">
+              {gs.status === "game_over" ? "Post-match" : gs.status === "round_over" ? "Round reveal" : isMyTurn ? "On move" : "Reading the table"}
+            </div>
+            <div className="mt-1">{livePrompt}</div>
+            <div className="mt-1 text-zinc-300/72">{gs.message}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Game Board — Vertical seat composition */}
       <main className="flex-1 relative overflow-hidden flex flex-col">
         <div className={cn("absolute inset-0 pointer-events-none", TABLE_FELT_GRADIENT)} />
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={TABLE_NOISE_STYLE} />
 
-        {/* ── Upper Table Zone: Stock/Discard (left) + Opponent (right) ── */}
-        <div className="relative z-10 flex items-start justify-between px-4 sm:px-6 lg:px-10 pt-3 sm:pt-5 flex-shrink-0">
-
-          {/* Stock & Discard — Upper Left Rail */}
-          <div className="inline-flex items-start gap-3 sm:gap-4 rounded-2xl border border-emerald-800/40 bg-[#0a2e1e]/50 px-3 py-3 sm:px-4 shadow-lg backdrop-blur-sm">
-            {/* Stock */}
-            <div className="group cursor-pointer" onClick={() => handleDraw("stock")}>
-              <div className="relative">
-                <div className={cn("absolute inset-0 blur-xl rounded-full transition-colors", isMyTurn && !gs.hasDrawn ? "bg-amber-500/20" : "bg-transparent")} />
-                <div className={cn(
-                  "relative w-[64px] h-[90px] sm:w-[72px] sm:h-[100px] md:w-[80px] md:h-[110px] rounded-xl border-2 shadow-xl transition-colors overflow-hidden",
-                  isMyTurn && !gs.hasDrawn ? "border-amber-500" : "border-transparent"
-                )}>
-                  <CardBack className="w-full h-full" />
-                </div>
-              </div>
-              <div className="mt-1.5 flex flex-col items-center text-center">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-500/60">Stock</span>
-                <span className="text-[10px] text-emerald-600/40">{gs.stockCount}</span>
-              </div>
-            </div>
-
-            {/* Discard */}
-            <div className="cursor-pointer" onClick={() => handleDraw("discard")}>
-              <div className="relative">
-                {gs.topDiscard ? (
-                  <div className={cn("transition-transform", isMyTurn && !gs.hasDrawn ? "hover:-translate-y-2" : "")}>
-                    <PlayingCard
-                      suit={gs.topDiscard.suit}
-                      rank={gs.topDiscard.rank}
-                      fourColor={fourColorDeck}
-                      className={cn("!w-[64px] !h-[90px] sm:!w-[72px] sm:!h-[100px] md:!w-[80px] md:!h-[110px]", isMyTurn && !gs.hasDrawn ? "ring-2 ring-amber-400" : "")}
-                    />
-                  </div>
-                ) : (
-                  <div className="w-[64px] h-[90px] sm:w-[72px] sm:h-[100px] md:w-[80px] md:h-[110px] rounded-xl border-2 border-dashed border-emerald-800/40 flex items-center justify-center">
-                    <span className="text-emerald-700/40 text-[10px]">Empty</span>
-                  </div>
-                )}
-              </div>
-              <div className="mt-1.5 flex flex-col items-center text-center">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-500/60">Discard</span>
-                <span className="text-[10px] text-emerald-600/40">{gs.topDiscard ? "Ready" : "Empty"}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Opponent Area — Upper Right */}
-          <div className="flex flex-col items-end">
+        {/* ═══════ ZONE 1: Opponent seat (top-center) — unified identity + cards ═══════ */}
+        <div className="relative z-10 flex flex-col items-center pt-3 sm:pt-4 md:pt-4 pb-0.5 sm:pb-1 flex-shrink-0">
+          {/* Opponent seat pill — avatar + name/score + hidden cards as one coherent unit */}
+          <div className="flex items-center gap-2 sm:gap-3 bg-[#0a2e1e]/40 md:bg-[#0a2e1e]/55 border border-emerald-700/20 md:border-emerald-700/35 rounded-full px-3 sm:px-4 py-1.5 sm:py-2 backdrop-blur-sm shadow-lg shadow-black/10">
             <div className={cn(
-              "flex items-center gap-3 bg-[#0a2e1e]/60 border rounded-full px-3 py-1.5 backdrop-blur-sm shadow-md transition-colors",
-              !isMyTurn ? "border-amber-500/60" : "border-emerald-800/40"
+              "w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full bg-rose-500/20 border-2 flex items-center justify-center text-rose-400 font-bold text-xs sm:text-sm shadow-md transition-colors flex-shrink-0",
+              !isMyTurn ? "border-amber-500/60" : "border-rose-500/40"
             )}>
-              <div className="w-7 h-7 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 font-bold text-xs">
-                {gs.opponentUsername[0]}
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-zinc-200 leading-none">{gs.opponentUsername}</span>
-                <span className="text-[9px] text-emerald-500/50">{gs.opponentCardCount} cards</span>
-              </div>
-              <div className="ml-2 flex flex-col items-end">
-                <span className="text-[9px] text-emerald-600/40">Score</span>
-                <span className="text-base font-mono font-bold text-zinc-200 leading-none">{gs.opponentScore}</span>
+              {gs.opponentUsername[0]}
+            </div>
+            <div className="flex flex-col mr-1">
+              <span className="text-xs sm:text-sm font-bold text-zinc-200 leading-none">{gs.opponentUsername}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] sm:text-[10px] text-emerald-400/60 uppercase tracking-wider">Score: {gs.opponentScore}</span>
+                <span className="text-[9px] text-emerald-500/40">• {gs.opponentCardCount} cards</span>
               </div>
             </div>
-
-            {/* Opponent Cards (Hidden) — compact overlapping */}
-            <div className="mt-2 flex justify-end scale-[0.65] sm:scale-[0.8] origin-top-right opacity-60">
-              <div className="relative" style={{ width: gs.opponentCardCount > 0 ? (gs.opponentCardCount - 1) * 18 + 48 : 0, height: 68 }}>
+            {/* Opponent Cards (Hidden) — compact overlapping inline */}
+            <div className="flex items-center opacity-70">
+              <div className="relative" style={{ width: gs.opponentCardCount > 0 ? (gs.opponentCardCount - 1) * 18 + 48 : 0, height: 56 }}>
                 {Array.from({ length: gs.opponentCardCount }).map((_, i) => (
                   <div
                     key={i}
-                    className="absolute w-12 h-[68px] rounded-lg overflow-hidden shadow-md"
+                    className="absolute w-10 h-[56px] rounded-md overflow-hidden shadow-sm"
                     style={{ left: i * 18, zIndex: i }}
                   >
                     <CardBack className="w-full h-full" mini />
@@ -933,10 +958,100 @@ export function MultiplayerRoom() {
           </div>
         </div>
 
-        {/* ── Open Table Center ── */}
-        <div className="flex-1 relative z-0" />
+        {/* ═══════ ZONE 2: Draw area — centered, lifted upper-middle ═══════ */}
+        <div className="flex-1 flex flex-col items-center z-10 min-h-0 relative">
+          {/* Stock/Discard — positioned in upper portion */}
+          <div className="flex flex-col items-center pt-1 sm:pt-2 md:pt-3">
+            {/* Turn indicator */}
+            <div className="text-center mb-2 md:mb-3">
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={isMyTurn ? (gs.hasDrawn ? "act" : "draw") : "wait"}
+                  initial={shouldAnimate ? MP.TURN_INDICATOR_INITIAL : {}}
+                  animate={MP.TURN_INDICATOR_ANIMATE}
+                  exit={shouldAnimate ? { opacity: 0, y: 8 } : {}}
+                  transition={shouldAnimate ? { duration: 0.25 } : { duration: 0 }}
+                  className={cn(
+                    "text-xs sm:text-sm font-bold tracking-[0.2em] uppercase inline-block",
+                    isMyTurn ? "text-amber-300" : "text-emerald-400/50"
+                  )}
+                >
+                  {isMyTurn ? (gs.hasDrawn ? "SELECT & ACT" : "YOUR TURN — DRAW") : `${gs.opponentUsername}'S TURN`}
+                </motion.span>
+              </AnimatePresence>
+            </div>
 
-        {/* ── Player Area — Dominant bottom zone ── */}
+            {/* Stock & Discard — centered horizontal pair */}
+            <div className="flex items-start gap-4 sm:gap-6 md:gap-10">
+              {/* Stock */}
+              <div className="flex flex-col items-center cursor-pointer" onClick={() => handleDraw("stock")}>
+                <span className="text-[10px] sm:text-xs font-semibold text-emerald-200/60 tracking-wide mb-1">Stock</span>
+                <div className="relative">
+                  <div className={cn("absolute inset-0 blur-xl rounded-full transition-colors", isMyTurn && !gs.hasDrawn ? "bg-amber-500/20" : "bg-transparent")} />
+                  <motion.div
+                    animate={shouldAnimate ? {
+                      ...(isMyTurn && !gs.hasDrawn ? MP.DRAW_TARGET_PULSE : {}),
+                    } : {}}
+                    transition={shouldAnimate ? {
+                      boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                    } : { duration: 0 }}
+                    className={cn(
+                      "relative w-[64px] h-[90px] sm:w-[72px] sm:h-[100px] md:w-[80px] md:h-[110px] rounded-xl shadow-xl transition-colors overflow-hidden",
+                      isMyTurn && !gs.hasDrawn ? "ring-2 ring-amber-400" : ""
+                    )}
+                  >
+                    <CardBack className="w-full h-full" />
+                  </motion.div>
+                </div>
+                <span className="text-[10px] text-emerald-600/40 mt-1">{gs.stockCount}</span>
+              </div>
+
+              {/* Swap arrows */}
+              <div className="flex items-center self-center mt-7 text-emerald-400/30">
+                <span className="text-lg">⇄</span>
+              </div>
+
+              {/* Discard */}
+              <div className="flex flex-col items-center cursor-pointer" onClick={() => handleDraw("discard")}>
+                <span className="text-[10px] sm:text-xs font-semibold text-emerald-200/60 tracking-wide mb-1">Discard</span>
+                <div className="relative">
+                  {gs.topDiscard ? (
+                    <motion.div
+                      key={`${gs.topDiscard.suit}${gs.topDiscard.rank}`}
+                      initial={shouldAnimate && discardAnimating ? MP.DISCARD_PILE_ENTRY_INITIAL : {}}
+                      animate={shouldAnimate ? {
+                        ...MP.DISCARD_PILE_ENTRY_ANIMATE,
+                        ...(isMyTurn && !gs.hasDrawn ? MP.DRAW_TARGET_PULSE : {}),
+                      } : MP.DISCARD_PILE_ENTRY_ANIMATE}
+                      transition={shouldAnimate ? {
+                        ...MP.CARD_SPRING,
+                        boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                      } : { duration: 0 }}
+                      className={cn("transition-transform", isMyTurn && !gs.hasDrawn ? "hover:-translate-y-2" : "")}
+                    >
+                      <PlayingCard
+                        suit={gs.topDiscard.suit}
+                        rank={gs.topDiscard.rank}
+                        fourColor={fourColorDeck}
+                        className={cn("!w-[64px] !h-[90px] sm:!w-[72px] sm:!h-[100px] md:!w-[80px] md:!h-[110px]", isMyTurn && !gs.hasDrawn ? "ring-2 ring-amber-400" : "")}
+                      />
+                    </motion.div>
+                  ) : (
+                    <div className="w-[64px] h-[90px] sm:w-[72px] sm:h-[100px] md:w-[80px] md:h-[110px] rounded-xl border-2 border-dashed border-emerald-800/40 flex items-center justify-center">
+                      <span className="text-emerald-700/40 text-[10px]">Empty</span>
+                    </div>
+                  )}
+                </div>
+                <span className="text-[10px] text-emerald-600/40 mt-1">{gs.topDiscard ? "Ready" : "Empty"}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Open felt spacer — deliberate breathing room between draw area and player hand */}
+          <div className="flex-1 min-h-[24px] sm:min-h-[40px] md:min-h-[64px]" />
+        </div>
+
+        {/* ═══════ ZONE 3: Player seat + Hand + Actions (bottom) ═══════ */}
         <div className="relative flex flex-col items-center z-20 pb-3 sm:pb-5 flex-shrink-0">
           {/* Timeout Warning Toast */}
           <AnimatePresence>
@@ -954,7 +1069,7 @@ export function MultiplayerRoom() {
           </AnimatePresence>
 
           {/* Turn phase indicator */}
-          <div className="mb-1.5">
+          <div className="mb-1">
             {isMyTurn && !gs.hasDrawn && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -978,21 +1093,23 @@ export function MultiplayerRoom() {
             )}
           </div>
 
-          {/* Action Buttons & Player Info — tight above hand */}
-          <div className="flex items-center gap-2 sm:gap-3 mb-2">
+          {/* Player seat bar — avatar + score + action buttons as one coherent unit */}
+          <div className="flex items-center gap-2 sm:gap-3 bg-[#0a2e1e]/40 md:bg-[#0a2e1e]/55 border border-emerald-700/20 md:border-emerald-700/35 rounded-full px-2 sm:px-3 py-1 sm:py-1.5 mb-2 md:mb-2.5 backdrop-blur-sm shadow-lg shadow-black/10">
+            {/* Player identity pill */}
             <div className={cn(
-              "flex items-center gap-2 bg-[#0a2e1e]/70 border rounded-full pl-2 pr-3 py-1 backdrop-blur-sm transition-colors",
-              isMyTurn ? "border-amber-500" : "border-emerald-800/40"
+              "flex items-center gap-1.5 sm:gap-2 rounded-full pl-1 pr-2.5 py-0.5 transition-colors",
+              isMyTurn ? "bg-[#0a2e1e]/50" : ""
             )}>
-              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-[10px] font-bold">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-[10px] sm:text-xs font-bold flex-shrink-0">
                 {gs.myUsername[0]}
               </div>
               <span className="text-xs font-bold text-zinc-100">{gs.myScore}</span>
             </div>
+            {/* Action buttons */}
             <Button
               variant="primary"
               onClick={handleDiscard}
-              className="bg-amber-600 hover:bg-amber-500 shadow-[0_0_20px_-5px_rgba(217,119,6,0.5)] px-6 sm:px-8 text-sm"
+              className="bg-amber-600 hover:bg-amber-500 shadow-[0_0_20px_-5px_rgba(217,119,6,0.5)] px-5 sm:px-7 text-sm"
               disabled={!isMyTurn || !gs.hasDrawn || selectedCardIndex === null}
             >
               Discard
@@ -1057,33 +1174,45 @@ export function MultiplayerRoom() {
         <AnimatePresence>
           {mp.phase === "round_over" && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={MP.SHOWDOWN_OVERLAY_INITIAL}
+              animate={MP.SHOWDOWN_OVERLAY_ANIMATE}
               exit={{ opacity: 0 }}
+              transition={MP.OVERLAY_TWEEN}
               className="absolute inset-0 z-50 flex items-center justify-center bg-[#030d08]/90 backdrop-blur-sm"
             >
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
+                initial={shouldAnimate ? MP.SHOWDOWN_PANEL_INITIAL : {}}
+                animate={MP.SHOWDOWN_PANEL_ANIMATE}
+                transition={shouldAnimate ? { ...MP.EMPHASIS_SPRING, delay: 0.1 } : { duration: 0 }}
                 className="bg-[#0d1a12] border border-emerald-800/50 p-6 rounded-2xl text-center max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
+                style={mp.showdownData && shouldAnimate ? { boxShadow: MP.getOutcomeBadgeShadow(mp.showdownData.knockOutcome) } : {}}
               >
-                <h2 className="text-2xl font-bold text-zinc-100 mb-1">Round Over</h2>
+                <motion.h2
+                  initial={shouldAnimate ? { opacity: 0, y: -10 } : {}}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={shouldAnimate ? { delay: 0.15 } : { duration: 0 }}
+                  className="text-2xl font-bold text-zinc-100 mb-1"
+                >Round Over</motion.h2>
                 {mp.showdownData && (
                   <>
-                    <div className={cn(
-                      "inline-flex px-3 py-1 rounded-full text-xs font-bold mb-3",
-                      mp.showdownData.knockOutcome === "gin"
-                        ? "bg-amber-500/20 text-amber-400"
-                        : mp.showdownData.knockOutcome === "undercut"
-                        ? "bg-rose-500/20 text-rose-400"
-                        : "bg-emerald-500/20 text-emerald-400"
-                    )}>
+                    <motion.div
+                      initial={shouldAnimate ? MP.OUTCOME_BADGE_INITIAL : {}}
+                      animate={MP.OUTCOME_BADGE_ANIMATE}
+                      transition={shouldAnimate ? { ...MP.EMPHASIS_SPRING, delay: 0.25 } : { duration: 0 }}
+                      className={cn(
+                        "inline-flex px-3 py-1 rounded-full text-xs font-bold mb-3",
+                        mp.showdownData.knockOutcome === "gin"
+                          ? "bg-amber-500/20 text-amber-400"
+                          : mp.showdownData.knockOutcome === "undercut"
+                          ? "bg-rose-500/20 text-rose-400"
+                          : "bg-emerald-500/20 text-emerald-400"
+                      )}>
                       {mp.showdownData.knockOutcome === "gin" ? "🔥 GIN" :
                        mp.showdownData.knockOutcome === "undercut" ? "⚡ UNDERCUT" :
                        "👊 KNOCK"}
                       {" — "}
                       {mp.showdownData.roundWinnerUsername} wins {mp.showdownData.roundPoints} pts
-                    </div>
+                    </motion.div>
 
                     <div className="space-y-4 mt-4 text-left">
                       {/* Knocker */}
@@ -1107,9 +1236,15 @@ export function MultiplayerRoom() {
                   </>
                 )}
                 {!mp.showdownData && <p className="text-zinc-400 mb-4">{gs.message}</p>}
-                <Button variant="primary" onClick={mp.nextRound} className="w-full mt-4">
-                  Next Round
-                </Button>
+                <motion.div
+                  initial={shouldAnimate ? { opacity: 0, y: 10 } : {}}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={shouldAnimate ? { delay: 0.8 } : { duration: 0 }}
+                >
+                  <Button variant="primary" onClick={mp.nextRound} className="w-full mt-4">
+                    Next Round
+                  </Button>
+                </motion.div>
               </motion.div>
             </motion.div>
           )}
@@ -1304,7 +1439,7 @@ function RematchButton({ opponentUsername, stakeId, stakeLabel }: { opponentUser
         onClick={handleRematch}
         disabled={rematchState === "sending" || rematchState === "sent"}
         className={cn(
-          "w-full border-indigo-700/50 text-indigo-400 hover:bg-indigo-900/30 hover:text-indigo-300 transition-all",
+          "w-full border-emerald-700/50 text-emerald-400 hover:bg-emerald-900/30 hover:text-emerald-300 transition-all",
           rematchState === "sent" && "border-emerald-700/50 text-emerald-400"
         )}
         id="rematch-btn"

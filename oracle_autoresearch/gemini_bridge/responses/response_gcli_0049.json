@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0049",
+  "response_id": "gcli_0049_resp",
+  "timestamp": "2026-03-28T17:37:12.014884+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Direct EV estimation is more accurate in the late game due to lower uncertainty, whereas CFR's prior is safer in the early game. Adding a late-game (low stock) confidence boost to compute_eval_weight will smoothly shift trust from CFR to EV as the hand progresses.",
+  "edits": {
+    "    # \u2500\u2500 MUTATION TARGET \u2500\u2500\n    # Trust direct EV more when the decision is clear (large EV gap)\n    # and when trace data is rich. Trust CFR prior more when uncertain.\n    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))": "    # \u2500\u2500 MUTATION TARGET \u2500\u2500\n    # Trust direct EV more when the decision is clear (large EV gap),\n    # trace data is rich, and stock is low (late-game certainty).\n    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 3.0)\n    trace_confidence = min(1.0, n_trace_events / 8.0)\n    late_game_confidence = max(0.0, (20 - stock_size) / 20.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.10 * gap_confidence) + (0.05 * trace_confidence) + (0.15 * late_game_confidence)\n    return max(0.4, min(1.0, dynamic_weight))"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "Introducing game-phase awareness (via stock_size) to the EV trust weighting allows the Oracle to be appropriately conservative in the high-variance early game while fully leveraging its deep direct search accuracy in the late game when the opponent's hand is more constrained.",
+  "confidence": "high",
+  "agent_prompt_hash": "bc3bf765b34d",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0049.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0049.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 50.39,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 45226
+          },
+          "tokens": {
+            "input": 48908,
+            "prompt": 48908,
+            "candidates": 561,
+            "total": 54706,
+            "cached": 0,
+            "thoughts": 5237,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 45226,
+              "tokens": {
+                "input": 48908,
+                "prompt": 48908,
+                "candidates": 561,
+                "total": 54706,
+                "cached": 0,
+                "thoughts": 5237,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Direct EV estimation is more accurate in the late game due to lower uncertainty, whereas CFR's prior is safer in the early game. Adding a late-game (low stock) confidence boost to compute_eval_weight will smoothly shift trust from CFR to EV as the hand progresses.\",\n  \"edits\": {\n    \"    # \u2500\u2500 MUTATION TARGET \u2500\u2500\\n    # Trust direct EV more when the decision is clear (large EV gap)\\n    # and when trace data is rich. Trust CFR prior more when uncertain.\\n    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\": \"    # \u2500\u2500 MUTATION TARGET \u2500\u2500\\n    # Trust direct EV more when the decision is clear (large EV gap),\\n    # trace data is rich, and stock is low (late-game certainty).\\n    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 3.0)\\n    trace_confidence = min(1.0, n_trace_events / 8.0)\\n    late_game_confidence = max(0.0, (20 - stock_size) / 20.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.10 * gap_confidence) + (0.05 * trace_confidence) + (0.15 * late_game_confidence)\\n    return max(0.4, min(1.0, dynamic_weight))\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"Introducing game-phase awareness (via stock_size) to the EV trust weighting allows the Oracle to be appropriately conservative in the high-variance early game while fully leveraging its deep direct search accuracy in the late game when the opponent's hand is more constrained.\",\n  \"confidence\": \"high\"\n}"
+}

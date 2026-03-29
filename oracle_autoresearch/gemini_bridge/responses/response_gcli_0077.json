@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0077",
+  "response_id": "gcli_0077_resp",
+  "timestamp": "2026-03-28T22:34:33.929572+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Shift early-game baseline trust to CFR prior and late-game trust to direct EV by adding a stock-depletion progress term to compute_eval_weight.",
+  "edits": {
+    "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))": "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    progress_trust = max(0.0, 31.0 - stock_size) / 31.0\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + (0.10 * progress_trust)\n    return max(0.5, min(1.0, dynamic_weight))"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "Candidate 0075 hinted that progress-sensitive direct-EV trust was a strong signal. By shifting 0.05 baseline weight into a late-game progress multiplier, we naturally fall back to the CFR prior early when EV uncertainty is high, but trust direct evaluation fully late in the game when uncertainty collapses.",
+  "confidence": "high",
+  "agent_prompt_hash": "73d51a4f96bd",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0077.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0077.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 59.74,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 54744
+          },
+          "tokens": {
+            "input": 16152,
+            "prompt": 16152,
+            "candidates": 458,
+            "total": 21637,
+            "cached": 0,
+            "thoughts": 5027,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 54744,
+              "tokens": {
+                "input": 16152,
+                "prompt": 16152,
+                "candidates": 458,
+                "total": 21637,
+                "cached": 0,
+                "thoughts": 5027,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Shift early-game baseline trust to CFR prior and late-game trust to direct EV by adding a stock-depletion progress term to compute_eval_weight.\",\n  \"edits\": {\n    \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\": \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    progress_trust = max(0.0, 31.0 - stock_size) / 31.0\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + (0.10 * progress_trust)\\n    return max(0.5, min(1.0, dynamic_weight))\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"Candidate 0075 hinted that progress-sensitive direct-EV trust was a strong signal. By shifting 0.05 baseline weight into a late-game progress multiplier, we naturally fall back to the CFR prior early when EV uncertainty is high, but trust direct evaluation fully late in the game when uncertainty collapses.\",\n  \"confidence\": \"high\"\n}"
+}

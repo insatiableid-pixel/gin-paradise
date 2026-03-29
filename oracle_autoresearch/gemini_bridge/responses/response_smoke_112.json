@@ -1,0 +1,85 @@
+{
+  "request_id": "smoke_112",
+  "response_id": "smoke_112_resp",
+  "timestamp": "2026-03-28T19:42:52.205539+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Late-game trace events are more informative than early-game ones. Scaling the exponential decay of risk by the progression of the stock size will reduce unnecessary risk penalties in the late game, improving knock efficiency.",
+  "edits": {
+    "    # \u2500\u2500 MUTATION TARGET \u2500\u2500\n    # Exponential decay for smoother risk reduction\n    multiplier = math.exp(-TRACE_CONFIDENCE_DECAY * n_trace_events)\n    # Risk matters more at high deadwood; raise the floor for marginal knocks\n    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4))\n    return max(dynamic_floor, min(1.0, multiplier))": "    # \u2500\u2500 MUTATION TARGET \u2500\u2500\n    # Exponential decay for smoother risk reduction, accelerated in late game\n    stock_factor = 1.0 + max(0, 31 - stock_size) / 31.0\n    multiplier = math.exp(-TRACE_CONFIDENCE_DECAY * stock_factor * n_trace_events)\n    # Risk matters more at high deadwood; raise the floor for marginal knocks\n    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4))\n    return max(dynamic_floor, min(1.0, multiplier))"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "The recent success of non-linear decay established a strong baseline. Expanding the formula to include stock size aligns with the intuition that a trace event deep in the deck provides stronger structural constraints on the opponent's hand than an early one.",
+  "confidence": "high",
+  "agent_prompt_hash": "c1b1531f2e4c",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_smoke_112.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_smoke_112.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 44.35,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 39671
+          },
+          "tokens": {
+            "input": 15692,
+            "prompt": 15692,
+            "candidates": 445,
+            "total": 19526,
+            "cached": 0,
+            "thoughts": 3389,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 39671,
+              "tokens": {
+                "input": 15692,
+                "prompt": 15692,
+                "candidates": 445,
+                "total": 19526,
+                "cached": 0,
+                "thoughts": 3389,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Late-game trace events are more informative than early-game ones. Scaling the exponential decay of risk by the progression of the stock size will reduce unnecessary risk penalties in the late game, improving knock efficiency.\",\n  \"edits\": {\n    \"    # \u2500\u2500 MUTATION TARGET \u2500\u2500\\n    # Exponential decay for smoother risk reduction\\n    multiplier = math.exp(-TRACE_CONFIDENCE_DECAY * n_trace_events)\\n    # Risk matters more at high deadwood; raise the floor for marginal knocks\\n    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4))\\n    return max(dynamic_floor, min(1.0, multiplier))\": \"    # \u2500\u2500 MUTATION TARGET \u2500\u2500\\n    # Exponential decay for smoother risk reduction, accelerated in late game\\n    stock_factor = 1.0 + max(0, 31 - stock_size) / 31.0\\n    multiplier = math.exp(-TRACE_CONFIDENCE_DECAY * stock_factor * n_trace_events)\\n    # Risk matters more at high deadwood; raise the floor for marginal knocks\\n    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4))\\n    return max(dynamic_floor, min(1.0, multiplier))\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_trace_confidence_multiplier\",\n  \"rationale\": \"The recent success of non-linear decay established a strong baseline. Expanding the formula to include stock size aligns with the intuition that a trace event deep in the deck provides stronger structural constraints on the opponent's hand than an early one.\",\n  \"confidence\": \"high\"\n}"
+}

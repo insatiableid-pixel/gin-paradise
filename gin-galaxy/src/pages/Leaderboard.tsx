@@ -99,7 +99,7 @@ function PlayerInspectModal({ username, onClose }: { username: string; onClose: 
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-amber-500 border-t-transparent" />
       </div>
     );
   }
@@ -108,7 +108,7 @@ function PlayerInspectModal({ username, onClose }: { username: string; onClose: 
 
   const { user, tournamentStats, seasonStats, recentHighlights, achievements, prestige, profile: profileData } = profile;
   const tierColors = TIER_BADGE[user.ratingTier?.color] || TIER_BADGE.zinc;
-  const gradient = RATING_TIER_GRADIENT[user.ratingTier?.color] || "from-indigo-500 to-purple-500";
+  const gradient = RATING_TIER_GRADIENT[user.ratingTier?.color] || "from-emerald-500 to-emerald-600";
   const selectedTitle = prestige.find(p => p.type === "title" && p.key === profileData.selectedTitle)?.label;
   const selectedBadge = prestige.find(p => p.type === "badge" && p.key === profileData.selectedBadge)?.label;
 
@@ -119,8 +119,8 @@ function PlayerInspectModal({ username, onClose }: { username: string; onClose: 
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="relative p-6 pb-4 border-b border-zinc-800/60">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-indigo-600/10 to-transparent rounded-full blur-3xl" />
+        <div className="relative p-6 pb-4 border-b border-emerald-800/40">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-amber-500/8 to-transparent rounded-full blur-3xl" />
           <div className="relative flex items-center gap-4">
             <div className={cn(
               "w-16 h-16 rounded-full bg-gradient-to-tr flex-shrink-0 flex items-center justify-center text-2xl font-bold text-white shadow-xl",
@@ -136,7 +136,7 @@ function PlayerInspectModal({ username, onClose }: { username: string; onClose: 
                   {user.ratingTier?.tier}
                 </span>
                 {selectedTitle && (
-                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                     {selectedTitle}
                   </span>
                 )}
@@ -177,10 +177,10 @@ function PlayerInspectModal({ username, onClose }: { username: string; onClose: 
 
         {/* Season Standing */}
         {seasonStats && seasonStats.seasonWins + seasonStats.seasonLosses > 0 && (
-          <div className="mx-4 mb-3 p-3 rounded-xl bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20">
+          <div className="mx-4 mb-3 p-3 rounded-xl bg-gradient-to-r from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20">
             <div className="flex items-center gap-2 mb-2">
-              <Calendar className="w-4 h-4 text-indigo-400" />
-              <span className="text-xs font-medium text-indigo-300">{seasonStats.seasonName}</span>
+              <Calendar className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-medium text-emerald-300">{seasonStats.seasonName}</span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="text-center">
@@ -325,7 +325,7 @@ export function Leaderboard() {
           <h1 className="text-3xl font-bold tracking-tight">
             {view === "seasonal" ? "Season Leaderboard" : "Global Leaderboard"}
           </h1>
-          <p className="text-zinc-400 mt-1">
+        <p className="text-emerald-300/60 mt-1">
             {view === "seasonal"
               ? `Compete for the top spot this season.`
               : "All-time player rankings by Elo rating."}
@@ -335,25 +335,25 @@ export function Leaderboard() {
 
       {/* View Toggle + Season Info */}
       <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex bg-zinc-900 p-1 rounded-lg border border-zinc-800">
-          <button
+        <div className="flex bg-emerald-950/40 p-1 rounded-lg border border-emerald-800/40">
+            <button
             className={cn(
               "px-4 py-2 rounded-md text-sm font-medium transition-all",
               view === "seasonal"
-                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
-                : "text-zinc-400 hover:text-zinc-200"
+                ? "bg-emerald-700 text-white shadow-lg shadow-emerald-500/20"
+                : "text-emerald-400/50 hover:text-emerald-200"
             )}
             onClick={() => setView("seasonal")}
           >
             <Calendar className="w-4 h-4 inline mr-1.5 -mt-0.5" />
             Seasonal
           </button>
-          <button
+            <button
             className={cn(
               "px-4 py-2 rounded-md text-sm font-medium transition-all",
               view === "lifetime"
-                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
-                : "text-zinc-400 hover:text-zinc-200"
+                ? "bg-emerald-700 text-white shadow-lg shadow-emerald-500/20"
+                : "text-emerald-400/50 hover:text-emerald-200"
             )}
             onClick={() => setView("lifetime")}
           >
@@ -378,12 +378,12 @@ export function Leaderboard() {
 
       {/* Season Progress Bar */}
       {view === "seasonal" && seasonInfo && (
-        <div className="relative overflow-hidden rounded-xl border border-zinc-800/60 bg-gradient-to-r from-indigo-950/40 via-zinc-900/60 to-purple-950/40 p-4">
+        <div className="relative overflow-hidden rounded-xl border border-emerald-800/40 bg-gradient-to-r from-emerald-950/40 via-[#0a2e1e]/60 to-emerald-950/30 p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-indigo-400" />
-              <span className="text-sm font-medium text-zinc-200">{seasonInfo.name}</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+              <Calendar className="w-4 h-4 text-emerald-400" />
+              <span className="text-sm font-medium text-emerald-200">{seasonInfo.name}</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                 {seasonInfo.theme}
               </span>
             </div>
@@ -391,9 +391,9 @@ export function Leaderboard() {
               {seasonInfo.progress}% complete · {seasonInfo.daysRemaining} days remaining
             </span>
           </div>
-          <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+          <div className="h-2 bg-[#0a2e1e]/80 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-indigo-600 to-purple-500 rounded-full transition-all duration-1000"
+              className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-1000"
               style={{ width: `${seasonInfo.progress}%` }}
             />
           </div>
@@ -411,7 +411,7 @@ export function Leaderboard() {
           <div className="w-16 h-16 rounded-full bg-zinc-800 border-4 border-zinc-400 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(161,161,170,0.3)] group-hover:scale-110 transition-transform">
             <span className="font-bold text-xl text-zinc-300">{padded[1].username.substring(0,2).toUpperCase()}</span>
           </div>
-          <div className="text-sm font-bold text-zinc-200 group-hover:text-indigo-400 transition-colors">{padded[1].username}</div>
+          <div className="text-sm font-bold text-emerald-200 group-hover:text-amber-400 transition-colors">{padded[1].username}</div>
           <div className="text-xs text-zinc-400 mb-2">{padded[1].rating || "—"}</div>
           <div className="w-full h-32 bg-gradient-to-t from-zinc-800 to-zinc-700 rounded-t-lg flex justify-center pt-4 border-t border-x border-zinc-600">
             <Medal className="w-8 h-8 text-zinc-400" />
@@ -436,7 +436,7 @@ export function Leaderboard() {
           <div className="w-16 h-16 rounded-full bg-zinc-800 border-4 border-amber-700 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(180,83,9,0.3)] group-hover:scale-110 transition-transform">
             <span className="font-bold text-xl text-amber-700">{padded[2].username.substring(0,2).toUpperCase()}</span>
           </div>
-          <div className="text-sm font-bold text-zinc-200 group-hover:text-indigo-400 transition-colors">{padded[2].username}</div>
+          <div className="text-sm font-bold text-emerald-200 group-hover:text-amber-400 transition-colors">{padded[2].username}</div>
           <div className="text-xs text-zinc-400 mb-2">{padded[2].rating || "—"}</div>
           <div className="w-full h-24 bg-gradient-to-t from-zinc-900 to-zinc-800 rounded-t-lg flex justify-center pt-4 border-t border-x border-zinc-700">
             <Medal className="w-8 h-8 text-amber-700" />
@@ -524,7 +524,7 @@ export function Leaderboard() {
                       {player.matches}
                     </td>
                     <td className="px-3 py-4 text-right">
-                      <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-indigo-400" />
+                      <ChevronRight className="w-4 h-4 text-emerald-600 group-hover:text-amber-400" />
                     </td>
                   </tr>
                 ))

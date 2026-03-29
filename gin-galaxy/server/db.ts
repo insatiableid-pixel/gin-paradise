@@ -16,6 +16,20 @@ export function getDatabasePath(): string {
 // Enable WAL mode for better concurrent read performance
 db.pragma("journal_mode = WAL");
 
+// ── SQLite Hardening ────────────────────────────────────────────────
+// busy_timeout: wait up to 5s for write lock instead of failing immediately.
+// Critical now that the outbox worker shares the same database file.
+db.pragma("busy_timeout = 5000");
+
+// Enforce foreign key constraints (SQLite defaults to OFF)
+db.pragma("foreign_keys = ON");
+
+// Tune WAL auto-checkpoint (default 1000 pages ≈ 4MB). Keep default but be explicit.
+db.pragma("wal_autocheckpoint = 1000");
+
+// Limit journal size to 64MB to prevent unbounded WAL growth
+db.pragma("journal_size_limit = 67108864");
+
 export function initializeDatabase(): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (

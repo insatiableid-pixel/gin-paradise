@@ -58,11 +58,11 @@ export function Analysis() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Game Analysis</h1>
-          <p className="text-zinc-400 mt-1">Review your past matches with AI-powered insights.</p>
+          <p className="text-emerald-300/60 mt-1">Review your past matches with AI-powered insights.</p>
         </div>
         <Button 
           variant="primary" 
-          className="bg-indigo-600 hover:bg-indigo-500" 
+          className="bg-emerald-700 hover:bg-emerald-600" 
           onClick={handleAnalyze}
           disabled={loading || matches.length === 0}
         >
@@ -74,24 +74,24 @@ export function Analysis() {
       <div className="grid gap-6 md:grid-cols-3">
         {/* Match History Sidebar */}
         <div className="md:col-span-1 space-y-4">
-          <h3 className="font-semibold text-zinc-300">Recent Matches</h3>
+          <h3 className="font-semibold text-emerald-200">Recent Matches</h3>
           {fetchingMatches ? (
-            <div className="text-zinc-500 text-sm">Loading matches...</div>
+            <div className="text-emerald-400/50 text-sm">Loading matches...</div>
           ) : matches.length === 0 ? (
-            <div className="text-zinc-500 text-sm">No matches played yet.</div>
+            <div className="text-emerald-400/50 text-sm">No matches played yet.</div>
           ) : (
             <div className="space-y-3">
               {matches.map((match) => (
-                <div key={match.id} className="p-4 rounded-lg bg-zinc-900/80 border border-zinc-800 flex justify-between items-center">
+                <div key={match.id} className="p-4 rounded-lg bg-emerald-950/60 border border-emerald-800/40 flex justify-between items-center">
                   <div>
-                    <div className="font-medium text-zinc-200 text-sm">vs {match.opponent_name}</div>
-                    <div className="text-xs text-zinc-500">{new Date(match.created_at).toLocaleDateString()}</div>
+                    <div className="font-medium text-emerald-100 text-sm">vs {match.opponent_name}</div>
+                    <div className="text-xs text-emerald-400/50">{new Date(match.created_at).toLocaleDateString()}</div>
                   </div>
                   <div className="text-right">
                     <div className={cn("text-sm font-bold", match.is_win ? "text-emerald-500" : "text-rose-500")}>
                       {match.is_win ? "Win" : "Loss"}
                     </div>
-                    <div className="text-xs font-mono text-zinc-400">{match.user_score} - {match.opponent_score}</div>
+                    <div className="text-xs font-mono text-emerald-300/60">{match.user_score} - {match.opponent_score}</div>
                   </div>
                 </div>
               ))}
@@ -101,22 +101,22 @@ export function Analysis() {
 
         {/* AI Analysis Content */}
         <div className="md:col-span-2">
-          <Card className="bg-zinc-900/40 border-zinc-800/60 overflow-hidden h-full">
-            <CardHeader className="border-b border-zinc-800/60 bg-zinc-900/80">
+          <Card className="bg-emerald-950/30 border-emerald-800/30 overflow-hidden h-full">
+            <CardHeader className="border-b border-emerald-800/30 bg-emerald-950/60">
               <CardTitle className="text-xl flex items-center gap-2">
-                <Activity className="w-5 h-5 text-indigo-400" />
+                <Activity className="w-5 h-5 text-amber-400" />
                 AI Coach Insights
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               {analysis ? (
-                <div className="prose prose-invert prose-indigo max-w-none">
+                <div className="prose prose-invert prose-emerald max-w-none">
                   <div className="markdown-body">
                     <Markdown>{analysis}</Markdown>
                   </div>
                 </div>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center text-zinc-500 py-12 text-center">
+                <div className="h-full flex flex-col items-center justify-center text-emerald-400/50 py-12 text-center">
                   <Activity className="w-12 h-12 mb-4 opacity-20" />
                   <p>Click "Analyze Recent Matches" to get personalized feedback from your AI Gin Rummy Coach.</p>
                 </div>

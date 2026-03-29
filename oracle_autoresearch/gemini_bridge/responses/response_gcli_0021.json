@@ -1,0 +1,93 @@
+{
+  "request_id": "gcli_0021",
+  "response_id": "gcli_0021_resp",
+  "timestamp": "2026-03-28T00:05:44.613037+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Decreasing CFR budget fraction from 0.10 to 0.05 allocates more time to direct evaluation passes, improving robustness given its high 0.85 weight.",
+  "edits": {
+    "CFR_BUDGET_FRACTION = 0.10  # Phase 74: reduced from 20% to 10%": "CFR_BUDGET_FRACTION = 0.05  # Phase 74: reduced from 20% to 10%"
+  },
+  "param_names": [
+    "CFR_BUDGET_FRACTION"
+  ],
+  "param_changes": {
+    "CFR_BUDGET_FRACTION": {
+      "old": 0.1,
+      "new": 0.05,
+      "delta": -0.05
+    }
+  },
+  "rationale": "Direct eval is weighted at 0.85, so we should shift more compute time from CFR prior training into multi-pass direct evaluation to reduce variance.",
+  "confidence": "medium",
+  "agent_prompt_hash": "e26e456e52d4",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0021.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0021.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 16.67,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 12169
+          },
+          "tokens": {
+            "input": 44174,
+            "prompt": 44174,
+            "candidates": 263,
+            "total": 45752,
+            "cached": 0,
+            "thoughts": 1315,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 12169,
+              "tokens": {
+                "input": 44174,
+                "prompt": 44174,
+                "candidates": 263,
+                "total": 45752,
+                "cached": 0,
+                "thoughts": 1315,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Decreasing CFR budget fraction from 0.10 to 0.05 allocates more time to direct evaluation passes, improving robustness given its high 0.85 weight.\",\n  \"edits\": {\n    \"CFR_BUDGET_FRACTION = 0.10  # Phase 74: reduced from 20% to 10%\": \"CFR_BUDGET_FRACTION = 0.05  # Phase 74: reduced from 20% to 10%\"\n  },\n  \"param_names\": [\n    \"CFR_BUDGET_FRACTION\"\n  ],\n  \"param_changes\": {\n    \"CFR_BUDGET_FRACTION\": {\n      \"old\": 0.10,\n      \"new\": 0.05,\n      \"delta\": -0.05\n    }\n  },\n  \"rationale\": \"Direct eval is weighted at 0.85, so we should shift more compute time from CFR prior training into multi-pass direct evaluation to reduce variance.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

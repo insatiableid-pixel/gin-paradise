@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0045",
+  "response_id": "gcli_0045_resp",
+  "timestamp": "2026-03-28T17:13:31.547354+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Direct evaluation EV is much more reliable in the late game (low stock) because the unobserved card combinations are severely constrained. We should shift blend-weight toward direct EV as the stock depletes.",
+  "edits": {
+    "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)": "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    stock_confidence = max(0.0, (20 - stock_size) / 20.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.10 * gap_confidence) + (0.05 * trace_confidence) + (0.15 * stock_confidence)"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "By reducing the baseline DIRECT_EVAL_WEIGHT offset and substituting a 'stock_confidence' term, this formulation gracefully relies more on the CFR prior early in the game when EV world-sampling is noisy, and shifts trust heavily to direct EV in the late game where belief-world variance is low.",
+  "confidence": "medium",
+  "agent_prompt_hash": "bc3bf765b34d",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0045.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0045.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 64.71,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 55621
+          },
+          "tokens": {
+            "input": 48904,
+            "prompt": 48904,
+            "candidates": 425,
+            "total": 53829,
+            "cached": 0,
+            "thoughts": 4500,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 55621,
+              "tokens": {
+                "input": 48904,
+                "prompt": 48904,
+                "candidates": 425,
+                "total": 53829,
+                "cached": 0,
+                "thoughts": 4500,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Direct evaluation EV is much more reliable in the late game (low stock) because the unobserved card combinations are severely constrained. We should shift blend-weight toward direct EV as the stock depletes.\",\n  \"edits\": {\n    \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\": \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    stock_confidence = max(0.0, (20 - stock_size) / 20.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.10 * gap_confidence) + (0.05 * trace_confidence) + (0.15 * stock_confidence)\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"By reducing the baseline DIRECT_EVAL_WEIGHT offset and substituting a 'stock_confidence' term, this formulation gracefully relies more on the CFR prior early in the game when EV world-sampling is noisy, and shifts trust heavily to direct EV in the late game where belief-world variance is low.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

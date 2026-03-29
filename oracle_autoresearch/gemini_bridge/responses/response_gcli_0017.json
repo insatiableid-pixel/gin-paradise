@@ -1,0 +1,93 @@
+{
+  "request_id": "gcli_0017",
+  "response_id": "gcli_0017_resp",
+  "timestamp": "2026-03-27T23:44:36.571950+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Lowering early exit confidence threshold to 2.0 to increase evaluation passes.",
+  "edits": {
+    "EARLY_EXIT_CONFIDENCE_THRESHOLD = 2.5": "EARLY_EXIT_CONFIDENCE_THRESHOLD = 2.0"
+  },
+  "param_names": [
+    "EARLY_EXIT_CONFIDENCE_THRESHOLD"
+  ],
+  "param_changes": {
+    "EARLY_EXIT_CONFIDENCE_THRESHOLD": {
+      "old": 2.5,
+      "new": 2.0,
+      "delta": -0.5
+    }
+  },
+  "rationale": "Allows earlier exit on clear decisions, freeing up time budget for more passes and improving overall stability.",
+  "confidence": "medium",
+  "agent_prompt_hash": "e26e456e52d4",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0017.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0017.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 16.17,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 11522
+          },
+          "tokens": {
+            "input": 43746,
+            "prompt": 43746,
+            "candidates": 170,
+            "total": 44966,
+            "cached": 0,
+            "thoughts": 1050,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 11522,
+              "tokens": {
+                "input": 43746,
+                "prompt": 43746,
+                "candidates": 170,
+                "total": 44966,
+                "cached": 0,
+                "thoughts": 1050,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Lowering early exit confidence threshold to 2.0 to increase evaluation passes.\",\n  \"edits\": {\n    \"EARLY_EXIT_CONFIDENCE_THRESHOLD = 2.5\": \"EARLY_EXIT_CONFIDENCE_THRESHOLD = 2.0\"\n  },\n  \"param_names\": [\"EARLY_EXIT_CONFIDENCE_THRESHOLD\"],\n  \"param_changes\": {\n    \"EARLY_EXIT_CONFIDENCE_THRESHOLD\": { \"old\": 2.5, \"new\": 2.0, \"delta\": -0.5 }\n  },\n  \"rationale\": \"Allows earlier exit on clear decisions, freeing up time budget for more passes and improving overall stability.\",\n  \"confidence\": \"medium\"\n}"
+}

@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0043",
+  "response_id": "gcli_0043_resp",
+  "timestamp": "2026-03-28T17:01:42.609905+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Trust direct EV evaluation more when the EV gap is large and trace data is rich, while relying more on the CFR prior for tight, low-information decisions.",
+  "edits": {
+    "    # \u2500\u2500 MUTATION TARGET \u2500\u2500\n    # Incumbent: flat constant. Gemini should explore state-dependent\n    # functions here \u2014 continuous math, schedules, or asymmetric rules.\n    return DIRECT_EVAL_WEIGHT": "    # \u2500\u2500 MUTATION TARGET \u2500\u2500\n    # Trust direct EV more when the decision is clear (large EV gap)\n    # and when trace data is rich. Trust CFR prior more when uncertain.\n    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "Direct EV evaluation can be noisy when the EV difference is very small or when we lack opponent trace data. By applying an exponential S-curve on the EV gap and blending in trace confidence, we can dynamically scale the blend weight. This falls back to the CFR prior for close/uncertain decisions and locks into direct EV for high-confidence/late-game scenarios.",
+  "confidence": "high",
+  "agent_prompt_hash": "bc3bf765b34d",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0043.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0043.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 45.6,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 39840
+          },
+          "tokens": {
+            "input": 48799,
+            "prompt": 48799,
+            "candidates": 411,
+            "total": 52982,
+            "cached": 0,
+            "thoughts": 3772,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 39840,
+              "tokens": {
+                "input": 48799,
+                "prompt": 48799,
+                "candidates": 411,
+                "total": 52982,
+                "cached": 0,
+                "thoughts": 3772,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Trust direct EV evaluation more when the EV gap is large and trace data is rich, while relying more on the CFR prior for tight, low-information decisions.\",\n  \"edits\": {\n    \"    # \u2500\u2500 MUTATION TARGET \u2500\u2500\\n    # Incumbent: flat constant. Gemini should explore state-dependent\\n    # functions here \u2014 continuous math, schedules, or asymmetric rules.\\n    return DIRECT_EVAL_WEIGHT\": \"    # \u2500\u2500 MUTATION TARGET \u2500\u2500\\n    # Trust direct EV more when the decision is clear (large EV gap)\\n    # and when trace data is rich. Trust CFR prior more when uncertain.\\n    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"Direct EV evaluation can be noisy when the EV difference is very small or when we lack opponent trace data. By applying an exponential S-curve on the EV gap and blending in trace confidence, we can dynamically scale the blend weight. This falls back to the CFR prior for close/uncertain decisions and locks into direct EV for high-confidence/late-game scenarios.\",\n  \"confidence\": \"high\"\n}\n```"
+}

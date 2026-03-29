@@ -1,0 +1,93 @@
+{
+  "request_id": "gcli_0024",
+  "response_id": "gcli_0024_resp",
+  "timestamp": "2026-03-28T00:21:42.739284+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Increasing DIRECT_EVAL_WEIGHT from 0.85 to 0.90 to further rely on direct evaluation over CFR prior, following the successful trend from 0.70 to 0.85.",
+  "edits": {
+    "DIRECT_EVAL_WEIGHT = 0.85": "DIRECT_EVAL_WEIGHT = 0.90"
+  },
+  "param_names": [
+    "DIRECT_EVAL_WEIGHT"
+  ],
+  "param_changes": {
+    "DIRECT_EVAL_WEIGHT": {
+      "old": 0.85,
+      "new": 0.9,
+      "delta": 0.05
+    }
+  },
+  "rationale": "Prior experiments indicate that leaning more on direct evaluation (0.85 up from 0.70) significantly improved the score. Pushing this blend slightly further towards direct eval (0.90) might yield further gains by reducing noise from the heuristic CFR prior while still retaining a small regularizing effect.",
+  "confidence": "medium",
+  "agent_prompt_hash": "e26e456e52d4",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0024.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0024.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 31.82,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.\nAttempt 1 failed with status 429. Retrying with backoff... GaxiosError: [{\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"No capacity available for model gemini-3.1-pro-preview on the server\",\n    \"errors\": [\n      {\n        \"message\": \"No capacity available for model gemini-3.1-pro-preview on the server\",\n        \"domain\": \"global\",\n        \"reason\": \"rateLimitExceeded\"\n      }\n    ],\n    \"status\": \"RESOURCE_EXHAUSTED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"MODEL_CAPACITY_EXHAUSTED\",\n        \"domain\": \"cloudcode-pa.googleapis.com\",\n        \"metadata\": {\n          \"model\": \"gemini-3.1-pro-preview\"\n        }\n      }\n    ]\n  }\n}\n]\n    at Gaxios._request (C:\\Users\\mrwat\\AppData\\Roaming\\npm\\node_modules\\@google\\gemini-cli\\node_modules\\gaxios\\build\\src\\gaxios.js:142:23)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async OAuth2Client.requestAsync (C:\\Users\\mrwat\\AppData\\Roaming\\npm\\node_modules\\@google\\gemini-cli\\node_modules\\google-auth-library\\build\\src\\auth\\oauth2client.js:429:18)\n    at async CodeAssistServer.requestStreamingPost (file:///C:/Users/mrwat/AppData/Roaming/npm/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/code_assist/server.js:262:21)\n    at async CodeAssistServer.generateContentStream (file:///C:/Users/mrwat/AppData/Roaming/npm/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/code_assist/server.js:54:27)\n    at async file:///C:/Users/mrwat/AppData/Roaming/npm/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/core/loggingContentGenerator.js:285:26\n    at async file:///C:/Users/mrwat/AppData/Roaming/npm/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/telemetry/trace.js:81:20\n    at async retryWithBackoff (file:///C:/Users/mrwat/AppData/Roaming/npm/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/utils/retry.js:167:28)\n    at async GeminiChat.makeApiCallAndProcessStream (file:///C:/Users/mrwat/AppData/Roaming/npm/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/core/geminiChat.js:453:32)\n    at async GeminiChat.streamWithRetries (file:///C:/Users/mrwat/AppData/Roaming/npm/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/core/geminiChat.js:267:40) {\n  config: {\n    url: 'https://cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse',\n    method: 'POST',\n    params: { alt: 'sse' },\n    headers: {\n      'Content-Type': 'application/json',\n      'User-Agent': 'GeminiCLI/0.35.2/gemini-3.1-pro-preview (win32; x64; terminal) google-api-nodejs-client/9.15.1',\n      Authorization: '<<REDACTED> - See `errorRedactor` option in `gaxios` for configuration>.',\n      'x-goog-api-client': 'gl-node/24.14.0'\n    },\n    responseType: 'stream',\n    body: '<<REDACTED> - See `errorRedactor` option in `gaxios` for configuration>.',\n    signal: AbortSignal { aborted: false },\n    retry: false,\n    paramsSerializer: [Function: paramsSerializer],\n    validateStatus: [Function: validateStatus],\n    errorRedactor: [Function: defaultErrorRedactor]\n  },\n  response: {\n    config: {\n      url: 'https://cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse',\n      method: 'POST',\n      params: [Object],\n      headers: [Object],\n      responseType: 'stream',\n      body: '<<REDACTED> - See `errorRedactor` option in `gaxios` for configuration>.',\n      signal: [AbortSignal],\n      retry: false,\n      paramsSerializer: [Function: paramsSerializer],\n      validateStatus: [Function: validateStatus],\n      errorRedactor: [Function: defaultErrorRedactor]\n    },\n    data: '[{\\n' +\n      '  \"error\": {\\n' +\n      '    \"code\": 429,\\n' +\n      '    \"message\": \"No capacity available for model gemini-3.1-pro-preview on the server\",\\n' +\n      '    \"errors\": [\\n' +\n      '      {\\n' +\n      '        \"message\": \"No capacity available for model gemini-3.1-pro-preview on the server\",\\n' +\n      '        \"domain\": \"global\",\\n' +\n      '        \"reason\": \"rateLimitExceeded\"\\n' +\n      '      }\\n' +\n      '    ],\\n' +\n      '    \"status\": \"RESOURCE_EXHAUSTED\",\\n' +\n      '    \"details\": [\\n' +\n      '      {\\n' +\n      '        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\\n' +\n      '        \"reason\": \"MODEL_CAPACITY_EXHAUSTED\",\\n' +\n      '        \"domain\": \"cloudcode-pa.googleapis.com\",\\n' +\n      '        \"metadata\": {\\n' +\n      '          \"model\": \"gemini-3.1-pro-preview\"\\n' +\n      '        }\\n' +\n      '      }\\n' +\n      '    ]\\n' +\n      '  }\\n' +\n      '}\\n' +\n      ']',\n    headers: {\n      'alt-svc': 'h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000',\n      'content-length': '630',\n      'content-type': 'application/json; charset=UTF-8',\n      date: 'Sat, 28 Mar 2026 00:21:15 GMT',\n      server: 'ESF',\n      'server-timing': 'gfet4t7; dur=418',\n      vary: 'Origin, X-Origin, Referer',\n      'x-cloudaicompanion-trace-id': '5de0a737c61117e',\n      'x-content-type-options': 'nosniff',\n      'x-frame-options': 'SAMEORIGIN',\n      'x-xss-protection': '0'\n    },\n    status: 429,\n    statusText: 'Too Many Requests',\n    request: {\n      responseURL: 'https://cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse'\n    }\n  },\n  error: undefined,\n  status: 429,\n  Symbol(gaxios-gaxios-error): '6.7.1'\n}",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 2,
+            "totalErrors": 1,
+            "totalLatencyMs": 21221
+          },
+          "tokens": {
+            "input": 44516,
+            "prompt": 44516,
+            "candidates": 251,
+            "total": 47257,
+            "cached": 0,
+            "thoughts": 2490,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 2,
+              "totalErrors": 1,
+              "totalLatencyMs": 21221,
+              "tokens": {
+                "input": 44516,
+                "prompt": 44516,
+                "candidates": 251,
+                "total": 47257,
+                "cached": 0,
+                "thoughts": 2490,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Increasing DIRECT_EVAL_WEIGHT from 0.85 to 0.90 to further rely on direct evaluation over CFR prior, following the successful trend from 0.70 to 0.85.\",\n  \"edits\": {\n    \"DIRECT_EVAL_WEIGHT = 0.85\": \"DIRECT_EVAL_WEIGHT = 0.90\"\n  },\n  \"param_names\": [\n    \"DIRECT_EVAL_WEIGHT\"\n  ],\n  \"param_changes\": {\n    \"DIRECT_EVAL_WEIGHT\": {\n      \"old\": 0.85,\n      \"new\": 0.90,\n      \"delta\": 0.05\n    }\n  },\n  \"rationale\": \"Prior experiments indicate that leaning more on direct evaluation (0.85 up from 0.70) significantly improved the score. Pushing this blend slightly further towards direct eval (0.90) might yield further gains by reducing noise from the heuristic CFR prior while still retaining a small regularizing effect.\",\n  \"confidence\": \"medium\"\n}"
+}

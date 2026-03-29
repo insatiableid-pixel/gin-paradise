@@ -20,6 +20,7 @@
  */
 
 import { WebSocket } from "ws";
+import { getCoordinator } from "./coordinatorFactory.js";
 
 // ── Queue Entry ──────────────────────────────────────────────────────
 
@@ -40,6 +41,38 @@ export interface QueueEntry {
 
 const queue: QueueEntry[] = [];
 const queuedUserIds = new Set<string>();
+
+function getSharedCoordinator() {
+  try {
+    return getCoordinator();
+  } catch {
+    return null;
+  }
+}
+
+function mirrorQueueEntry(entry: QueueEntry): void {
+  const coord = getSharedCoordinator();
+  if (!coord) return;
+
+  coord.enqueueMatchmaking({
+    ...entry,
+    ws: null,
+    nodeId: coord.getNodeId(),
+    connected: isWsOpen(entry.ws),
+  });
+}
+
+function mirrorQueueRemoval(userId: string): void {
+  const coord = getSharedCoordinator();
+  if (!coord) return;
+  coord.dequeueMatchmaking(userId);
+}
+
+function mirrorQueueClear(): void {
+  const coord = getSharedCoordinator();
+  if (!coord) return;
+  coord.clearMatchmakingQueue();
+}
 
 // ── Match Found Callback ─────────────────────────────────────────────
 
@@ -103,7 +136,8 @@ export function joinQueue(
   timerSpeed: string = "medium",
   matchPosture: MatchPosture = "like_rated"
 ): QueueResult {
-  if (queuedUserIds.has(userId)) {
+  const coord = getSharedCoordinator();
+  if (queuedUserIds.has(userId) || coord?.isMatchmakingQueued(userId)) {
     return { ok: false, error: "Already in matchmaking queue." };
   }
 
@@ -120,6 +154,7 @@ export function joinQueue(
 
   queue.push(entry);
   queuedUserIds.add(userId);
+  mirrorQueueEntry(entry);
 
   // Try to form a match immediately
   tryPair();
@@ -136,11 +171,17 @@ export function joinQueue(
 export function leaveQueue(userId: string): QueueResult {
   const idx = queue.findIndex((e) => e.userId === userId);
   if (idx === -1) {
+    const coord = getSharedCoordinator();
+    if (coord?.isMatchmakingQueued(userId)) {
+      coord.dequeueMatchmaking(userId);
+      return { ok: true };
+    }
     return { ok: false, error: "Not in matchmaking queue." };
   }
 
   queue.splice(idx, 1);
   queuedUserIds.delete(userId);
+  mirrorQueueRemoval(userId);
   return { ok: true };
 }
 
@@ -148,14 +189,16 @@ export function leaveQueue(userId: string): QueueResult {
  * Check if a player is currently in the queue.
  */
 export function isInQueue(userId: string): boolean {
-  return queuedUserIds.has(userId);
+  const coord = getSharedCoordinator();
+  return coord?.isMatchmakingQueued(userId) ?? queuedUserIds.has(userId);
 }
 
 /**
  * Get the current queue size (for diagnostics / UI).
  */
 export function getQueueSize(): number {
-  return queue.length;
+  const coord = getSharedCoordinator();
+  return coord?.getMatchmakingQueueSize() ?? queue.length;
 }
 
 // ── Pairing Logic (Rating-Aware Expanding Bracket) ──────────────────
@@ -216,6 +259,8 @@ function tryPair() {
     const p1 = queue.splice(idx1, 1)[0];
     queuedUserIds.delete(p1.userId);
     queuedUserIds.delete(p2.userId);
+    mirrorQueueRemoval(p1.userId);
+    mirrorQueueRemoval(p2.userId);
 
     onMatchFound(p1, p2);
   }
@@ -232,6 +277,7 @@ function purgeDisconnected() {
   for (let i = queue.length - 1; i >= 0; i--) {
     if (!isWsOpen(queue[i].ws)) {
       queuedUserIds.delete(queue[i].userId);
+      mirrorQueueRemoval(queue[i].userId);
       queue.splice(i, 1);
     }
   }
@@ -268,6 +314,7 @@ setInterval(() => {
         }
       }
       queuedUserIds.delete(entry.userId);
+      mirrorQueueRemoval(entry.userId);
       queue.splice(i, 1);
     }
   }
@@ -282,6 +329,7 @@ export function _getQueue(): QueueEntry[] {
 export function _clearQueue() {
   queue.length = 0;
   queuedUserIds.clear();
+  mirrorQueueClear();
 }
 
 // Export bracket calculation for testing

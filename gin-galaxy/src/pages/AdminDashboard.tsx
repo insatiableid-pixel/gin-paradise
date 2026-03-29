@@ -332,12 +332,12 @@ export function AdminDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center">
-            <Shield className="w-5 h-5 text-rose-400" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
+            <Shield className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-zinc-100">Admin Dashboard</h1>
-            <p className="text-sm text-zinc-500">Platform operations & revenue</p>
+            <h1 className="text-2xl font-bold text-amber-50">Admin Dashboard</h1>
+            <p className="text-sm text-emerald-300/60">Platform operations & revenue</p>
           </div>
         </div>
         <Button
@@ -349,7 +349,7 @@ export function AdminDashboard() {
             if (activeTab === "broadcast") { fetchLiveMatches(); fetchBroadcastMetrics(); }
             if (activeTab === "billing") { fetchBillingSummary(); fetchBillingEvents(); fetchBillingSessions(); }
           }}
-          className="gap-2 text-zinc-400 border-zinc-700"
+          className="gap-2 text-emerald-300/60 border-emerald-700/40"
         >
           <RefreshCw className="w-4 h-4" />
           Refresh
@@ -363,7 +363,7 @@ export function AdminDashboard() {
       )}
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 p-1 bg-zinc-900 rounded-xl border border-zinc-800">
+      <div className="flex gap-2 p-1 bg-emerald-950/40 rounded-xl border border-emerald-800/40">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -373,8 +373,8 @@ export function AdminDashboard() {
               className={cn(
                 "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all",
                 activeTab === tab.id
-                  ? "bg-zinc-800 text-zinc-100 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-300"
+                  ? "bg-emerald-900/60 text-amber-50 shadow-sm border border-emerald-700/40"
+                  : "text-emerald-400/50 hover:text-emerald-200"
               )}
             >
               <Icon className="w-4 h-4" />
@@ -389,20 +389,20 @@ export function AdminDashboard() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-              <div className="flex items-center gap-2 text-zinc-500 text-xs font-medium mb-3">
+            <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-5">
+              <div className="flex items-center gap-2 text-emerald-400/50 text-xs font-medium mb-3">
                 <TrendingUp className="w-4 h-4" />
                 TOTAL RAKE COLLECTED
               </div>
               <div className="text-3xl font-bold text-zinc-100 font-mono">
                 {revenue ? revenue.totalRakeCollected.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "—"}
               </div>
-              <div className="text-xs text-zinc-500 mt-1">
+              <div className="text-xs text-emerald-400/50 mt-1">
                 {revenue ? `${revenue.totalRakeTransactions} transactions` : ""}
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+            <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-5">
               <div className="flex items-center gap-2 text-amber-500 text-xs font-medium mb-3">
                 <DollarSign className="w-4 h-4" />
                 GOLD COIN RAKE
@@ -410,12 +410,12 @@ export function AdminDashboard() {
               <div className="text-3xl font-bold text-amber-400 font-mono">
                 {goldRevenue ? goldRevenue.total_revenue.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "0.00"}
               </div>
-              <div className="text-xs text-zinc-500 mt-1">
+              <div className="text-xs text-emerald-400/50 mt-1">
                 {goldRevenue ? `${goldRevenue.transaction_count} collections` : "No collections"}
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+            <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-5">
               <div className="flex items-center gap-2 text-violet-500 text-xs font-medium mb-3">
                 <DollarSign className="w-4 h-4" />
                 COIN RAKE (ALL)
@@ -423,25 +423,25 @@ export function AdminDashboard() {
               <div className="text-3xl font-bold text-violet-400 font-mono">
                 {sweepsRevenue ? sweepsRevenue.total_revenue.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "0.00"}
               </div>
-              <div className="text-xs text-zinc-500 mt-1">
+              <div className="text-xs text-emerald-400/50 mt-1">
                 {sweepsRevenue ? `${sweepsRevenue.transaction_count} collections` : "No collections"}
               </div>
             </div>
           </div>
 
           {/* Recent House Ledger */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-zinc-200">Recent Rake Ledger</h2>
-              <span className="text-xs text-zinc-500">{houseLedger.length} entries</span>
+          <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-emerald-800/40 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-amber-50">Recent Rake Ledger</h2>
+              <span className="text-xs text-emerald-400/50">{houseLedger.length} entries</span>
             </div>
             {houseLedger.length === 0 ? (
-              <div className="px-5 py-8 text-center text-zinc-500 text-sm">No rake entries yet.</div>
+              <div className="px-5 py-8 text-center text-emerald-400/50 text-sm">No rake entries yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-zinc-500 text-xs border-b border-zinc-800">
+                    <tr className="text-emerald-400/50 text-xs border-b border-emerald-800/40">
                       <th className="text-left px-5 py-3 font-medium">Date</th>
                       <th className="text-left px-5 py-3 font-medium">Type</th>
                       <th className="text-left px-5 py-3 font-medium">Currency</th>
@@ -452,7 +452,7 @@ export function AdminDashboard() {
                   </thead>
                   <tbody>
                     {houseLedger.map((entry) => (
-                      <tr key={entry.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
+                      <tr key={entry.id} className="border-b border-emerald-800/20 hover:bg-emerald-900/30 transition-colors">
                         <td className="px-5 py-3 text-zinc-400 text-xs font-mono whitespace-nowrap">
                           {new Date(entry.created_at).toLocaleString()}
                         </td>
@@ -470,7 +470,7 @@ export function AdminDashboard() {
                           +{entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
                         <td className="px-5 py-3 text-zinc-400 text-xs">{entry.stake_id || "—"}</td>
-                        <td className="px-5 py-3 text-zinc-500 text-xs max-w-[200px] truncate">{entry.note || "—"}</td>
+                        <td className="px-5 py-3 text-emerald-400/50 text-xs max-w-[200px] truncate">{entry.note || "—"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -484,18 +484,18 @@ export function AdminDashboard() {
       {/* Settlements Tab */}
       {activeTab === "settlements" && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-zinc-200">Recent Staked Match Settlements</h2>
-              <span className="text-xs text-zinc-500">{settlements.length} matches</span>
+          <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-emerald-800/40 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-amber-50">Recent Staked Match Settlements</h2>
+              <span className="text-xs text-emerald-400/50">{settlements.length} matches</span>
             </div>
             {settlements.length === 0 ? (
-              <div className="px-5 py-8 text-center text-zinc-500 text-sm">No staked match settlements yet.</div>
+              <div className="px-5 py-8 text-center text-emerald-400/50 text-sm">No staked match settlements yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-zinc-500 text-xs border-b border-zinc-800">
+                    <tr className="text-emerald-400/50 text-xs border-b border-emerald-800/40">
                       <th className="text-left px-5 py-3 font-medium">Date</th>
                       <th className="text-left px-5 py-3 font-medium">Players</th>
                       <th className="text-left px-5 py-3 font-medium">Winner</th>
@@ -508,7 +508,7 @@ export function AdminDashboard() {
                   </thead>
                   <tbody>
                     {settlements.map((s) => (
-                      <tr key={s.replay_id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
+                      <tr key={s.replay_id} className="border-b border-emerald-800/20 hover:bg-emerald-900/30 transition-colors">
                         <td className="px-5 py-3 text-zinc-400 text-xs font-mono whitespace-nowrap">
                           {new Date(s.ended_at).toLocaleString()}
                         </td>
@@ -564,7 +564,7 @@ export function AdminDashboard() {
           {/* Search Bar */}
           <div className="flex gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400/50" />
               <input
                 id="admin-player-search"
                 type="text"
@@ -572,7 +572,7 @@ export function AdminDashboard() {
                 onChange={(e) => setPlayerSearch(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && searchPlayers(playerSearch)}
                 placeholder="Search by username..."
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50"
+                className="w-full bg-emerald-950/30 border border-emerald-800/40 rounded-xl pl-10 pr-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50"
               />
             </div>
             <Button variant="primary" onClick={() => searchPlayers(playerSearch)} className="px-6">
@@ -582,18 +582,18 @@ export function AdminDashboard() {
 
           {/* Player Results */}
           {playerResults.length > 0 && !playerDetail && (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-              <div className="px-5 py-3 border-b border-zinc-800">
-                <h2 className="text-sm font-semibold text-zinc-200">{playerResults.length} player(s) found</h2>
+            <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl overflow-hidden">
+              <div className="px-5 py-3 border-b border-emerald-800/40">
+                <h2 className="text-sm font-semibold text-amber-50">{playerResults.length} player(s) found</h2>
               </div>
               {playerResults.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => fetchPlayerDetail(p.id)}
-                  className="w-full flex items-center justify-between px-5 py-3 border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors text-left"
+                  className="w-full flex items-center justify-between px-5 py-3 border-b border-emerald-800/20 hover:bg-emerald-900/30 transition-colors text-left"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-xs font-bold">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-amber-500 flex items-center justify-center text-xs font-bold">
                       {p.username[0]?.toUpperCase()}
                     </div>
                     <div>
@@ -605,7 +605,7 @@ export function AdminDashboard() {
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-zinc-500">
+                      <div className="text-xs text-emerald-400/50">
                         Rating: {p.rating} · {p.wins}W / {p.losses}L · Coins: {p.balances.gold_coins.toLocaleString()}
                       </div>
                     </div>
@@ -621,14 +621,14 @@ export function AdminDashboard() {
             <div className="space-y-4">
               <button
                 onClick={() => setPlayerDetail(null)}
-                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1"
+                className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
               >
                 ← Back to results
               </button>
 
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+              <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-5">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-lg font-bold">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-emerald-500 to-amber-500 flex items-center justify-center text-lg font-bold">
                     {playerDetail.username[0]?.toUpperCase()}
                   </div>
                   <div>
@@ -640,42 +640,42 @@ export function AdminDashboard() {
                         </span>
                       )}
                     </h3>
-                    <p className="text-xs text-zinc-500">{playerDetail.email} · Joined {new Date(playerDetail.created_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-emerald-400/50">{playerDetail.email} · Joined {new Date(playerDetail.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-zinc-800/50 rounded-lg p-3">
-                    <div className="text-[10px] text-zinc-500 font-medium">RATING</div>
+                  <div className="bg-emerald-900/40 rounded-lg p-3">
+                    <div className="text-[10px] text-emerald-400/50 font-medium">RATING</div>
                     <div className="text-lg font-bold font-mono text-zinc-100">{playerDetail.rating}</div>
                   </div>
-                  <div className="bg-zinc-800/50 rounded-lg p-3">
-                    <div className="text-[10px] text-zinc-500 font-medium">W / L</div>
+                  <div className="bg-emerald-900/40 rounded-lg p-3">
+                    <div className="text-[10px] text-emerald-400/50 font-medium">W / L</div>
                     <div className="text-lg font-bold font-mono text-zinc-100">{playerDetail.wins} / {playerDetail.losses}</div>
                   </div>
-                  <div className="bg-zinc-800/50 rounded-lg p-3">
+                  <div className="bg-emerald-900/40 rounded-lg p-3">
                     <div className="text-[10px] text-amber-500 font-medium">GOLD</div>
                     <div className="text-lg font-bold font-mono text-amber-400">{playerDetail.balances.gold_coins.toLocaleString()}</div>
                   </div>
-                  <div className="bg-zinc-800/50 rounded-lg p-3">
-                    <div className="text-[10px] text-zinc-500 font-medium">SWEEPS (LEGACY)</div>
+                  <div className="bg-emerald-900/40 rounded-lg p-3">
+                    <div className="text-[10px] text-emerald-400/50 font-medium">SWEEPS (LEGACY)</div>
                     <div className="text-lg font-bold font-mono text-zinc-600">{playerDetail.balances.sweeps_coins.toLocaleString()}</div>
                   </div>
                 </div>
               </div>
 
               {/* Player Transactions */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                <div className="px-5 py-3 border-b border-zinc-800">
-                  <h3 className="text-sm font-semibold text-zinc-200">Recent Transactions</h3>
+              <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl overflow-hidden">
+                <div className="px-5 py-3 border-b border-emerald-800/40">
+                  <h3 className="text-sm font-semibold text-amber-50">Recent Transactions</h3>
                 </div>
                 {playerDetail.transactions.length === 0 ? (
-                  <div className="px-5 py-6 text-center text-zinc-500 text-sm">No transactions.</div>
+                  <div className="px-5 py-6 text-center text-emerald-400/50 text-sm">No transactions.</div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-zinc-500 text-xs border-b border-zinc-800">
+                        <tr className="text-emerald-400/50 text-xs border-b border-emerald-800/40">
                           <th className="text-left px-5 py-2 font-medium">Date</th>
                           <th className="text-left px-5 py-2 font-medium">Type</th>
                           <th className="text-left px-5 py-2 font-medium">Currency</th>
@@ -686,7 +686,7 @@ export function AdminDashboard() {
                       </thead>
                       <tbody>
                         {playerDetail.transactions.map((txn: any, i: number) => (
-                          <tr key={txn.id || i} className="border-b border-zinc-800/50">
+                          <tr key={txn.id || i} className="border-b border-emerald-800/20">
                             <td className="px-5 py-2 text-zinc-400 text-xs font-mono whitespace-nowrap">
                               {new Date(txn.created_at).toLocaleString()}
                             </td>
@@ -703,7 +703,7 @@ export function AdminDashboard() {
                             <td className="px-5 py-2 text-right font-mono text-xs text-zinc-300">
                               {txn.balance_after.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="px-5 py-2 text-zinc-500 text-xs max-w-[200px] truncate">{txn.note || "—"}</td>
+                            <td className="px-5 py-2 text-emerald-400/50 text-xs max-w-[200px] truncate">{txn.note || "—"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -716,9 +716,9 @@ export function AdminDashboard() {
 
           {/* Empty State */}
           {playerResults.length === 0 && !playerDetail && (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-12 text-center">
+            <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl px-5 py-12 text-center">
               <Users className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-              <p className="text-sm text-zinc-500">Search for a player by username to inspect their wallet and activity.</p>
+              <p className="text-sm text-emerald-400/50">Search for a player by username to inspect their wallet and activity.</p>
             </div>
           )}
         </motion.div>
@@ -730,28 +730,28 @@ export function AdminDashboard() {
           {/* Broadcast Summary Cards */}
           {broadcastSummary && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+              <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-5">
                 <div className="flex items-center gap-2 text-rose-400 text-xs font-medium mb-3">
                   <Tv className="w-4 h-4" />
                   TOTAL BROADCASTS
                 </div>
                 <div className="text-3xl font-bold text-zinc-100 font-mono">{broadcastSummary.totalBroadcasts}</div>
               </div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+              <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-5">
                 <div className="flex items-center gap-2 text-emerald-400 text-xs font-medium mb-3">
                   <Eye className="w-4 h-4" />
                   TOTAL UNIQUE VIEWERS
                 </div>
                 <div className="text-3xl font-bold text-emerald-400 font-mono">{broadcastSummary.totalUniqueViewers}</div>
               </div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+              <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-5">
                 <div className="flex items-center gap-2 text-amber-400 text-xs font-medium mb-3">
                   <TrendingUp className="w-4 h-4" />
                   PEAK ALL-TIME
                 </div>
                 <div className="text-3xl font-bold text-amber-400 font-mono">{broadcastSummary.peakAllTimeViewers}</div>
               </div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+              <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-5">
                 <div className="flex items-center gap-2 text-violet-400 text-xs font-medium mb-3">
                   <Star className="w-4 h-4" />
                   ADMIN FEATURED
@@ -762,22 +762,22 @@ export function AdminDashboard() {
           )}
 
           {/* Live Matches Section */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between">
+          <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-emerald-800/40 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                 </div>
-                <h2 className="text-sm font-semibold text-zinc-200">Live Matches</h2>
-                <span className="text-xs text-zinc-500">{liveMatches.length} active</span>
+                <h2 className="text-sm font-semibold text-amber-50">Live Matches</h2>
+                <span className="text-xs text-emerald-400/50">{liveMatches.length} active</span>
               </div>
-              <button onClick={fetchLiveMatches} className="text-xs text-indigo-400 hover:text-indigo-300">
+              <button onClick={fetchLiveMatches} className="text-xs text-emerald-400 hover:text-emerald-300">
                 Refresh
               </button>
             </div>
             {liveMatches.length === 0 ? (
-              <div className="px-5 py-12 text-center text-zinc-500 text-sm">
+              <div className="px-5 py-12 text-center text-emerald-400/50 text-sm">
                 <Radio className="w-8 h-8 mx-auto mb-3 text-zinc-700" />
                 No live matches right now.
               </div>
@@ -791,7 +791,7 @@ export function AdminDashboard() {
                           <span className="text-sm font-medium text-zinc-100">
                             {m.player1.username} vs {m.player2.username}
                           </span>
-                          <span className="text-xs text-zinc-500">
+                          <span className="text-xs text-emerald-400/50">
                             ({m.player1.rating} / {m.player2.rating})
                           </span>
                         </div>
@@ -810,7 +810,7 @@ export function AdminDashboard() {
                             );
                           })}
                           {!m.isSpectatable && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-zinc-700/50 text-zinc-500 border border-zinc-600/30">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-zinc-700/50 text-emerald-400/50 border border-zinc-600/30">
                               NOT SPECTATABLE
                             </span>
                           )}
@@ -823,7 +823,7 @@ export function AdminDashboard() {
                         {!m.isSpectatable && m.ineligibilityReason && (
                           <p className="text-[10px] text-zinc-600 mt-1">{m.ineligibilityReason}</p>
                         )}
-                        <div className="flex items-center gap-3 mt-1 text-[10px] text-zinc-500">
+                        <div className="flex items-center gap-3 mt-1 text-[10px] text-emerald-400/50">
                           <span>Score: {m.scores ? `${m.scores.player1}–${m.scores.player2}` : "—"}</span>
                           <span>Round: {m.roundNumber ?? "—"}</span>
                           <span>Stake: {m.stakeId}</span>
@@ -861,17 +861,17 @@ export function AdminDashboard() {
           </div>
 
           {/* Recent Broadcast History */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-zinc-800">
-              <h2 className="text-sm font-semibold text-zinc-200">Recent Broadcast History</h2>
+          <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-emerald-800/40">
+              <h2 className="text-sm font-semibold text-amber-50">Recent Broadcast History</h2>
             </div>
             {broadcastRecent.length === 0 ? (
-              <div className="px-5 py-8 text-center text-zinc-500 text-sm">No broadcast history yet.</div>
+              <div className="px-5 py-8 text-center text-emerald-400/50 text-sm">No broadcast history yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-zinc-500 text-xs border-b border-zinc-800">
+                    <tr className="text-emerald-400/50 text-xs border-b border-emerald-800/40">
                       <th className="text-left px-5 py-3 font-medium">Match</th>
                       <th className="text-left px-5 py-3 font-medium">Tags</th>
                       <th className="text-center px-5 py-3 font-medium">Peak</th>
@@ -883,7 +883,7 @@ export function AdminDashboard() {
                   </thead>
                   <tbody>
                     {broadcastRecent.map((m, i) => (
-                      <tr key={i} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
+                      <tr key={i} className="border-b border-emerald-800/20 hover:bg-emerald-900/30 transition-colors">
                         <td className="px-5 py-3 text-zinc-300 text-xs">
                           {m.player1Username} vs {m.player2Username}
                         </td>
@@ -913,7 +913,7 @@ export function AdminDashboard() {
                         <td className="px-5 py-3 text-zinc-400 text-xs">
                           {m.matchDurationSeconds ? `${Math.floor(m.matchDurationSeconds / 60)}m` : "—"}
                         </td>
-                        <td className="px-5 py-3 text-zinc-500 text-xs font-mono">
+                        <td className="px-5 py-3 text-emerald-400/50 text-xs font-mono">
                           {new Date(m.endedAt).toLocaleDateString()}
                         </td>
                       </tr>
@@ -936,7 +936,7 @@ export function AdminDashboard() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
           {/* Billing Mode + Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+            <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-5">
               <div className="flex items-center gap-2 text-xs font-medium mb-3">
                 <Zap className={cn("w-4 h-4", billingSummary?.billingMode === "live" ? "text-emerald-400" : "text-amber-400")} />
                 <span className={billingSummary?.billingMode === "live" ? "text-emerald-400" : "text-amber-400"}>
@@ -946,12 +946,12 @@ export function AdminDashboard() {
               <div className="text-lg font-bold text-zinc-100">
                 {billingSummary?.billingMode === "live" ? "Production" : "Development"}
               </div>
-              <div className="text-[10px] text-zinc-500 mt-1">
+              <div className="text-[10px] text-emerald-400/50 mt-1">
                 Webhook: {billingSummary?.webhookSignatureVerification || "unknown"}
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+            <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-5">
               <div className="flex items-center gap-2 text-amber-400 text-xs font-medium mb-3">
                 <Coins className="w-4 h-4" />
                 COIN PURCHASE REVENUE
@@ -959,12 +959,12 @@ export function AdminDashboard() {
               <div className="text-3xl font-bold text-amber-400 font-mono">
                 ${(billingSummary?.revenue?.coinPurchaseRevenue || 0).toFixed(2)}
               </div>
-              <div className="text-xs text-zinc-500 mt-1">
+              <div className="text-xs text-emerald-400/50 mt-1">
                 {billingSummary?.revenue?.coinPurchaseCount || 0} purchases
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+            <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-5">
               <div className="flex items-center gap-2 text-violet-400 text-xs font-medium mb-3">
                 <Crown className="w-4 h-4" />
                 SUBSCRIPTION REVENUE
@@ -972,12 +972,12 @@ export function AdminDashboard() {
               <div className="text-3xl font-bold text-violet-400 font-mono">
                 ${(billingSummary?.revenue?.subscriptionRevenue || 0).toFixed(2)}
               </div>
-              <div className="text-xs text-zinc-500 mt-1">
+              <div className="text-xs text-emerald-400/50 mt-1">
                 {billingSummary?.revenue?.subscriptionCount || 0} subscriptions
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+            <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-5">
               <div className="flex items-center gap-2 text-zinc-400 text-xs font-medium mb-3">
                 <Activity className="w-4 h-4" />
                 SESSION STATUS
@@ -986,25 +986,25 @@ export function AdminDashboard() {
                 <span className="text-amber-400 font-mono">{billingSummary?.sessions?.pending || 0} pending</span>
                 <span className="text-rose-400 font-mono">{billingSummary?.sessions?.failed || 0} failed</span>
               </div>
-              <div className="text-xs text-zinc-500 mt-1">
+              <div className="text-xs text-emerald-400/50 mt-1">
                 {billingSummary?.sessions?.cancelled || 0} cancelled
               </div>
             </div>
           </div>
 
           {/* Billing Sessions */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-zinc-200">Recent Billing Sessions</h2>
-              <span className="text-xs text-zinc-500">{billingSessions.length} sessions</span>
+          <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-emerald-800/40 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-amber-50">Recent Billing Sessions</h2>
+              <span className="text-xs text-emerald-400/50">{billingSessions.length} sessions</span>
             </div>
             {billingSessions.length === 0 ? (
-              <div className="px-5 py-8 text-center text-zinc-500 text-sm">No billing sessions yet.</div>
+              <div className="px-5 py-8 text-center text-emerald-400/50 text-sm">No billing sessions yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-zinc-500 text-xs border-b border-zinc-800">
+                    <tr className="text-emerald-400/50 text-xs border-b border-emerald-800/40">
                       <th className="text-left px-5 py-3 font-medium">Date</th>
                       <th className="text-left px-5 py-3 font-medium">User</th>
                       <th className="text-left px-5 py-3 font-medium">Type</th>
@@ -1016,7 +1016,7 @@ export function AdminDashboard() {
                   </thead>
                   <tbody>
                     {billingSessions.map((s: any) => (
-                      <tr key={s.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
+                      <tr key={s.id} className="border-b border-emerald-800/20 hover:bg-emerald-900/30 transition-colors">
                         <td className="px-5 py-3 text-zinc-400 text-xs font-mono whitespace-nowrap">
                           {new Date(s.created_at).toLocaleString()}
                         </td>
@@ -1047,7 +1047,7 @@ export function AdminDashboard() {
                           </span>
                         </td>
                         <td className="px-5 py-3 text-xs">
-                          <span className={s.premiumStatus === "premium" ? "text-amber-400" : "text-zinc-500"}>
+                          <span className={s.premiumStatus === "premium" ? "text-amber-400" : "text-emerald-400/50"}>
                             {s.premiumStatus}
                           </span>
                         </td>
@@ -1060,18 +1060,18 @@ export function AdminDashboard() {
           </div>
 
           {/* Webhook Events */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-zinc-200">Recent Webhook Events</h2>
-              <span className="text-xs text-zinc-500">{billingEvents.length} events</span>
+          <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-emerald-800/40 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-amber-50">Recent Webhook Events</h2>
+              <span className="text-xs text-emerald-400/50">{billingEvents.length} events</span>
             </div>
             {billingEvents.length === 0 ? (
-              <div className="px-5 py-8 text-center text-zinc-500 text-sm">No webhook events yet.</div>
+              <div className="px-5 py-8 text-center text-emerald-400/50 text-sm">No webhook events yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-zinc-500 text-xs border-b border-zinc-800">
+                    <tr className="text-emerald-400/50 text-xs border-b border-emerald-800/40">
                       <th className="text-left px-5 py-3 font-medium">Date</th>
                       <th className="text-left px-5 py-3 font-medium">Event Type</th>
                       <th className="text-left px-5 py-3 font-medium">Status</th>
@@ -1081,7 +1081,7 @@ export function AdminDashboard() {
                   </thead>
                   <tbody>
                     {billingEvents.map((e: any) => (
-                      <tr key={e.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
+                      <tr key={e.id} className="border-b border-emerald-800/20 hover:bg-emerald-900/30 transition-colors">
                         <td className="px-5 py-3 text-zinc-400 text-xs font-mono whitespace-nowrap">
                           {new Date(e.created_at).toLocaleString()}
                         </td>
@@ -1096,7 +1096,7 @@ export function AdminDashboard() {
                             {e.status?.toUpperCase()}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-zinc-500 text-xs max-w-[200px] truncate">{e.details || "—"}</td>
+                        <td className="px-5 py-3 text-emerald-400/50 text-xs max-w-[200px] truncate">{e.details || "—"}</td>
                         <td className="px-5 py-3 text-zinc-600 font-mono text-[10px]">{e.stripe_event_id?.slice(0, 16)}…</td>
                       </tr>
                     ))}

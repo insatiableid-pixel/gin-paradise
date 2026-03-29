@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0080",
+  "response_id": "gcli_0080_resp",
+  "timestamp": "2026-03-28T22:51:42.785071+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Integrate stock depletion (progress) into compute_eval_weight to increase direct-EV trust late-game, building on the promising signals from candidate 0075.",
+  "edits": {
+    "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))": "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    progress = max(0.0, 31.0 - stock_size) / 31.0\n    trace_confidence = min(1.0, (n_trace_events / 10.0) * (1.0 + 0.5 * progress))\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + (0.05 * progress)\n    return max(0.5, min(1.0, dynamic_weight))"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "Candidate 0075 showed progress-sensitive direct-EV trust was very close to promotion (0.8052). By coupling the game progress directly to both trace confidence scaling and base dynamic weight in compute_eval_weight, we combine the late-game awareness of 0073 with the direct-EV scaling of 0075.",
+  "confidence": "high",
+  "agent_prompt_hash": "73d51a4f96bd",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0080.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0080.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 50.15,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 42143
+          },
+          "tokens": {
+            "input": 16156,
+            "prompt": 16156,
+            "candidates": 481,
+            "total": 20503,
+            "cached": 0,
+            "thoughts": 3866,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 42143,
+              "tokens": {
+                "input": 16156,
+                "prompt": 16156,
+                "candidates": 481,
+                "total": 20503,
+                "cached": 0,
+                "thoughts": 3866,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Integrate stock depletion (progress) into compute_eval_weight to increase direct-EV trust late-game, building on the promising signals from candidate 0075.\",\n  \"edits\": {\n    \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\": \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    progress = max(0.0, 31.0 - stock_size) / 31.0\\n    trace_confidence = min(1.0, (n_trace_events / 10.0) * (1.0 + 0.5 * progress))\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + (0.05 * progress)\\n    return max(0.5, min(1.0, dynamic_weight))\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"Candidate 0075 showed progress-sensitive direct-EV trust was very close to promotion (0.8052). By coupling the game progress directly to both trace confidence scaling and base dynamic weight in compute_eval_weight, we combine the late-game awareness of 0073 with the direct-EV scaling of 0075.\",\n  \"confidence\": \"high\"\n}"
+}

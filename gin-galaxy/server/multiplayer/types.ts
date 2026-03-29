@@ -93,6 +93,7 @@ export type ServerMessage =
   | { type: "spectator_joined"; roomId: string; spectatorCount: number }
   | { type: "spectator_left"; roomId: string; spectatorCount: number }
   | { type: "spectator_match_over"; roomId: string; message: string }
+  | { type: "room_handoff_required"; roomId: string; ownerNodeId: string; currentNodeId: string; action: "join_room" | "join_challenge_room" | "reconnect" | "watch_match" | "start_match"; message: string }
   | { type: "error"; message: string }
   | { type: "pong" };
 
@@ -137,6 +138,7 @@ export interface PlayerGameView {
   opponentUsername: string;
   topDiscard: CardView | null;
   stockCount: number;
+  turnNumber?: number;
   isMyTurn: boolean;
   hasDrawn: boolean;
   status: "waiting" | "playing" | "round_over" | "game_over";

@@ -1,0 +1,93 @@
+{
+  "request_id": "gcli_0030",
+  "response_id": "gcli_0030_resp",
+  "timestamp": "2026-03-28T01:06:47.969877+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Increase calibration fraction to provide a more robust threshold for the high-trust direct evaluation regime",
+  "edits": {
+    "CALIBRATION_FRACTION = 0.15": "CALIBRATION_FRACTION = 0.20"
+  },
+  "param_names": [
+    "CALIBRATION_FRACTION"
+  ],
+  "param_changes": {
+    "CALIBRATION_FRACTION": {
+      "old": 0.15,
+      "new": 0.2,
+      "delta": 0.05
+    }
+  },
+  "rationale": "With DIRECT_EVAL_WEIGHT at 0.90, the final knock probability is heavily determined by direct world sampling, making the system highly sensitive to the exact pre-committed knock threshold. Expanding the calibration split from 15% to 20% of the training data provides a larger, more representative sample for threshold tuning. This should reduce overfitting to the calibration set and improve held-out decision quality, easily justifying the small tradeoff in available eval time.",
+  "confidence": "medium",
+  "agent_prompt_hash": "5e55346be60d",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0030.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0030.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 29.42,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 24700
+          },
+          "tokens": {
+            "input": 46401,
+            "prompt": 46401,
+            "candidates": 254,
+            "total": 48457,
+            "cached": 0,
+            "thoughts": 1802,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 24700,
+              "tokens": {
+                "input": 46401,
+                "prompt": 46401,
+                "candidates": 254,
+                "total": 48457,
+                "cached": 0,
+                "thoughts": 1802,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Increase calibration fraction to provide a more robust threshold for the high-trust direct evaluation regime\",\n  \"edits\": {\n    \"CALIBRATION_FRACTION = 0.15\": \"CALIBRATION_FRACTION = 0.20\"\n  },\n  \"param_names\": [\n    \"CALIBRATION_FRACTION\"\n  ],\n  \"param_changes\": {\n    \"CALIBRATION_FRACTION\": {\n      \"old\": 0.15,\n      \"new\": 0.2,\n      \"delta\": 0.05\n    }\n  },\n  \"rationale\": \"With DIRECT_EVAL_WEIGHT at 0.90, the final knock probability is heavily determined by direct world sampling, making the system highly sensitive to the exact pre-committed knock threshold. Expanding the calibration split from 15% to 20% of the training data provides a larger, more representative sample for threshold tuning. This should reduce overfitting to the calibration set and improve held-out decision quality, easily justifying the small tradeoff in available eval time.\",\n  \"confidence\": \"medium\"\n}"
+}

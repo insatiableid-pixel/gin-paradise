@@ -190,26 +190,26 @@ function endReasonColor(reason: string | null): string {
     case "forfeit": return "text-amber-400";
     case "timeout": return "text-orange-400";
     case "disconnect": return "text-rose-400";
-    default: return "text-zinc-400";
+    default: return "text-emerald-300/60";
   }
 }
 
 function actionIcon(type: string) {
   switch (type) {
-    case "match_start": return <Play className="w-3.5 h-3.5 text-indigo-400" />;
-    case "round_start": return <Flag className="w-3.5 h-3.5 text-cyan-400" />;
+    case "match_start": return <Play className="w-3.5 h-3.5 text-amber-400" />;
+    case "round_start": return <Flag className="w-3.5 h-3.5 text-emerald-300" />;
     case "draw": return <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />;
     case "discard": return <ArrowLeft className="w-3.5 h-3.5 text-amber-400" />;
     case "knock": return <Swords className="w-3.5 h-3.5 text-amber-500" />;
     case "gin": return <Trophy className="w-3.5 h-3.5 text-yellow-400" />;
     case "undercut": return <AlertTriangle className="w-3.5 h-3.5 text-purple-400" />;
-    case "round_end": return <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />;
-    case "match_end": return <Trophy className="w-3.5 h-3.5 text-indigo-400" />;
+    case "round_end": return <ChevronRight className="w-3.5 h-3.5 text-emerald-300/60" />;
+    case "match_end": return <Trophy className="w-3.5 h-3.5 text-amber-400" />;
     case "timeout": return <Timer className="w-3.5 h-3.5 text-orange-400" />;
     case "disconnect": return <WifiOff className="w-3.5 h-3.5 text-rose-400" />;
     case "forfeit": return <Flag className="w-3.5 h-3.5 text-rose-400" />;
-    case "next_round": return <SkipForward className="w-3.5 h-3.5 text-cyan-400" />;
-    default: return <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />;
+    case "next_round": return <SkipForward className="w-3.5 h-3.5 text-emerald-300" />;
+    default: return <ChevronRight className="w-3.5 h-3.5 text-emerald-400/50" />;
   }
 }
 
@@ -249,11 +249,11 @@ function actionTypeBg(type: string): string {
   switch (type) {
     case "match_start":
     case "match_end":
-      return "border-l-indigo-500/60 bg-indigo-950/20";
+      return "border-l-amber-500/60 bg-amber-950/10";
     case "round_start":
     case "round_end":
     case "next_round":
-      return "border-l-cyan-500/60 bg-cyan-950/10";
+      return "border-l-emerald-500/60 bg-emerald-950/10";
     case "knock":
     case "gin":
     case "undercut":
@@ -452,15 +452,15 @@ export function Replays() {
       case 'mistake': return { bg: 'bg-orange-500/15 border-orange-500/30', text: 'text-orange-400', label: '△ Mistake' };
       case 'inaccuracy': return { bg: 'bg-amber-500/15 border-amber-500/30', text: 'text-amber-400', label: '○ Inaccuracy' };
       case 'best': return { bg: 'bg-emerald-500/10 border-emerald-500/20', text: 'text-emerald-400', label: '✓ Best' };
-      default: return { bg: 'bg-zinc-800/50 border-zinc-700/30', text: 'text-zinc-400', label: severity };
+      default: return { bg: 'bg-[#0a2e1e]/50 border-emerald-800/40/30', text: 'text-emerald-300/60', label: severity };
     }
   };
 
   // Score color helper
   const accuracyColor = (accuracy: number | null) => {
-    if (accuracy === null) return 'text-zinc-500';
+    if (accuracy === null) return 'text-emerald-400/50';
     if (accuracy >= 90) return 'text-emerald-400';
-    if (accuracy >= 75) return 'text-teal-400';
+    if (accuracy >= 75) return 'text-emerald-300';
     if (accuracy >= 60) return 'text-amber-400';
     if (accuracy >= 40) return 'text-orange-400';
     return 'text-rose-400';
@@ -534,7 +534,7 @@ export function Replays() {
         {/* Back button */}
         <button
           onClick={() => setSelectedReplay(null)}
-          className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors group"
+          className="flex items-center gap-2 text-sm text-emerald-300/60 hover:text-emerald-100 transition-colors group"
           id="replay-back-btn"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
@@ -544,18 +544,18 @@ export function Replays() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-50 flex items-center gap-3">
-              <History className="w-6 h-6 text-indigo-400" />
+            <h1 className="text-2xl font-bold tracking-tight text-amber-50 flex items-center gap-3">
+              <History className="w-6 h-6 text-amber-400" />
               Match Replay
             </h1>
-            <p className="text-sm text-zinc-500 mt-1">
+            <p className="text-sm text-emerald-400/50 mt-1">
               {formatDate(replay.startedAt)} at {formatTime(replay.startedAt)} · {formatDuration(replay.startedAt, replay.endedAt)}
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <Button
               variant="outline"
-              className="border-cyan-600/40 text-cyan-400 hover:bg-cyan-950/30"
+              className="border-emerald-600/40 text-emerald-300 hover:bg-emerald-950/20"
               onClick={() => { if (expandedProofs.size === 0 && fairnessData?.proofs) { setExpandedProofs(new Set(fairnessData.proofs.map(p => p.roundNumber))); } else { setExpandedProofs(new Set()); } }}
               disabled={!fairnessData || fairnessData.proofs.length === 0}
               id="replay-trustshield-btn"
@@ -565,7 +565,7 @@ export function Replays() {
             </Button>
             <Button
               variant="outline"
-              className="border-teal-600/40 text-teal-400 hover:bg-teal-950/30"
+              className="border-emerald-600/40 text-emerald-400 hover:bg-emerald-950/30"
               onClick={requestEvaluation}
               disabled={loadingEval}
               id="replay-evaluate-btn"
@@ -579,7 +579,7 @@ export function Replays() {
             </Button>
             <Button
               variant="primary"
-              className="bg-indigo-600 hover:bg-indigo-500"
+              className="bg-emerald-700 hover:bg-emerald-600"
               onClick={requestAnalysis}
               disabled={loadingAnalysis}
               id="replay-analyze-btn"
@@ -609,54 +609,54 @@ export function Replays() {
             const score = isMatchWinner ? replay.outcome.winnerScore : replay.outcome.loserScore;
             return (
               <Card key={idx} className={cn(
-                "bg-zinc-900/40 border-zinc-800/60",
+                "bg-emerald-950/30 border-emerald-800/30",
                 isMatchWinner && "ring-1 ring-emerald-500/30"
               )}>
                 <CardContent className="p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={cn(
                       "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border",
-                      isMe ? "bg-gradient-to-tr from-indigo-500 to-purple-500 border-indigo-400/40 text-white" : "bg-zinc-800 border-zinc-700 text-zinc-400"
+                      isMe ? "bg-gradient-to-tr from-emerald-500 to-emerald-600 border-amber-400/40 text-white" : "bg-[#0a2e1e] border-emerald-800/40 text-emerald-300/60"
                     )}>
                       {p.username[0]?.toUpperCase()}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-zinc-200">{p.username}</span>
-                        {isMe && <span className="text-[10px] uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded">You</span>}
+                        <span className="font-semibold text-emerald-100">{p.username}</span>
+                        {isMe && <span className="text-[10px] uppercase tracking-wider text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">You</span>}
                       </div>
-                      <span className="text-xs text-zinc-500">
+                      <span className="text-xs text-emerald-400/50">
                         {isMatchWinner ? "Winner" : ""}
                       </span>
                     </div>
                   </div>
-                  <div className="text-3xl font-bold text-zinc-50">{score}</div>
-                  <div className="text-xs text-zinc-500">Final Score</div>
+                  <div className="text-3xl font-bold text-amber-50">{score}</div>
+                  <div className="text-xs text-emerald-400/50">Final Score</div>
                 </CardContent>
               </Card>
             );
           })}
 
           {/* Match info card */}
-          <Card className="bg-zinc-900/40 border-zinc-800/60">
+          <Card className="bg-emerald-950/30 border-emerald-800/30">
             <CardContent className="p-5 space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-xs text-zinc-500 uppercase tracking-wider">Result</span>
+                <span className="text-xs text-emerald-400/50 uppercase tracking-wider">Result</span>
                 <span className={cn("text-xs font-semibold", endReasonColor(replay.outcome.endReason))}>
                   {endReasonLabel(replay.outcome.endReason)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs text-zinc-500 uppercase tracking-wider">Rounds</span>
-                <span className="text-sm font-medium text-zinc-300">{rounds.length}</span>
+                <span className="text-xs text-emerald-400/50 uppercase tracking-wider">Rounds</span>
+                <span className="text-sm font-medium text-emerald-200">{rounds.length}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs text-zinc-500 uppercase tracking-wider">Actions</span>
-                <span className="text-sm font-medium text-zinc-300">{replay.actions.length}</span>
+                <span className="text-xs text-emerald-400/50 uppercase tracking-wider">Actions</span>
+                <span className="text-sm font-medium text-emerald-200">{replay.actions.length}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs text-zinc-500 uppercase tracking-wider">Duration</span>
-                <span className="text-sm font-medium text-zinc-300">
+                <span className="text-xs text-emerald-400/50 uppercase tracking-wider">Duration</span>
+                <span className="text-sm font-medium text-emerald-200">
                   {formatDuration(replay.startedAt, replay.endedAt)}
                 </span>
               </div>
@@ -666,13 +666,13 @@ export function Replays() {
 
         {/* Trust Shield / Proof Inspector Panel */}
         {(fairnessData || loadingFairness || fairnessError) && (
-          <Card className="bg-zinc-900/40 border-zinc-800/60 overflow-hidden" id="replay-fairness-panel">
-            <CardHeader className="border-b border-zinc-800/60 bg-gradient-to-r from-cyan-950/40 via-purple-950/20 to-zinc-900/80">
+          <Card className="bg-emerald-950/30 border-emerald-800/30 overflow-hidden" id="replay-fairness-panel">
+            <CardHeader className="border-b border-emerald-800/30 bg-gradient-to-r from-emerald-950/40 via-emerald-950/20 to-[#0a2e1e]/80">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-cyan-400" />
+                  <Shield className="w-5 h-5 text-emerald-400" />
                   Trust Shield
-                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     v{fairnessData?.algorithmVersion || '?'}
                   </span>
                   {fairnessData?.proofs?.some(p => p.hasClientSeeds) && (
@@ -686,7 +686,7 @@ export function Replays() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                      className="border-emerald-800/40 text-emerald-300/60 hover:text-emerald-100 hover:bg-emerald-950/40"
                       onClick={downloadProof}
                       id="replay-download-proof"
                     >
@@ -701,8 +701,8 @@ export function Replays() {
               {loadingFairness ? (
                 <div className="flex items-center justify-center py-6">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-zinc-500">Loading fairness data...</span>
+                    <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-emerald-400/50">Loading fairness data...</span>
                   </div>
                 </div>
               ) : fairnessError ? (
@@ -711,19 +711,19 @@ export function Replays() {
                   <p className="text-sm text-amber-300">{fairnessError}</p>
                 </div>
               ) : !fairnessData ? (
-                <div className="text-sm text-zinc-500 text-center py-4">
+                <div className="text-sm text-emerald-400/50 text-center py-4">
                   No fairness proof data available for this match.
                 </div>
               ) : fairnessData.proofs.length === 0 ? (
-                <div className="text-sm text-zinc-500 text-center py-4">
+                <div className="text-sm text-emerald-400/50 text-center py-4">
                   No completed proofs found.
                 </div>
               ) : (
                 <div className="space-y-3">
                   {/* Summary line */}
-                  <div className="flex items-center gap-4 text-sm text-zinc-400 mb-4">
+                  <div className="flex items-center gap-4 text-sm text-emerald-300/60 mb-4">
                     <span>{fairnessData.proofs.length} round{fairnessData.proofs.length !== 1 ? 's' : ''} verified</span>
-                    <span className="text-zinc-600">•</span>
+                    <span className="text-emerald-500/40">•</span>
                     {fairnessData.proofs.every(p => p.verified) ? (
                       <span className="flex items-center gap-1 text-emerald-400">
                         <Check className="w-3.5 h-3.5" /> All proofs valid
@@ -739,9 +739,9 @@ export function Replays() {
                   {fairnessData.proofs.map((proof) => {
                     const isExpanded = expandedProofs.has(proof.roundNumber);
                     return (
-                      <div key={proof.roundNumber} className="border border-zinc-800/60 rounded-lg overflow-hidden">
+                      <div key={proof.roundNumber} className="border border-emerald-800/30 rounded-lg overflow-hidden">
                         <button
-                          className="w-full flex items-center justify-between p-3 hover:bg-zinc-800/30 transition-colors text-left"
+                          className="w-full flex items-center justify-between p-3 hover:bg-emerald-950/30 transition-colors text-left"
                           onClick={() => toggleProofExpand(proof.roundNumber)}
                         >
                           <div className="flex items-center gap-3">
@@ -754,10 +754,10 @@ export function Replays() {
                               {proof.verified ? <Check className="w-3.5 h-3.5" /> : '!'}
                             </div>
                             <div>
-                              <span className="text-sm font-medium text-zinc-200">
+                              <span className="text-sm font-medium text-emerald-100">
                                 Round {proof.roundNumber}
                               </span>
-                              <span className="text-xs text-zinc-500 ml-2">
+                              <span className="text-xs text-emerald-400/50 ml-2">
                                 v{proof.algorithmVersion || proof.commitment.algorithmVersion}
                                 {proof.hasClientSeeds && ' · client seeds'}
                               </span>
@@ -772,17 +772,17 @@ export function Replays() {
                             )}>
                               {proof.verified ? 'Verified' : proof.reason || 'Failed'}
                             </span>
-                            {isExpanded ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
+                            {isExpanded ? <ChevronUp className="w-4 h-4 text-emerald-400/50" /> : <ChevronDown className="w-4 h-4 text-emerald-400/50" />}
                           </div>
                         </button>
 
                         {isExpanded && proof.reveal && (
-                          <div className="border-t border-zinc-800/40 p-4 space-y-4 bg-zinc-950/30">
+                          <div className="border-t border-emerald-800/25 p-4 space-y-4 bg-[#061f14]/40">
                             {/* Verification details */}
                             {proof.verificationDetails && (
                               <div className="space-y-1">
                                 {proof.verificationDetails.map((d, i) => (
-                                  <div key={i} className="text-xs text-zinc-400 font-mono leading-relaxed">
+                                  <div key={i} className="text-xs text-emerald-300/60 font-mono leading-relaxed">
                                     {d}
                                   </div>
                                 ))}
@@ -793,14 +793,14 @@ export function Replays() {
                             <div className="grid gap-3 text-xs">
                               {/* Commitment Hash */}
                               <div className="flex flex-col gap-1">
-                                <span className="text-zinc-500 uppercase tracking-wider text-[10px]">Commitment Hash</span>
+                                <span className="text-emerald-400/50 uppercase tracking-wider text-[10px]">Commitment Hash</span>
                                 <div className="flex items-center gap-2">
-                                  <code className="text-zinc-300 bg-zinc-900/60 px-2 py-1 rounded font-mono text-[11px] flex-1 overflow-hidden text-ellipsis">
+                                  <code className="text-emerald-200 bg-emerald-950/50 px-2 py-1 rounded font-mono text-[11px] flex-1 overflow-hidden text-ellipsis">
                                     {proof.commitment.commitmentHash}
                                   </code>
                                   <button
                                     onClick={() => copyToClipboard(proof.commitment.commitmentHash, `commit-${proof.roundNumber}`)}
-                                    className="text-zinc-500 hover:text-zinc-300 transition-colors shrink-0"
+                                    className="text-emerald-400/50 hover:text-emerald-200 transition-colors shrink-0"
                                   >
                                     {copiedField === `commit-${proof.roundNumber}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                                   </button>
@@ -809,14 +809,14 @@ export function Replays() {
 
                               {/* Server Seed */}
                               <div className="flex flex-col gap-1">
-                                <span className="text-zinc-500 uppercase tracking-wider text-[10px]">Server Seed</span>
+                                <span className="text-emerald-400/50 uppercase tracking-wider text-[10px]">Server Seed</span>
                                 <div className="flex items-center gap-2">
-                                  <code className="text-zinc-300 bg-zinc-900/60 px-2 py-1 rounded font-mono text-[11px] flex-1 overflow-hidden text-ellipsis">
+                                  <code className="text-emerald-200 bg-emerald-950/50 px-2 py-1 rounded font-mono text-[11px] flex-1 overflow-hidden text-ellipsis">
                                     {proof.reveal.serverSeed}
                                   </code>
                                   <button
                                     onClick={() => copyToClipboard(proof.reveal!.serverSeed, `seed-${proof.roundNumber}`)}
-                                    className="text-zinc-500 hover:text-zinc-300 transition-colors shrink-0"
+                                    className="text-emerald-400/50 hover:text-emerald-200 transition-colors shrink-0"
                                   >
                                     {copiedField === `seed-${proof.roundNumber}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                                   </button>
@@ -829,14 +829,14 @@ export function Replays() {
                                   <span className="text-purple-400 uppercase tracking-wider text-[10px]">Client Seeds (Defense in Depth)</span>
                                   <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                      <span className="text-[9px] text-zinc-600">Player 1:</span>
-                                      <code className="block text-zinc-300 bg-zinc-900/60 px-2 py-1 rounded font-mono text-[11px] overflow-hidden text-ellipsis mt-0.5">
+                                      <span className="text-[9px] text-emerald-500/40">Player 1:</span>
+                                      <code className="block text-emerald-200 bg-emerald-950/50 px-2 py-1 rounded font-mono text-[11px] overflow-hidden text-ellipsis mt-0.5">
                                         {proof.reveal.clientSeeds.player1}
                                       </code>
                                     </div>
                                     <div>
-                                      <span className="text-[9px] text-zinc-600">Player 2:</span>
-                                      <code className="block text-zinc-300 bg-zinc-900/60 px-2 py-1 rounded font-mono text-[11px] overflow-hidden text-ellipsis mt-0.5">
+                                      <span className="text-[9px] text-emerald-500/40">Player 2:</span>
+                                      <code className="block text-emerald-200 bg-emerald-950/50 px-2 py-1 rounded font-mono text-[11px] overflow-hidden text-ellipsis mt-0.5">
                                         {proof.reveal.clientSeeds.player2}
                                       </code>
                                     </div>
@@ -848,7 +848,7 @@ export function Replays() {
                               {proof.reveal.combinedSeed && (
                                 <div className="flex flex-col gap-1">
                                   <span className="text-purple-400 uppercase tracking-wider text-[10px]">Combined Seed</span>
-                                  <code className="text-zinc-300 bg-zinc-900/60 px-2 py-1 rounded font-mono text-[11px] overflow-hidden text-ellipsis">
+                                  <code className="text-emerald-200 bg-emerald-950/50 px-2 py-1 rounded font-mono text-[11px] overflow-hidden text-ellipsis">
                                     {proof.reveal.combinedSeed}
                                   </code>
                                 </div>
@@ -857,16 +857,16 @@ export function Replays() {
                               {/* Nonce + Algorithm + Deck Hash in a row */}
                               <div className="grid grid-cols-3 gap-3">
                                 <div>
-                                  <span className="text-zinc-500 uppercase tracking-wider text-[10px]">Nonce</span>
-                                  <div className="text-zinc-300 font-mono text-sm mt-1">{proof.reveal.nonce}</div>
+                                  <span className="text-emerald-400/50 uppercase tracking-wider text-[10px]">Nonce</span>
+                                  <div className="text-emerald-200 font-mono text-sm mt-1">{proof.reveal.nonce}</div>
                                 </div>
                                 <div>
-                                  <span className="text-zinc-500 uppercase tracking-wider text-[10px]">Algorithm</span>
-                                  <div className="text-zinc-300 font-mono text-sm mt-1">v{proof.reveal.algorithmVersion}</div>
+                                  <span className="text-emerald-400/50 uppercase tracking-wider text-[10px]">Algorithm</span>
+                                  <div className="text-emerald-200 font-mono text-sm mt-1">v{proof.reveal.algorithmVersion}</div>
                                 </div>
                                 <div>
-                                  <span className="text-zinc-500 uppercase tracking-wider text-[10px]">Deck Hash</span>
-                                  <div className="text-zinc-400 font-mono text-[11px] mt-1 overflow-hidden text-ellipsis">
+                                  <span className="text-emerald-400/50 uppercase tracking-wider text-[10px]">Deck Hash</span>
+                                  <div className="text-emerald-300/60 font-mono text-[11px] mt-1 overflow-hidden text-ellipsis">
                                     {proof.reveal.deckHash.slice(0, 20)}...
                                   </div>
                                 </div>
@@ -875,14 +875,14 @@ export function Replays() {
                               {/* Timestamps */}
                               <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                  <span className="text-zinc-500 uppercase tracking-wider text-[10px]">Committed At</span>
-                                  <div className="text-zinc-400 text-[11px] mt-1">
+                                  <span className="text-emerald-400/50 uppercase tracking-wider text-[10px]">Committed At</span>
+                                  <div className="text-emerald-300/60 text-[11px] mt-1">
                                     {new Date(proof.commitment.committedAt).toLocaleString()}
                                   </div>
                                 </div>
                                 <div>
-                                  <span className="text-zinc-500 uppercase tracking-wider text-[10px]">Revealed At</span>
-                                  <div className="text-zinc-400 text-[11px] mt-1">
+                                  <span className="text-emerald-400/50 uppercase tracking-wider text-[10px]">Revealed At</span>
+                                  <div className="text-emerald-300/60 text-[11px] mt-1">
                                     {new Date(proof.reveal.revealedAt).toLocaleString()}
                                   </div>
                                 </div>
@@ -890,7 +890,7 @@ export function Replays() {
                             </div>
 
                             {/* Copy full proof button */}
-                            <div className="flex items-center gap-2 pt-2 border-t border-zinc-800/40">
+                            <div className="flex items-center gap-2 pt-2 border-t border-emerald-800/25">
                               <button
                                 onClick={() => copyToClipboard(JSON.stringify({
                                   commitment: proof.commitment,
@@ -898,7 +898,7 @@ export function Replays() {
                                   roundNumber: proof.roundNumber,
                                   handId: proof.handId,
                                 }, null, 2), `full-${proof.roundNumber}`)}
-                                className="flex items-center gap-1.5 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+                                className="flex items-center gap-1.5 text-[11px] text-emerald-400/50 hover:text-emerald-200 transition-colors"
                               >
                                 {copiedField === `full-${proof.roundNumber}` ? (
                                   <><Check className="w-3 h-3 text-emerald-400" /> Copied!</>
@@ -914,8 +914,8 @@ export function Replays() {
                   })}
 
                   {/* How it works */}
-                  <div className="text-[11px] text-zinc-600 leading-relaxed border-t border-zinc-800/50 pt-3 mt-4">
-                    <p><strong className="text-zinc-500">How verification works:</strong> Before each round, the server commits to a shuffle seed by publishing its hash. After the round, the seed is revealed. Anyone can re-derive the shuffle from the seed and verify it matches the committed hash — proving the server did not change the deck after seeing your moves.</p>
+                  <div className="text-[11px] text-emerald-500/40 leading-relaxed border-t border-emerald-800/30 pt-3 mt-4">
+                    <p><strong className="text-emerald-400/50">How verification works:</strong> Before each round, the server commits to a shuffle seed by publishing its hash. After the round, the seed is revealed. Anyone can re-derive the shuffle from the seed and verify it matches the committed hash — proving the server did not change the deck after seeing your moves.</p>
                     {fairnessData.proofs.some(p => p.hasClientSeeds) && (
                       <p className="mt-1"><strong className="text-purple-400">Client seed contribution (v2):</strong> Both players contributed random seeds that were combined with the server seed using HMAC-SHA256 before generating the shuffle. This ensures neither the server nor any single player determines the deck order alone.</p>
                     )}
@@ -928,12 +928,12 @@ export function Replays() {
 
         {/* Engine Evaluation Panel */}
         {(evaluation || evalError || loadingEval) && (
-          <Card className="bg-zinc-900/40 border-zinc-800/60 overflow-hidden" id="replay-evaluation-panel">
-            <CardHeader className="border-b border-zinc-800/60 bg-gradient-to-r from-teal-950/40 to-zinc-900/80">
+          <Card className="bg-emerald-950/30 border-emerald-800/30 overflow-hidden" id="replay-evaluation-panel">
+            <CardHeader className="border-b border-emerald-800/30 bg-gradient-to-r from-emerald-950/40 to-[#0a2e1e]/80">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Activity className="w-5 h-5 text-teal-400" />
+                <Activity className="w-5 h-5 text-emerald-400" />
                 Engine Evaluation
-                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   Apex v2
                 </span>
               </CardTitle>
@@ -942,8 +942,8 @@ export function Replays() {
               {loadingEval ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-zinc-500">Running engine evaluation...</span>
+                    <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-emerald-400/50">Running engine evaluation...</span>
                   </div>
                 </div>
               ) : evalError ? (
@@ -952,7 +952,7 @@ export function Replays() {
                   <div>
                     <p className="text-sm text-amber-300 font-medium">Evaluation Unavailable</p>
                     <p className="text-xs text-amber-400/80 mt-0.5">{evalError}</p>
-                    <p className="text-xs text-zinc-500 mt-1">The replay viewer is unaffected. Ensure Python is available to run the Apex v2 evaluator.</p>
+                    <p className="text-xs text-emerald-400/50 mt-1">The replay viewer is unaffected. Ensure Python is available to run the Apex v2 evaluator.</p>
                   </div>
                 </div>
               ) : evaluation ? (
@@ -963,11 +963,11 @@ export function Replays() {
                       <div className={cn("text-4xl font-bold tabular-nums", accuracyColor(evaluation.requesting_player_accuracy))}>
                         {evaluation.requesting_player_accuracy !== null ? `${evaluation.requesting_player_accuracy}%` : '—'}
                       </div>
-                      <div className="text-xs text-zinc-500 mt-1 uppercase tracking-wider">Engine Accuracy</div>
+                      <div className="text-xs text-emerald-400/50 mt-1 uppercase tracking-wider">Engine Accuracy</div>
                       <div className={cn(
                         "text-xs px-2 py-0.5 rounded-full mt-2 capitalize border",
                         evaluation.requesting_player_label === 'excellent' && 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-                        evaluation.requesting_player_label === 'good' && 'bg-teal-500/10 text-teal-400 border-teal-500/20',
+                        evaluation.requesting_player_label === 'good' && 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
                         evaluation.requesting_player_label === 'fair' && 'bg-amber-500/10 text-amber-400 border-amber-500/20',
                         evaluation.requesting_player_label === 'needs_improvement' && 'bg-orange-500/10 text-orange-400 border-orange-500/20',
                         evaluation.requesting_player_label === 'poor' && 'bg-rose-500/10 text-rose-400 border-rose-500/20',
@@ -976,12 +976,12 @@ export function Replays() {
                       </div>
                     </div>
                     <div className="flex-1 space-y-2">
-                      <div className="text-xs text-zinc-500">{evaluation.total_evaluated} decisions evaluated</div>
+                      <div className="text-xs text-emerald-400/50">{evaluation.total_evaluated} decisions evaluated</div>
                       {Object.entries(evaluation.player_summaries || {}).map(([pid, ps]) => {
                         const isMe = pid === user?.id;
                         return ps.severity_counts ? (
                           <div key={pid} className="flex items-center gap-2 flex-wrap">
-                            <span className={cn("text-xs font-medium", isMe ? 'text-zinc-200' : 'text-zinc-500')}>
+                            <span className={cn("text-xs font-medium", isMe ? 'text-emerald-100' : 'text-emerald-400/50')}>
                               {ps.username}:
                             </span>
                             {ps.severity_counts.best > 0 && (
@@ -1010,11 +1010,11 @@ export function Replays() {
                     </div>
                   </div>
                   {/* Methodology note */}
-                  <div className="text-[11px] text-zinc-600 leading-relaxed border-t border-zinc-800/50 pt-3">
+                  <div className="text-[11px] text-emerald-500/40 leading-relaxed border-t border-emerald-800/30 pt-3">
                     {evaluation.methodology_description}
                   </div>
                   {evaluation.evaluation_time_ms !== undefined && (
-                    <div className="text-[10px] text-zinc-700">
+                    <div className="text-[10px] text-emerald-600/30">
                       Evaluated in {evaluation.evaluation_time_ms}ms · Source: {evalSource}
                     </div>
                   )}
@@ -1026,10 +1026,10 @@ export function Replays() {
 
         {/* AI Analysis Panel */}
         {(analysis || analysisError || loadingAnalysis) && (
-          <Card className="bg-zinc-900/40 border-zinc-800/60 overflow-hidden" id="replay-analysis-panel">
-            <CardHeader className="border-b border-zinc-800/60 bg-gradient-to-r from-indigo-950/40 to-zinc-900/80">
+          <Card className="bg-emerald-950/30 border-emerald-800/30 overflow-hidden" id="replay-analysis-panel">
+            <CardHeader className="border-b border-emerald-800/30 bg-gradient-to-r from-emerald-950/40 to-[#0a2e1e]/80">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-indigo-400" />
+                <Sparkles className="w-5 h-5 text-amber-400" />
                 AI Match Analysis
                 {analysisSource && (
                   <span className={cn(
@@ -1047,9 +1047,9 @@ export function Replays() {
               {loadingAnalysis ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-zinc-500">Analyzing transcript...</span>
-                    <span className="text-xs text-zinc-600">Reviewing {replay.actions.length} actions across {rounds.length} round(s)</span>
+                    <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-emerald-400/50">Analyzing transcript...</span>
+                    <span className="text-xs text-emerald-500/40">Reviewing {replay.actions.length} actions across {rounds.length} round(s)</span>
                   </div>
                 </div>
               ) : analysisError ? (
@@ -1062,13 +1062,13 @@ export function Replays() {
                 </div>
               ) : analysis ? (
                 <div>
-                  <div className="prose prose-invert prose-indigo max-w-none">
+                  <div className="prose prose-invert prose-emerald max-w-none">
                     <div className="markdown-body">
                       <Markdown>{analysis}</Markdown>
                     </div>
                   </div>
                   {analysisMeta && (
-                    <div className="mt-6 pt-4 border-t border-zinc-800/60 flex flex-wrap gap-4 text-[11px] text-zinc-600">
+                    <div className="mt-6 pt-4 border-t border-emerald-800/30 flex flex-wrap gap-4 text-[11px] text-emerald-500/40">
                       <span>Replay: {analysisMeta.replayId.slice(0, 8)}...</span>
                       <span>Actions analyzed: {analysisMeta.totalActions}</span>
                       <span>Rounds: {analysisMeta.totalRounds}</span>
@@ -1082,10 +1082,10 @@ export function Replays() {
         )}
 
         {/* Step-through controls */}
-        <Card className="bg-zinc-900/40 border-zinc-800/60">
+        <Card className="bg-emerald-950/30 border-emerald-800/30">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-zinc-400">
+              <span className="text-sm text-emerald-300/60">
                 {focusedAction !== null
                   ? `Action ${focusedAction + 1} of ${replay.actions.length}`
                   : "Step through the match actions"
@@ -1096,43 +1096,43 @@ export function Replays() {
                   variant="outline"
                   size="sm"
                   onClick={() => setFocusedAction(0)}
-                  className="border-zinc-700 hover:bg-zinc-800 w-8 h-8 p-0"
+                  className="border-emerald-800/40 hover:bg-emerald-950/40 w-8 h-8 p-0"
                   id="replay-step-first"
                 >
-                  <SkipBack className="w-3.5 h-3.5 text-zinc-400" />
+                  <SkipBack className="w-3.5 h-3.5 text-emerald-300/60" />
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={goPrev}
-                  className="border-zinc-700 hover:bg-zinc-800 w-8 h-8 p-0"
+                  className="border-emerald-800/40 hover:bg-emerald-950/40 w-8 h-8 p-0"
                   id="replay-step-prev"
                 >
-                  <ChevronUp className="w-4 h-4 text-zinc-400" />
+                  <ChevronUp className="w-4 h-4 text-emerald-300/60" />
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={goNext}
-                  className="border-zinc-700 hover:bg-zinc-800 w-8 h-8 p-0"
+                  className="border-emerald-800/40 hover:bg-emerald-950/40 w-8 h-8 p-0"
                   id="replay-step-next"
                 >
-                  <ChevronDown className="w-4 h-4 text-zinc-400" />
+                  <ChevronDown className="w-4 h-4 text-emerald-300/60" />
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setFocusedAction(replay.actions.length - 1)}
-                  className="border-zinc-700 hover:bg-zinc-800 w-8 h-8 p-0"
+                  className="border-emerald-800/40 hover:bg-emerald-950/40 w-8 h-8 p-0"
                   id="replay-step-last"
                 >
-                  <SkipForward className="w-3.5 h-3.5 text-zinc-400" />
+                  <SkipForward className="w-3.5 h-3.5 text-emerald-300/60" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setFocusedAction(null)}
-                  className="text-zinc-500 hover:text-zinc-300 ml-1"
+                  className="text-emerald-400/50 hover:text-emerald-200 ml-1"
                 >
                   Clear
                 </Button>
@@ -1143,8 +1143,8 @@ export function Replays() {
 
         {/* Transcript timeline by round */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-zinc-200 flex items-center gap-2">
-            <History className="w-5 h-5 text-indigo-400" />
+          <h2 className="text-lg font-semibold text-emerald-100 flex items-center gap-2">
+            <History className="w-5 h-5 text-amber-400" />
             Match Transcript
           </h2>
 
@@ -1154,31 +1154,31 @@ export function Replays() {
             const roundWinner = roundWinAction?.playerUsername;
 
             return (
-              <Card key={ri} className="bg-zinc-900/30 border-zinc-800/50 overflow-hidden">
+              <Card key={ri} className="bg-emerald-950/20 border-emerald-800/30 overflow-hidden">
                 <button
-                  className="w-full flex items-center justify-between p-4 hover:bg-zinc-800/30 transition-colors text-left"
+                  className="w-full flex items-center justify-between p-4 hover:bg-emerald-950/30 transition-colors text-left"
                   onClick={() => toggleRound(round.roundNumber)}
                   id={`replay-round-${round.roundNumber}`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-sm font-bold text-indigo-400">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-sm font-bold text-amber-400">
                       {round.roundNumber || ri + 1}
                     </div>
                     <div>
-                      <span className="text-sm font-semibold text-zinc-200">
+                      <span className="text-sm font-semibold text-emerald-100">
                         Round {round.roundNumber || ri + 1}
                       </span>
-                      <span className="text-xs text-zinc-500 ml-3">
+                      <span className="text-xs text-emerald-400/50 ml-3">
                         {round.actions.length} actions
                         {roundWinner ? ` · Won by ${roundWinner}` : ""}
                       </span>
                     </div>
                   </div>
-                  {isExpanded ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
+                  {isExpanded ? <ChevronUp className="w-4 h-4 text-emerald-400/50" /> : <ChevronDown className="w-4 h-4 text-emerald-400/50" />}
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t border-zinc-800/40">
+                  <div className="border-t border-emerald-800/25">
                     {round.actions.map((action, ai) => {
                       const globalIdx = replay.actions.indexOf(action);
                       const isFocused = focusedAction === globalIdx;
@@ -1188,8 +1188,8 @@ export function Replays() {
                           className={cn(
                             "flex items-start gap-3 px-4 py-2.5 border-l-2 transition-all cursor-pointer",
                             actionTypeBg(action.type),
-                            isFocused && "!bg-indigo-500/15 ring-1 ring-indigo-500/30",
-                            "hover:bg-zinc-800/20"
+                            isFocused && "!bg-amber-500/10 ring-1 ring-amber-500/30",
+                            "hover:bg-emerald-950/20"
                           )}
                           onClick={() => setFocusedAction(globalIdx)}
                           id={`replay-action-${action.seq}`}
@@ -1198,7 +1198,7 @@ export function Replays() {
                             {actionIcon(action.type)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm text-zinc-300 leading-snug">
+                            <div className="text-sm text-emerald-200 leading-snug">
                               {actionLabel(action)}
                             </div>
                             {/* Evaluation severity badge */}
@@ -1213,19 +1213,19 @@ export function Replays() {
                                 )}>
                                   <span className={badge.text}>{badge.label}</span>
                                   {ev.type === 'discard' && ev.engine_preferred && ev.actual_card !== ev.engine_preferred && (
-                                    <span className="text-zinc-500">· Engine preferred: {ev.engine_preferred}</span>
+                                    <span className="text-emerald-400/50">· Engine preferred: {ev.engine_preferred}</span>
                                   )}
                                   {ev.dw_cost !== undefined && ev.dw_cost > 0 && (
-                                    <span className="text-zinc-500">· +{ev.dw_cost} DW</span>
+                                    <span className="text-emerald-400/50">· +{ev.dw_cost} DW</span>
                                   )}
                                 </div>
                               );
                             })()}
-                            <div className="text-[10px] text-zinc-600 mt-0.5 font-mono">
+                            <div className="text-[10px] text-emerald-500/40 mt-0.5 font-mono">
                               #{action.seq}
                             </div>
                           </div>
-                          <div className="text-[10px] text-zinc-600 shrink-0 mt-0.5 tabular-nums">
+                          <div className="text-[10px] text-emerald-500/40 shrink-0 mt-0.5 tabular-nums">
                             {new Date(action.timestamp).toLocaleTimeString("en-US", {
                               hour: "2-digit",
                               minute: "2-digit",
@@ -1250,11 +1250,11 @@ export function Replays() {
     <div className="space-y-8 pb-20 md:pb-0">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-50 flex items-center gap-3">
-            <History className="w-8 h-8 text-indigo-400" />
+          <h1 className="text-3xl font-bold tracking-tight text-amber-50 flex items-center gap-3">
+            <History className="w-8 h-8 text-amber-400" />
             Match Replays
           </h1>
-          <p className="text-sm text-zinc-500 mt-1">
+          <p className="text-sm text-emerald-400/50 mt-1">
             Review your completed multiplayer matches
           </p>
         </div>
@@ -1263,22 +1263,22 @@ export function Replays() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-zinc-500">Loading replays...</span>
+            <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-emerald-400/50">Loading replays...</span>
           </div>
         </div>
       ) : replays.length === 0 ? (
-        <Card className="bg-zinc-900/30 border-zinc-800/40 p-8 text-center">
+        <Card className="bg-emerald-950/20 border-emerald-800/25 p-8 text-center">
           <div className="flex flex-col items-center gap-4">
-            <History className="w-12 h-12 text-zinc-700" />
+            <History className="w-12 h-12 text-emerald-600/30" />
             <div>
-              <p className="text-zinc-400 text-lg font-medium">No replays yet</p>
-              <p className="text-zinc-600 text-sm mt-1">
+              <p className="text-emerald-300/60 text-lg font-medium">No replays yet</p>
+              <p className="text-emerald-500/40 text-sm mt-1">
                 Complete a multiplayer match to see your replay history here.
               </p>
             </div>
             <Link to="/play/multiplayer">
-              <Button variant="primary" className="mt-2 bg-indigo-600 hover:bg-indigo-500">
+              <Button variant="primary" className="mt-2 bg-emerald-700 hover:bg-emerald-600">
                 <Swords className="w-4 h-4 mr-2" />
                 Play Multiplayer
               </Button>
@@ -1297,7 +1297,7 @@ export function Replays() {
               <Card
                 key={replay.id}
                 onClick={() => openReplay(replay.id)}
-                className="bg-zinc-900/30 border-zinc-800/40 hover:bg-zinc-800/40 hover:border-zinc-700/60 transition-all cursor-pointer group"
+                className="bg-emerald-950/20 border-emerald-800/25 hover:bg-emerald-950/40 hover:border-emerald-800/40/60 transition-all cursor-pointer group"
                 id={`replay-item-${replay.id}`}
               >
                 <div className="flex items-center justify-between p-4">
@@ -1314,14 +1314,14 @@ export function Replays() {
 
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-zinc-200">
+                        <span className="font-semibold text-emerald-100">
                           vs {opponent?.username || "Unknown"}
                         </span>
                         <span className={cn("text-xs px-1.5 py-0.5 rounded font-medium", endReasonColor(replay.outcome.endReason))}>
                           {endReasonLabel(replay.outcome.endReason)}
                         </span>
                       </div>
-                      <div className="text-xs text-zinc-500 flex items-center gap-3 mt-0.5">
+                      <div className="text-xs text-emerald-400/50 flex items-center gap-3 mt-0.5">
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {timeAgo(replay.endedAt)}
@@ -1336,12 +1336,12 @@ export function Replays() {
 
                   <div className="flex items-center gap-6">
                     <div className="text-right hidden sm:block">
-                      <div className="text-lg font-bold text-zinc-200 tabular-nums">
+                      <div className="text-lg font-bold text-emerald-100 tabular-nums">
                         {myScore} - {oppScore}
                       </div>
-                      <div className="text-xs text-zinc-500">Score</div>
+                      <div className="text-xs text-emerald-400/50">Score</div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+                    <ChevronRight className="w-5 h-5 text-emerald-500/40 group-hover:text-emerald-300/60 transition-colors" />
                   </div>
                 </div>
               </Card>
@@ -1353,8 +1353,8 @@ export function Replays() {
       {loadingDetail && (
         <div className="fixed inset-0 z-50 bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-zinc-400">Loading replay...</span>
+            <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-emerald-300/60">Loading replay...</span>
           </div>
         </div>
       )}

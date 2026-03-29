@@ -1,0 +1,100 @@
+{
+  "request_id": "gcli_0027",
+  "response_id": "gcli_0027_resp",
+  "timestamp": "2026-03-28T00:50:15.271697+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "With DIRECT_EVAL_WEIGHT at 0.90, threshold precision is paramount. Increasing calibration data fraction and max worlds will yield a more robust threshold to support the high trust in direct EV.",
+  "edits": {
+    "CALIBRATION_MAX_WORLDS = 150": "CALIBRATION_MAX_WORLDS = 200",
+    "CALIBRATION_FRACTION = 0.15": "CALIBRATION_FRACTION = 0.20"
+  },
+  "param_names": [
+    "CALIBRATION_MAX_WORLDS",
+    "CALIBRATION_FRACTION"
+  ],
+  "param_changes": {
+    "CALIBRATION_MAX_WORLDS": {
+      "old": 150,
+      "new": 200,
+      "delta": 50
+    },
+    "CALIBRATION_FRACTION": {
+      "old": 0.15,
+      "new": 0.2,
+      "delta": 0.05
+    }
+  },
+  "rationale": "Directly targets priority #2 from the research priors: 'Calibration that supports a high direct-eval weight' by expanding both the breadth (fraction) and depth (max worlds) of the calibration phase.",
+  "confidence": "medium",
+  "agent_prompt_hash": "5e55346be60d",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0027.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0027.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 39.32,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 34597
+          },
+          "tokens": {
+            "input": 46104,
+            "prompt": 46104,
+            "candidates": 321,
+            "total": 49223,
+            "cached": 0,
+            "thoughts": 2798,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 34597,
+              "tokens": {
+                "input": 46104,
+                "prompt": 46104,
+                "candidates": 321,
+                "total": 49223,
+                "cached": 0,
+                "thoughts": 2798,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"With DIRECT_EVAL_WEIGHT at 0.90, threshold precision is paramount. Increasing calibration data fraction and max worlds will yield a more robust threshold to support the high trust in direct EV.\",\n  \"edits\": {\n    \"CALIBRATION_MAX_WORLDS = 150\": \"CALIBRATION_MAX_WORLDS = 200\",\n    \"CALIBRATION_FRACTION = 0.15\": \"CALIBRATION_FRACTION = 0.20\"\n  },\n  \"param_names\": [\n    \"CALIBRATION_MAX_WORLDS\",\n    \"CALIBRATION_FRACTION\"\n  ],\n  \"param_changes\": {\n    \"CALIBRATION_MAX_WORLDS\": {\n      \"old\": 150,\n      \"new\": 200,\n      \"delta\": 50\n    },\n    \"CALIBRATION_FRACTION\": {\n      \"old\": 0.15,\n      \"new\": 0.20,\n      \"delta\": 0.05\n    }\n  },\n  \"rationale\": \"Directly targets priority #2 from the research priors: 'Calibration that supports a high direct-eval weight' by expanding both the breadth (fraction) and depth (max worlds) of the calibration phase.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

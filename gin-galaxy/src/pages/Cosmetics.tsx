@@ -219,7 +219,7 @@ export function Cosmetics() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-amber-500 border-t-transparent" />
       </div>
     );
   }
@@ -252,24 +252,24 @@ export function Cosmetics() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 shadow-lg shadow-indigo-500/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-500 shadow-lg shadow-emerald-500/20">
               <Package className="w-5 h-5 text-white" />
             </div>
             Cosmetics
           </h1>
-          <p className="text-zinc-400 mt-1">
+          <p className="text-emerald-300/60 mt-1">
             Browse, collect, and equip cosmetic items to personalize your Gin Paradise identity.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900/60 border border-zinc-800/60">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-950/40 border border-emerald-800/30">
             <Coins className="w-4 h-4 text-yellow-500" />
             <span className="text-sm font-bold text-yellow-400">{goldBalance.toLocaleString()}</span>
-            <span className="text-xs text-zinc-500">Gold</span>
+            <span className="text-xs text-emerald-400/50">Gold</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900/40 border border-zinc-800/40">
-            <Sparkles className="w-4 h-4 text-indigo-400" />
-            <span className="text-xs text-zinc-400">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-950/30 border border-emerald-800/25">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span className="text-xs text-emerald-300/60">
               {ownedCount}/{totalCount} collected
             </span>
           </div>
@@ -277,15 +277,15 @@ export function Cosmetics() {
       </div>
 
       {/* Collection Progress */}
-      <Card className="bg-zinc-900/40 border-zinc-800/60">
+      <Card className="bg-emerald-950/30 border-emerald-800/30">
         <CardContent className="py-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-zinc-300">Collection Progress</span>
-            <span className="text-sm text-zinc-500">{Math.round((ownedCount / totalCount) * 100)}%</span>
+            <span className="text-sm font-medium text-emerald-200">Collection Progress</span>
+            <span className="text-sm text-emerald-400/50">{Math.round((ownedCount / totalCount) * 100)}%</span>
           </div>
-          <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+          <div className="h-2 bg-[#0a2e1e] rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 rounded-full transition-all duration-700 ease-out"
+              className="h-full bg-gradient-to-r from-emerald-600 via-amber-500 to-yellow-500 rounded-full transition-all duration-700 ease-out"
               style={{ width: `${(ownedCount / totalCount) * 100}%` }}
             />
           </div>
@@ -293,7 +293,7 @@ export function Cosmetics() {
       </Card>
 
       {/* Tab Strip */}
-      <div className="flex gap-1 border-b border-zinc-800/60 pb-px">
+      <div className="flex gap-1 border-b border-emerald-800/30 pb-px">
         {(["catalog", "inventory"] as const).map(t => (
           <button
             key={t}
@@ -301,8 +301,8 @@ export function Cosmetics() {
             className={cn(
               "px-5 py-2.5 text-sm font-medium rounded-t-lg transition-colors",
               tab === t
-                ? "bg-zinc-800/60 text-zinc-100 border-b-2 border-indigo-500"
-                : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/30"
+                ? "bg-[#0a2e1e]/60 text-amber-50 border-b-2 border-amber-500"
+                : "text-emerald-400/50 hover:text-emerald-200 hover:bg-[#0a2e1e]/30"
             )}
           >
             {t === "catalog" ? "🛒 Store" : "📦 My Collection"}
@@ -317,8 +317,8 @@ export function Cosmetics() {
           className={cn(
             "px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
             !typeFilter
-              ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30"
-              : "bg-zinc-900/40 text-zinc-500 border-zinc-800/40 hover:text-zinc-300"
+              ? "bg-emerald-950/40 text-amber-400 border-amber-500/30"
+              : "bg-emerald-950/30 text-emerald-400/50 border-emerald-800/25 hover:text-emerald-200"
           )}
         >
           All
@@ -339,13 +339,13 @@ export function Cosmetics() {
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
                 typeFilter === type
-                  ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30"
-                  : "bg-zinc-900/40 text-zinc-500 border-zinc-800/40 hover:text-zinc-300"
+                  ? "bg-emerald-950/40 text-amber-400 border-amber-500/30"
+                  : "bg-emerald-950/30 text-emerald-400/50 border-emerald-800/25 hover:text-emerald-200"
               )}
             >
               <Icon className="w-3 h-3" />
               {info.label}
-              <span className="text-zinc-600">({count})</span>
+              <span className="text-emerald-500/40">({count})</span>
             </button>
           );
         })}
@@ -364,9 +364,9 @@ export function Cosmetics() {
             return (
               <div key={type}>
                 <div className="flex items-center gap-2 mb-4">
-                  <TypeIcon className="w-5 h-5 text-indigo-400" />
-                  <h2 className="text-lg font-semibold text-zinc-200">{info.label}</h2>
-                  <span className="text-xs text-zinc-500">
+                  <TypeIcon className="w-5 h-5 text-amber-400" />
+                  <h2 className="text-lg font-semibold text-emerald-100">{info.label}</h2>
+                  <span className="text-xs text-emerald-400/50">
                     {items.filter(i => i.owned).length}/{items.length} owned
                   </span>
                 </div>
@@ -384,8 +384,8 @@ export function Cosmetics() {
                           "group relative rounded-xl border p-4 transition-all duration-200",
                           item.owned
                             ? `${rarity.bg} ${rarity.border} ${rarity.glow} shadow-md hover:shadow-lg`
-                            : "bg-zinc-900/20 border-zinc-800/30",
-                          equipped_ && "ring-2 ring-indigo-500/50 ring-offset-1 ring-offset-zinc-950"
+                            : "bg-emerald-950/15 border-emerald-800/20",
+                          equipped_ && "ring-2 ring-amber-500/50 ring-offset-1 ring-offset-[#061f14]"
                         )}
                       >
                         {/* Rarity indicator strip */}
@@ -395,7 +395,7 @@ export function Cosmetics() {
                           {/* Icon/Preview */}
                           <div className={cn(
                             "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105",
-                            item.owned ? rarity.bg : "bg-zinc-800/60",
+                            item.owned ? rarity.bg : "bg-[#0a2e1e]/60",
                             item.preview.gradient && item.owned ? `bg-gradient-to-br ${item.preview.gradient}` : ""
                           )}>
                             {item.preview.emoji ? (
@@ -403,7 +403,7 @@ export function Cosmetics() {
                             ) : (
                               <IconComp className={cn(
                                 "w-6 h-6",
-                                item.owned ? (item.preview.colorClass || rarity.text) : "text-zinc-600"
+                                item.owned ? (item.preview.colorClass || rarity.text) : "text-emerald-500/40"
                               )} />
                             )}
                           </div>
@@ -413,7 +413,7 @@ export function Cosmetics() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className={cn(
                                 "text-sm font-semibold truncate",
-                                item.owned ? rarity.text : "text-zinc-500"
+                                item.owned ? rarity.text : "text-emerald-400/50"
                               )}>
                                 {item.displayName}
                               </span>
@@ -426,7 +426,7 @@ export function Cosmetics() {
                             </div>
                             <p className={cn(
                               "text-xs mt-0.5",
-                              item.owned ? "text-zinc-400" : "text-zinc-600"
+                              item.owned ? "text-emerald-300/60" : "text-emerald-500/40"
                             )}>
                               {item.description}
                             </p>
@@ -446,7 +446,7 @@ export function Cosmetics() {
                               <>
                                 {equipped_ ? (
                                   <button
-                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/30 transition-colors"
+                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 transition-colors"
                                     onClick={() => handleEquip(null, getSlotForType(item.type))}
                                     disabled={equipping !== null}
                                   >
@@ -455,7 +455,7 @@ export function Cosmetics() {
                                   </button>
                                 ) : (
                                   <button
-                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-zinc-100 transition-colors"
+                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#0a2e1e] text-emerald-200 border border-emerald-800/40 hover:bg-emerald-900/40 hover:text-amber-50 transition-colors"
                                     onClick={() => handleEquip(item.key, getSlotForType(item.type))}
                                     disabled={equipping !== null}
                                   >
@@ -474,7 +474,7 @@ export function Cosmetics() {
                                   "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
                                   goldBalance >= item.catalogPrice
                                     ? "bg-gradient-to-r from-amber-600 to-yellow-600 text-white shadow-lg shadow-amber-900/20 hover:from-amber-500 hover:to-yellow-500 hover:scale-105"
-                                    : "bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed"
+                                    : "bg-[#0a2e1e] text-emerald-400/50 border border-emerald-800/40 cursor-not-allowed"
                                 )}
                                 onClick={() => handlePurchase(item.key)}
                                 disabled={purchasing !== null || goldBalance < item.catalogPrice}
@@ -487,7 +487,7 @@ export function Cosmetics() {
                                 {item.catalogPrice.toLocaleString()}
                               </button>
                             ) : (
-                              <div className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-zinc-600">
+                              <div className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-emerald-500/40">
                                 <Lock className="w-3 h-3" />
                                 Locked
                               </div>
@@ -509,10 +509,10 @@ export function Cosmetics() {
         <div className="space-y-8">
           {/* Equipped Loadout */}
           {equipped && (
-            <Card className="bg-gradient-to-br from-zinc-900/60 via-zinc-900/40 to-zinc-950/60 border-zinc-800/60">
+            <Card className="bg-gradient-to-br from-emerald-950/50 via-emerald-950/30 to-[#061f14]/50 border-emerald-800/30">
               <CardHeader>
-                <CardTitle className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-indigo-400" />
+                <CardTitle className="text-sm font-medium text-emerald-300/60 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
                   Active Loadout
                 </CardTitle>
               </CardHeader>
@@ -530,11 +530,11 @@ export function Cosmetics() {
                     return (
                       <div
                         key={slot.label}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/40 border border-zinc-800/40"
+                        className="flex items-center gap-3 p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/25"
                       >
                         <div className={cn(
                           "w-9 h-9 rounded-lg flex items-center justify-center",
-                          item ? (RARITY_STYLES[item.rarity]?.bg || "bg-zinc-800") : "bg-zinc-800/40"
+                          item ? (RARITY_STYLES[item.rarity]?.bg || "bg-[#0a2e1e]") : "bg-[#0a2e1e]/40"
                         )}>
                           {item?.preview.emoji ? (
                             <span className="text-base">{item.preview.emoji}</span>
@@ -543,18 +543,18 @@ export function Cosmetics() {
                               const SlotIcon = TYPE_LABELS[slot.type]?.icon || Package;
                               return <SlotIcon className={cn(
                                 "w-4 h-4",
-                                item ? (item.preview.colorClass || "text-zinc-400") : "text-zinc-600"
+                                item ? (item.preview.colorClass || "text-emerald-300/60") : "text-emerald-500/40"
                               )} />;
                             })()
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[10px] text-zinc-500 uppercase font-medium tracking-wider">
+                          <div className="text-[10px] text-emerald-400/50 uppercase font-medium tracking-wider">
                             {slot.label}
                           </div>
                           <div className={cn(
                             "text-sm font-medium truncate",
-                            item ? "text-zinc-200" : "text-zinc-600"
+                            item ? "text-emerald-100" : "text-emerald-500/40"
                           )}>
                             {item?.displayName || "None"}
                           </div>
@@ -580,9 +580,9 @@ export function Cosmetics() {
             return (
               <div key={type}>
                 <div className="flex items-center gap-2 mb-3">
-                  <TypeIcon className="w-4 h-4 text-indigo-400" />
-                  <h3 className="text-sm font-semibold text-zinc-300">{info.label}</h3>
-                  <span className="text-xs text-zinc-600">{items.length} owned</span>
+                  <TypeIcon className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-sm font-semibold text-emerald-200">{info.label}</h3>
+                  <span className="text-xs text-emerald-500/40">{items.length} owned</span>
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -596,9 +596,9 @@ export function Cosmetics() {
                       <div
                         key={item.itemKey}
                         className={cn(
-                          "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer hover:border-indigo-500/30",
+                          "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer hover:border-amber-500/30",
                           equipped_
-                            ? "bg-indigo-500/10 border-indigo-500/30"
+                            ? "bg-amber-500/10 border-amber-500/30"
                             : `${rarity.bg} ${rarity.border}`
                         )}
                         onClick={() => {
@@ -624,12 +624,12 @@ export function Cosmetics() {
                           <div className={cn("text-sm font-medium truncate", rarity.text)}>
                             {def?.displayName || item.itemKey}
                           </div>
-                          <div className="text-[10px] text-zinc-500 capitalize">{item.source.replace("_", " ")}</div>
+                          <div className="text-[10px] text-emerald-400/50 capitalize">{item.source.replace("_", " ")}</div>
                         </div>
                         {equipped_ && (
-                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30">
-                            <Check className="w-3 h-3 text-indigo-400" />
-                            <span className="text-[10px] text-indigo-400 font-medium">Active</span>
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30">
+                            <Check className="w-3 h-3 text-amber-400" />
+                            <span className="text-[10px] text-amber-400 font-medium">Active</span>
                           </div>
                         )}
                       </div>
@@ -642,9 +642,9 @@ export function Cosmetics() {
 
           {inventory.length === 0 && (
             <div className="text-center py-16">
-              <Package className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-              <p className="text-zinc-500">No cosmetic items yet.</p>
-              <p className="text-zinc-600 text-sm mt-1">Visit the Store tab to browse and collect items!</p>
+              <Package className="w-12 h-12 text-emerald-700 mx-auto mb-3" />
+              <p className="text-emerald-400/50">No cosmetic items yet.</p>
+              <p className="text-emerald-500/40 text-sm mt-1">Visit the Store tab to browse and collect items!</p>
             </div>
           )}
         </div>

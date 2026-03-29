@@ -1,11 +1,22 @@
 # Gin Paradise — Comprehensive Project Status Report
 
-**Date:** March 15, 2026  
+**Date:** March 27, 2026  
 **Project:** Gin Paradise — Competitive Gin Rummy Platform  
 **Vision:** A competitive Gin Rummy platform modeled after Backgammon Galaxy, featuring a single non-redeemable coin economy, coin-package billing (Stripe), premium subscription, AI opponents, leaderboards, and match analysis.  
-**Status:** Visual Parity Complete ✅ — Emerald felt + gold accent palette unified across single-player, multiplayer, spectator, and showdown. Shared card visual system (`src/components/cards/index.tsx`) eliminates drift. All indigo/zinc legacy accents removed from game surfaces.
+**Status:** Endurance Soak Sprint Complete ✅ - Directive 106 adds a heavier bounded two-process Redis endurance-soak lane, hardens the app-failover proof suite against brittle recovery-order assumptions, and leaves only truly larger production-scale sustained soak plus broader long-running chaos automation beyond the current bounded soak/matrix lanes as the next highest-leverage gap.
 
 ---
+
+## 97. Multi-Node App Smoke Sprint Summary
+
+The Multi-Node App Smoke sprint (March 26, 2026) closed the gap between coordinator-level proofs and a real end-to-end app launch:
+
+1. **Two-Process Smoke (`tests/redisCoordinator.multiNodeSmoke.test.ts`)**: Added a live Redis test that starts two production-mode Gin Paradise processes, creates a room on one node, joins it from the other, and proves live room actions relay across the node boundary without a handoff hint or error.
+2. **Room-State Fix (`server/multiplayer/roomManager.ts`)**: Added `refreshRoomGameStateFromCoordinator(roomId)` so a node with a stale or missing local match snapshot can seed from the coordinator before serving a room.
+3. **Redis Test Script (`package.json`)**: Included the smoke test in `npm run test:redis` so the multi-process proof runs with the rest of the Redis lane.
+4. **Docs (`DEPLOYMENT.md`)**: Updated the deployment notes so Redis mode is described as validated by live integration, failover, restart-soak, churn, load, and a real two-process app smoke proof.
+5. **Verification**: `npm run lint` passed, `npm test` passed with `36` files and `1076` tests (`12` skipped), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `12` Redis tests.
+6. **What Remains**: Broader chaos automation and heavier production-scale soak remain future phases.
 
 ## 1. Architecture Overview
 
@@ -21,6 +32,10 @@ Gin Rummy/
 │   ├── titan.py                   Champion AI (meld-completing draws + safety)
 │   ├── apex.py                    Optimal AI (near-meld-aware + defensive draws)
 │   ├── nexus.py                   Optimal AI (actual DW computation + layoff-aware MC)
+│   ├── apex_mcts.py               ★ SHIPPED CHAMPION: Apex + MC draw search (56.80% vs Apex)
+│   ├── apex_mcts_v2.py            Experimental: weighted-worlds variant (not shipped)
+│   ├── draw_search.py             MC draw evaluation: world sampling, rollout, DW comparison
+│   ├── apex_cfr.py                Experimental: CFR discard strategy (not shipped)
 │   ├── evaluator.py               Mathematical replay evaluator (Apex v2 engine agreement)
 │   ├── opponent_model.py          Bayesian opponent tracking module
 │   ├── tournament.py              Round-robin tournament framework
@@ -63,6 +78,10 @@ Gin Rummy/
 │   │   ├── billing.ts                Coin package & subscription billing: real Stripe Checkout sessions, offer-aware purchase types, dry-run mode, webhook processing, idempotent fulfillment, billing stats, offer revenue attribution
 │   │   ├── dailyRetention.ts         Daily retention system: missions, streaks, puzzles, deterministic assignment, bounded rewards, premium gating
 │   │   ├── offers.ts                 Offer system: catalog, eligibility engine, paid/free offer split, interaction tracking, webhook-driven fulfillment, analytics
+│   │   ├── outbox.ts                 Durable outbox queue: SQLite-backed job persistence, enqueue/claim/complete/fail, dedup, diagnostics
+│   │   ├── outboxWorker.ts           In-process outbox worker: poll loop, handler registry, retry/backoff, dead-letter, cleanup
+│   │   ├── outboxHandlers.ts         Job handler implementations: replay eval, broadcast metrics, achievements, coaching warmup
+│   │   ├── writePathPolicy.ts        Write-path classification: authoritative sync vs derived async registry
 │   │   ├── analysis/
 │   │   │   ├── transcriptAdapter.ts Replay transcript-to-prompt transformation engine
 │   │   │   ├── pythonBridge.ts      Python evaluator subprocess bridge (spawn, timeout, cache, auto-eval, batch-prep)
@@ -70,7 +89,11 @@ Gin Rummy/
 │   │   └── multiplayer/
 │   │       ├── types.ts             WebSocket message protocol types
 │   │       ├── engine.ts            Server-authoritative Gin Rummy engine (crypto-secure shuffle)
-│   │       ├── roomManager.ts       Room lifecycle, WS handler, state broadcast, fairness integration, spectator management
+│   │       ├── roomManager.ts       Room lifecycle, WS handler, state broadcast, fairness integration, spectator management (coordinator-backed)
+│   │       ├── coordinator.ts       RealtimeCoordinator interface: room registry, player membership, spectator tracking
+│   │       ├── memoryCoordinator.ts  In-memory coordinator implementation (zero-infra default)
+│   │       ├── redisCoordinator.ts   Redis-backed coordinator with real Redis I/O, pub/sub, shared state, and leases
+│   │       ├── coordinatorFactory.ts Coordinator factory: config-driven selection, singleton, startup validation
 │   │       ├── spectator.ts         Spectator module: privacy-safe view projection, featured match eligibility, spectator tracking, player preferences (DB-backed), broadcast analytics (peak/unique), admin match inspection
 │   │       ├── matchmaking.ts       Rating-aware matchmaking (expanding Elo bracket, stake-compatible pairing, matchmaking posture)
 │   │       ├── turnTimer.ts         Server-enforced turn timer (Fast 20s / Medium 30s / Slow 40s, auto-forfeit)
@@ -102,7 +125,7 @@ Gin Rummy/
 │   │   ├── replay-analysis.test.ts  23 tests for transcript-driven AI analysis
 │   │   ├── admin.test.ts          25 tests for admin auth, revenue, settlements, player inspection
 │   │   ├── rake.test.ts           32 tests for rake model, settlement, and house accounting
-│   │   ├── hardening.test.ts      16 tests for health, config, proxy, deployment regressions
+│   │   ├── hardening.test.ts      19 tests for health, config, proxy, deployment regressions
 │   │   ├── tournament.test.ts     35 tests for SNG tournament creation, join, bracket, payout, regression
 │   │   ├── scheduled-tournament.test.ts 32 tests for scheduled tournament creation, brackets, byes, no-show, payout
 │   │   ├── evaluation.test.ts     18 tests for engine evaluation API, caching, access control, regression
@@ -132,7 +155,11 @@ Gin Rummy/
 │   │   │   ├── preferences.ts     Zustand preferences store (deadwood count, four-color deck)
 │   │   │   ├── useMultiplayer.ts   React hook for multiplayer WebSocket lifecycle
 │   │   │   ├── useSpectator.ts    React hook for spectator WebSocket lifecycle
-│   │   │   └── utils.ts           cn() className utility
+│   │   │   ├── utils.ts           cn() className utility
+│   │   │   ├── meldHighlight.ts   Meld highlight computation for hand display
+│   │   │   ├── handDrag.ts        Hand drag-and-drop reorder hook
+│   │   │   ├── audio.ts           Synthesized audio feedback (Web Audio API)
+│   │   │   └── motionPresets.ts   Centralized animation constants: springs, draw/discard trajectories, showdown staggers, outcome colors
 │   │   ├── components/
 │   │   │   ├── Layout.tsx         Main app layout with sidebar nav
 │   │   │   ├── cards/
@@ -159,7 +186,8 @@ Gin Rummy/
 │   │       ├── FeaturedMatches.tsx Featured matches discovery with live/history tabs, broadcast metrics, player spectate preference toggle
 │   │       ├── DailyHub.tsx       Daily retention hub: streak check-in, daily missions, daily puzzle, reward summary, premium upsell
 │   │       ├── SpectatorView.tsx   Live read-only spectator watch page
-│   │       └── AdminDashboard.tsx Admin revenue, settlements, player inspection, and broadcast operations (live matches, feature/unfeature, metrics) dashboard
+│   │       ├── Fairness.tsx      Trust Shield provably fair architecture explanation
+│   │       └── AdminDashboard.tsx Admin revenue, settlements, player inspection, broadcast, billing dashboard
 │   ├── vitest.config.ts
 │   ├── package.json
 │   ├── tsconfig.json
@@ -187,6 +215,9 @@ Gin Rummy/
 | **Titan** | Simple + DW reduction draws, safety tiebreaker, decline tracking | ✅ Complete |
 | **Apex** | Titan + near-meld-aware discard, decline-aware safety, defensive draws | ✅ Complete |
 | **Nexus** | Actual DW computation per discard, layoff-aware MC knock, defensive draws | ✅ Complete |
+| **ApexMCTS** ★ | Apex + MC draw search (30 worlds, 2-deep rollout, info penalty) | ✅ **Shipped Champion** (56.80% vs Apex) |
+| **ApexMCTSv2** | ApexMCTS + opponent-model-weighted world sampling | ❌ Not shipped (48.96% vs v1) |
+| **ApexCFR** | Apex + CFR-trained discard strategy | ❌ Not shipped (50.20% vs Apex) |
 
 **Supporting Modules:**
 | Module | Purpose | Status |
@@ -195,8 +226,9 @@ Gin Rummy/
 | `meld.py` | Best meld arrangement (exhaustive search), layoff computation | ✅ |
 | `game.py` | Full game loop with draw/discard/knock/undercut/gin/layoff | ✅ |
 | `opponent_model.py` | Bayesian card tracking, Monte Carlo hand sampling | ✅ |
+| `draw_search.py` | MC draw evaluation: world sampling, rollout simulation, DW comparison | ✅ |
 | `tournament.py` | N-game matchups, round-robin, statistical results | ✅ |
-| `benchmark.py` | Decision timing benchmarks | ✅ |
+| `benchmark.py` | Reproducible benchmark runner with Elo, seat-balancing, CIs | ✅ |
 
 ### 2.2 TypeScript Game Engine — ✅ Complete
 
@@ -373,8 +405,8 @@ The backend has been refactored from a single monolithic `server.ts` into a modu
 #### Frontend Pages
 | Page | Route | Status | Features |
 |---|---|---|---|
-| **Auth** | `/auth` | ✅ | Login/Register forms |
-| **Dashboard** | `/` | ✅ | Activation-first home: bankroll display, daily claim banner, affordable stake indicator, play buttons, low-balance nudge, daily summary |
+| **Auth** | `/auth` | ✅ | Login/Register forms with tropical paradise background, emerald/gold form styling |
+| **Dashboard** | `/` | ✅ | Activation-first home: bankroll display, daily claim banner, affordable stake indicator, play buttons, low-balance nudge, daily summary, emerald/gold themed with offer banners |
 | **Game Room** | `/play` | ✅ | Full game board, overlapping hand layout, AI opponent, draw/discard/knock, showdown overlays |
 | **Multiplayer** | `/play/multiplayer` | ✅ | Quick Match, create/join rooms, real-time 1v1, overlapping hands, showdown with melds/layoffs |
 | **Leaderboard** | `/leaderboard` | ✅ | Dual-view (lifetime/seasonal), top 3 podium, season progress bar, clickable player inspect modal drilldown |
@@ -386,7 +418,8 @@ The backend has been refactored from a single monolithic `server.ts` into a modu
 | **Training** | `/training` | ✅ | Auto-eval, progression insights, severity distribution, session reviews, format badges, batch-prep, history |
 | **Wallet** | `/wallet` | ✅ | Single coin balance, coin package purchase (gameplay-framed), transaction history with differentiated types, Daily Hub link |
 | **Cosmetics** | `/cosmetics` | ✅ | Tabbed store/inventory, rarity cards, equip flow, purchase with gold, collection progress |
-| **Admin** | `/admin` | ✅ | Revenue summary, rake ledger, settlements, player search/inspection (admin-only) |
+| **Admin** | `/admin` | ✅ | Revenue summary, rake ledger, settlements, player search/inspection, broadcast ops, billing visibility — tropical themed |
+| **Fairness** | `/fairness` | ✅ | Trust Shield provably fair architecture explanation — tropical themed |
 | **Daily Hub** | `/daily` | ✅ | Canonical daily-return surface: streak check-in, daily missions, daily puzzle, reward summary, premium upsell |
 
 #### Tech Stack
@@ -401,14 +434,14 @@ The backend has been refactored from a single monolithic `server.ts` into a modu
 | Backend | Express 4 + tsx runner |
 | Database | better-sqlite3 |
 | AI Analysis | Google GenAI (Gemini) |
-| Testing | Vitest (1001 tests across 33 test files — see Test Coverage section) |
+| Testing | Vitest (1060 passed tests across 36 files in the default suite; Redis-only integration is gated by REDIS_URL) |
 | WebSocket | ws (server-side) + native WebSocket (client) |
 
 ---
 
 ## 3. Test Coverage
 
-**Suite:** 33 test files — 1001 total tests
+**Suite:** 36 test files — 1060 passed tests in the default run
 
 | Category | Tests | Coverage |
 |---|---|---|
@@ -520,7 +553,10 @@ The backend has been refactored from a single monolithic `server.ts` into a modu
 | **Premium Trial Standalone** | 3 | Free trial redemption, duplicate rejection, coin purchases allowed after trial |
 | **Offer Regression** | 8 | Billing packages, subscriptions, standard purchases, wallet, transaction types, offer state, daily retention, health |
 
-All 989 tests pass ✅
+| **Coordinator Contract** | 42 | Room CRUD, player membership, spectator tracking, status transitions, diagnostics, factory instantiation, config validation, reconnect semantics, and live match snapshot recovery (memory + live Redis) |
+| **Room Affinity** | 3 | Local-owner admission gating, structured handoff hints, legacy-room compatibility |
+
+All 1060 default tests pass ✅ (36 test files, Redis-only integration gated by `REDIS_URL`)
 
 ---
 
@@ -650,16 +686,19 @@ All 989 tests pass ✅
 | Item | Description |
 |---|---|
 | ~~**Table Layout & Hand Dominance**~~ | ~~Rebalance spatial hierarchy: hand-dominant bottom zone, Stock/Discard upper-left, opponent upper-right~~ ✅ **DONE** |
+| ~~**Desktop Table Composition & Seat Anchoring**~~ | ~~Post-launch desktop refinement: draw area centered/lifted, seat pills strengthened, open felt spacing increased~~ ✅ **DONE** |
 | ~~**Card Design & Visual Identity**~~ | ~~Color palette overhaul, card front/back redesign, branded card backs~~ ✅ **DONE** |
-| **Hand highlights** | Highlight completed melds in the hand grid with color coding |
-| **Deal animation** | Animate card dealing at round start |
-| **Draw/Discard animations** | Card movement animations on draw, discard, and knock |
-| **Sound effects** | Card draw/discard/knock audio feedback |
+| ~~**Hand highlights**~~ | ~~Highlight completed melds in the hand grid with color coding~~ ✅ **DONE** |
+| ~~**Deal animation**~~ | ~~Animate card dealing at round start~~ ✅ **DONE** |
+| ~~**Draw/Discard animations**~~ | ~~Card movement animations on draw, discard, and knock — directional origin cues, draw-target pulse, staggered showdown reveals~~ ✅ **DONE** (Directive 44) |
+| ~~**Sound effects**~~ | ~~Card draw/discard/knock audio feedback~~ ✅ **DONE** |
 | **Mobile optimization** | Hand grid may need smaller cards or swipe on very narrow screens |
 | **Edit Profile / Privacy** | Profile page buttons are UI-only stubs |
-| **Spectator view alignment** | Align spectator board with new emerald/gold visual language |
-| **MultiplayerRoom parity** | Apply emerald felt + gold accent palette to multiplayer board |
-| **Dashboard & Wallet color alignment** | Align lobby/wallet/settings pages with emerald/gold brand identity |
+| ~~**Spectator view alignment**~~ | ~~Align spectator board with new emerald/gold visual language~~ ✅ **DONE** |
+| ~~**MultiplayerRoom parity**~~ | ~~Apply emerald felt + gold accent palette to multiplayer board~~ ✅ **DONE** |
+| ~~**Dashboard & Wallet color alignment**~~ | ~~Align Dashboard, Auth, and Layout with emerald/gold brand identity~~ ✅ **DONE** |
+| ~~**Secondary page theming**~~ | ~~All fourteen user-facing and internal surfaces themed with tropical paradise visual system~~ ✅ **DONE** (Directives 42-43 for player-facing, Directive 45 for Fairness + AdminDashboard) |
+| **Game Over overlay parity** | Apply staggered reveal treatment matching round_over overlay |
 
 ---
 
@@ -1364,3 +1403,270 @@ The visual parity sprint (March 15, 2026) unified the emerald felt / warm gold p
 7. **Non-Game Pages Deferred**: Wallet, SocialHub, Replays, Tournaments still use indigo accents — outside the play-surface scope.
 8. **Verification**: TypeScript `npx tsc --noEmit` — zero errors. Systematic indigo audit shows 0 references in game files.
 9. **Zero Regressions**: All gameplay functionality preserved — drag/reorder, selection logic, discard/knock flows, timers, trust shield, showdown correctness.
+
+## 44. Thematic UI Refinement & Tropical Branding Sprint Summary
+
+The Thematic UI Refinement sprint (March 15, 2026) extended the tropical paradise theme from the game surfaces to the primary application shell:
+
+1. **Auth Page Tropical Theme (`Auth.tsx`)**: Full-bleed illustrated tropical sunset background with palm trees, fireflies, glowing water, and lush foliage. Glass-morphism sign-in/register card on emerald-tinted panel. Gold gradient "Sign Up" / "Sign In" button. "The tropical card game experience" tagline. All indigo/zinc legacy colors removed.
+2. **Dashboard Emerald/Gold Alignment (`Dashboard.tsx`)**: Background changed from cold zinc to deep emerald (`bg-[#0a1f15]`). Offer banners (daily rewards, starter bundle, free trial) styled with emerald borders and gold/amber CTAs. Rating and win-rate cards themed with emerald tints. Play buttons (Quick Match, Play vs AI) use amber/emerald gradients. Full coherence with game room aesthetic.
+3. **Layout Navigation Bar (`Layout.tsx`)**: App header and sidebar navigation updated to emerald/gold palette. "Gin Paradise" branding with palm tree icon. Navigation links use emerald text with amber active-state indicators. Settings and sound controls themed to match.
+4. **Primary Surface Coverage**: Auth page, Dashboard, Layout, GameRoom, MultiplayerRoom, SpectatorView, and all showdown/game-over overlays now share a cohesive tropical paradise visual identity.
+5. **Live Launch Verification**: Application successfully launched (`npm run dev` on port 3000), new account created ("Paradise_Player"), and gameplay verified against AI opponent "Nova" — confirming all themed surfaces render correctly in a real browser session.
+6. **Remaining Indigo Pages**: Secondary pages (Wallet, SocialHub, Replays, Tournaments, Premium, Cosmetics, Profile, Leaderboard, DailyHub, AdminDashboard, Analysis, FeaturedMatches, Fairness) retain indigo accents — outside the primary brand surface scope.
+7. **Zero Regressions**: All gameplay and API functionality preserved.
+
+## 81. Realtime Backplane & Honest Multi-Instance Readiness Sprint Summary
+
+The Realtime Backplane sprint (March 25, 2026) introduced a pluggable coordination boundary to Gin Paradise:
+
+1. **RealtimeCoordinator Interface (`coordinator.ts`)**: Evented contract covering room registry, player-to-room membership, room player management, spectator connection tracking, queue coordination, lease ownership, and diagnostics. Narrow and testable - only coordination concerns, no game logic.
+2. **MemoryCoordinator (`memoryCoordinator.ts`)**: Zero-infra default implementation. Drop-in replacement for the original module-level Maps. Preserves identical behavior for local development and single-instance production and emits the same event stream as RedisCoordinator.
+3. **RedisCoordinator (`redisCoordinator.ts`)**: Full interface implementation with real Redis I/O, pub/sub event fanout, shared room/player/queue/lease state, and live Redis proof against a running Redis instance. Honest about what is proven vs. still bounded.
+4. **CoordinatorFactory (`coordinatorFactory.ts`)**: Config-driven coordinator selection via `COORDINATOR_MODE` env var. Singleton management with startup validation and health checks. Startup logging of active coordinator mode and node ID.
+5. **RoomManager Refactoring (`roomManager.ts`)**: All direct `rooms` Map, `playerToRoom` Map, and `spectatorConnections` Map access replaced with coordinator-backed wrappers, shared-state mirroring, and lease-aware updates. Game-engine state (MatchState, lastShowdown) is mirrored locally for runtime access and now also persisted as coordinator-backed live snapshots for reconnect hydration. Zero changes to existing function signatures or exports.
+6. **Server Startup Integration (`server.ts`)**: Coordinator initialized before database and before WebSocket attachment. Redis mode connects eagerly and fails startup if Redis is unavailable. Health endpoint includes coordinator diagnostics (mode, healthy, rooms, players, spectators).
+7. **Configuration (`config.ts`)**: Added `coordinatorMode`, `redisUrl`, `redisKeyPrefix` to AppConfig with corresponding env vars.
+8. **Test Coverage**: Memory contract tests plus live Redis integration tests passed. Full default regression suite remains green (36 files, 1060 passed tests, Redis-only integration gated by `REDIS_URL`).
+9. **DEPLOYMENT.md**: Updated with real Redis-backed coordinator details, live proof, and the remaining bounded gaps.
+10. **What Remains**: Cross-node WebSocket routing, sticky-session routing, and broader failover automation remain future phases.
+
+## 84. Coordinator-Backed Live Match Snapshot Sprint Summary
+
+The Coordinator-Backed Live Match Snapshot sprint (March 26, 2026) made in-progress match state recoverable through the shared coordination boundary:
+
+1. **Coordinator Contract (`coordinator.ts`)**: Added explicit live match snapshot methods for store/fetch/clear, plus an event type for snapshot updates. The snapshot payload intentionally stays serialisable and narrow.
+2. **MemoryCoordinator (`memoryCoordinator.ts`)**: Stores live match snapshots alongside the existing room/player/queue state and exposes snapshot counts in diagnostics for local and single-node development.
+3. **RedisCoordinator (`redisCoordinator.ts`)**: Persists snapshots under Redis keys, reloads them on startup, publishes snapshot set/clear events across nodes, and keeps the snapshot cache honest in diagnostics.
+4. **RoomManager Hydration (`roomManager.ts`)**: Syncs `match` and `lastShowdown` into the coordinator on meaningful game transitions, and hydrates local room state from the coordinator when the local cache is empty.
+5. **Live Proof**: The Redis-only integration test now proves a live match snapshot survives a coordinator restart and is readable by a fresh coordinator instance.
+6. **What Remains**: Cross-node WebSocket routing, sticky-session routing, and broader failover automation remain future phases.
+
+## 85. Room Ownership Affinity & Sticky Session Handoff Sprint Summary
+
+The Room Ownership Affinity sprint (March 26, 2026) made the live room boundary explicitly owner-aware so wrong-node sockets are rejected before they can mutate shared state:
+
+1. **Room Affinity Helper (`roomAffinity.ts`)**: Added a tiny helper that checks whether the current node may serve a room and, if not, builds a structured handoff hint with the owning node id and recovery guidance.
+2. **RoomManager Admission Gating (`roomManager.ts`)**: Active-room reconnects, room joins, challenge-room joins, spectator entry, turn actions, and round transitions now refuse to run on a node that does not own the room lease.
+3. **Client Handoff Surface (`useMultiplayer.ts`, `useSpectator.ts`)**: Added `room_handoff_required` handling so the browser clears stale live-room state and shows a clear owner-node recovery message.
+4. **Testing**: Added a focused room-affinity test suite and kept the full default regression suite green (36 files, 1060 passed tests). Redis-only coordinator integration still passes after the ownership gate.
+5. **What Remains**: Cross-node WebSocket relay and broader failover automation remain future phases; Redis mode now fails fast unless the sticky-session contract is explicitly acknowledged.
+
+## 86. WS Session Affinity Contract Sprint Summary
+
+The WS Session Affinity Contract sprint (March 26, 2026) made the remaining live-room deployment rule explicit at runtime:
+
+1. **Configuration (`server/config.ts`)**: Added `wsSessionAffinityRequired` plus a helper that derives the live-room routing mode. Redis mode now fails validation unless `WS_SESSION_AFFINITY_REQUIRED=true`.
+2. **Startup and Health (`server.ts`)**: The startup banner now reports live-room routing, and `/api/health` includes a `deployment` block with `coordinatorMode`, `wsSessionAffinityRequired`, and `liveRoomRouting`.
+3. **Test Harness (`tests/helpers.ts`, `tests/hardening.test.ts`)**: Mirrored the health payload in the test server and added focused config/health assertions for the new contract. The hardening suite grew to 19 tests.
+4. **Docs (`DEPLOYMENT.md`)**: Documented `WS_SESSION_AFFINITY_REQUIRED` in the environment table, updated the health-check example, and made the sticky-session requirement explicit in the coordinator notes.
+5. **Testing**: `npm run lint`, `npm test` (1060 passed tests across 36 files), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` all passed.
+6. **What Remains**: Cross-node WebSocket relay and broader failover automation still remain future phases; the deployment story is now explicit and fail-fast for Redis mode.
+
+## 87. Stable Coordinator Identity Sprint Summary
+
+The Stable Coordinator Identity sprint (March 26, 2026) made Redis-mode recovery explicit by giving each coordinator a stable node identity instead of a fresh per-process label:
+
+1. **Configuration (`server/config.ts`)**: Added `COORDINATOR_NODE_ID` to the app config and made Redis mode fail validation unless both `WS_SESSION_AFFINITY_REQUIRED=true` and `COORDINATOR_NODE_ID` are set.
+2. **Coordinator Wiring (`coordinatorFactory.ts`, `server.ts`)**: The configured node id now threads into both memory and Redis coordinators, and `/api/health` reports it in the coordinator diagnostics.
+3. **Coordinator Implementations (`memoryCoordinator.ts`, `redisCoordinator.ts`)**: Both coordinators now accept an injected node id so diagnostics and persisted ownership metadata can line up across restarts.
+4. **Test Harness and Coverage (`tests/helpers.ts`, `tests/hardening.test.ts`, `tests/coordinator.test.ts`)**: Added assertions for config parsing, Redis-mode startup validation, health payload node-id reporting, and injected node-id behavior in both coordinator implementations.
+5. **Docs (`DEPLOYMENT.md`)**: Documented `COORDINATOR_NODE_ID`, the health payload shape, and the combined Redis-mode requirement for sticky sessions plus stable node identity.
+6. **Verification**: `npm run lint` passed, `npm test` passed with `36` files and `1064` tests, and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `4` integration tests.
+7. **What Remains**: Redis mode still needs sticky sessions or equivalent affinity, and full cross-node WebSocket relay / failover automation remains future work.
+
+## 88. Clean Shutdown Ownership Handoff Sprint Summary
+
+The Clean Shutdown Ownership Handoff sprint (March 26, 2026) made ownership metadata explicit so Redis-backed rooms can be released cleanly on shutdown and reclaimed by a successor node:
+
+1. **Coordinator Contract (`coordinator.ts`)**: Added `updateRoomOwnership(roomId, ownership)` so room owner metadata and timer owner metadata can be updated independently of room roster or live snapshot state.
+2. **Coordinator Implementations (`memoryCoordinator.ts`, `redisCoordinator.ts`)**: Both coordinators now persist room ownership updates and emit `room_updated` events. Redis mode stores the ownership fields alongside the room record so recovery state stays durable.
+3. **Turn Timer (`turnTimer.ts`)**: Timer start now claims a shared lease and writes `timerOwnerNodeId` / `timerLeaseExpiresAt`; timer cancel and expiry clear those fields again so the coordinator always reflects the active timer owner.
+4. **Room Manager (`roomManager.ts`)**: Ownerless rooms are now adopted before serving, and graceful shutdown only clears ownership for rooms owned by the current node. Finished-room cleanup semantics remain unchanged.
+5. **Server Shutdown (`server.ts`)**: Graceful shutdown now calls `prepareRoomsForShutdown()` before the coordinator disconnects, which releases active room ownership while leaving recoverable Redis snapshots intact.
+6. **Tests**: `tests/coordinator.test.ts` now covers ownership metadata round-tripping. `tests/redisCoordinator.integration.test.ts` now proves timer ownership propagation and restart recovery with cleared ownership metadata.
+7. **Verification**: `npm run lint` passed, `npm test` passed with `36` files and `1065` tests, and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed after starting Redis in WSL.
+8. **What Remains**: Cross-node WebSocket relay and full multi-node failover automation remain future phases.
+
+## 89. Turn Timer Recovery Sprint Summary
+
+The Turn Timer Recovery sprint (March 26, 2026) made the live-turn timeout path recoverable after restart by persisting the active timer state, the configured timer speed, and the consecutive-timeout counters that back forfeit enforcement:
+
+1. **Coordinator Contract (`coordinator.ts`)**: Extended live-match snapshots with persisted turn-timer state plus timeout counters so recovery data survives clone/load paths.
+2. **Turn Timer (`turnTimer.ts`)**: Timer start now persists the active timer snapshot and current timeout counters, timer cancel clears only the active timer, and recovery restores or immediately resolves expired recovered timers.
+3. **Room Manager (`roomManager.ts`)**: Room-state sync now preserves existing snapshot metadata while merging match/showdown updates, startup recovery is invoked after the timeout callback is registered, and reconnects hydrate the active timer into the player view.
+4. **Redis and Memory Coordinators**: Snapshot normalization now preserves the timer payload in both implementations, and Redis room metadata continues to carry the configured timer speed for recovery after restart.
+5. **Tests**: Added recovery coverage in `tests/competitive-integrity.test.ts` for timer speed fallback, active timer restoration, and expired-catch-up behavior. Extended `tests/coordinator.test.ts` and `tests/redisCoordinator.integration.test.ts` to verify timer snapshot, timeout-count, and timer-speed round-tripping.
+6. **Docs**: `gin-galaxy/DEPLOYMENT.md` now reflects startup timer recovery and keeps the sticky-session requirement explicit.
+7. **Verification**: `npm run lint` passed, `npm test` passed with `36` files and `1069` tests, and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `4` integration tests.
+8. **What Remains**: Cross-node WebSocket relay and full multi-node failover automation remain future phases; timer recovery still sits behind the same sticky-session live-room boundary.
+
+## 90. Cross-Node Room Relay Sprint Summary
+
+The Cross-Node Room Relay sprint (March 26, 2026) added a coordinator-mediated relay path for live room actions so a client that lands on the non-owning node can still play through the owning node without a hard handoff:
+
+1. **Coordinator Relay Contract**: Extended `coordinator.ts` with a narrow room-action request/response API plus node-message delivery so multiplayer nodes can forward live actions and broadcasts through the shared coordinator boundary.
+2. **Room Manager Relay Bridge**: `roomManager.ts` now installs a coordinator relay listener, captures relayed room actions through a temporary WebSocket sink, and routes room-player broadcasts through node-aware delivery instead of assuming every socket is local.
+3. **Redis Snapshot Hygiene**: `redisCoordinator.ts` now preserves local sockets only when node identity still matches, so live connections survive snapshot refreshes without leaking stale sockets after migration.
+4. **Tests**: Added coordinator contract coverage for relay request/response and node-message delivery, plus a Redis integration test proving room-action relay between two coordinator instances.
+5. **Verification**: `npm run lint` passed, `npm test` passed with `36` files and `1071` tests, and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `5` integration tests.
+6. **What Remains**: Spectator/watch flows and other direct WebSocket surfaces still assume stable session affinity, so Redis deployments keep the affinity contract even though live room actions can now cross nodes.
+
+## 91. Spectator Relay & Multi-Node Routing Sprint Summary
+
+The Spectator Relay & Multi-Node Routing sprint (March 26, 2026) made watch-mode a first-class distributed surface and removed the stale sticky-session requirement from Redis mode:
+
+1. **Room Manager (`roomManager.ts`)**: Watch requests no longer hard-handoff on non-owning nodes. Spectator connections now record their node id and spectator updates plus match-over messages are routed through coordinator node delivery when the socket lives elsewhere.
+2. **Configuration (`server/config.ts`)**: Removed `WS_SESSION_AFFINITY_REQUIRED`, renamed the Redis live-room routing mode to `multi_node_relay`, and dropped the Redis-mode validation that required sticky sessions.
+3. **Startup and Health (`server.ts`, `tests/helpers.ts`)**: `/api/health` now reports `liveRoomRouting: "multi_node_relay"` in Redis mode without an affinity flag.
+4. **Tests (`tests/hardening.test.ts`, `tests/spectator.test.ts`)**: Updated hardening coverage for the new config contract and added spectator relay coverage proving `watch_match` works on a remote-owned room and that spectator messages relay to the correct node.
+5. **Docs (`DEPLOYMENT.md`)**: Rewrote the deployment guide to describe relay-capable Redis mode and removed the obsolete sticky-session requirement from the runtime contract.
+6. **Verification**: `npm run lint` passed, `npm test` passed with `37` files and `1074` tests (`5` skipped), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `5` integration tests.
+7. **What Remains**: End-to-end multi-node failover automation and broader load-testing proof remain the next bounded follow-up.
+
+## 92. Expired-Lease Failover Reclaim Sprint Summary
+
+The Expired-Lease Failover Reclaim sprint (March 26, 2026) made Redis-mode room ownership recoverable after lease expiry so a successor node can take over instead of leaving the room trapped behind stale ownership metadata:
+
+1. **Room Affinity (`roomAffinity.ts`)**: `canServeRoomLocally()` now treats an expired ownership lease as reclaimable, and the wrong-node handoff hint no longer mentions sticky sessions.
+2. **Room Manager (`roomManager.ts`)**: Non-owner nodes now claim the room lease before serving an expired-lease room locally, so failover recovery can actually proceed on the current node.
+3. **Redis Integration Proof (`tests/redisCoordinator.integration.test.ts`)**: Added a live Redis test that proves a second coordinator can claim the same lease after the first lease expires.
+4. **Unit Coverage (`tests/roomAffinity.test.ts`)**: Added explicit coverage for active ownership rejection, expired-lease reclaim, and the updated handoff message.
+5. **Docs (`DEPLOYMENT.md`)**: Updated the deployment guide so Redis mode is described as lease-reclaim-aware rather than sticky-session-bound.
+6. **Verification**: `npm run lint` passed, `npm test` passed with `36` files and `1076` tests (`6` skipped), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `6` integration tests.
+7. **What Remains**: Broad load-testing proof for the multi-node relay/failover path remains the next bounded follow-up.
+
+## 93. Redis Relay & Reclaim Load Proof Sprint Summary
+
+The Redis Relay & Reclaim Load Proof sprint (March 26, 2026) added a bounded soak lane so we now have representative burst-load proof for the Redis coordinator path, not just one-off correctness checks:
+
+1. **Load Lane (`tests/redisCoordinator.load.test.ts`)**: Added a dedicated Redis load suite that bursts concurrent room-action relay traffic across two coordinators and separately reclaims a burst of expired leases on a successor node.
+2. **Redis Test Script (`package.json`)**: Expanded `npm run test:redis` so it runs both the correctness integration tests and the new load-proof suite in one command.
+3. **Docs (`DEPLOYMENT.md`)**: Updated the coordinator notes so Redis mode is described as having representative burst-load proof while still requiring broader end-to-end validation and production-scale soak/chaos automation.
+4. **Verification**: `npm run lint` passed, `npm test` passed with `38` files and `1084` tests (`8` skipped), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `8` Redis tests.
+5. **What Remains**: Production-scale soak, chaos automation, and broader end-to-end multi-node validation remain future phases.
+
+## 94. Redis Failover Rehearsal Sprint Summary
+
+The Redis Failover Rehearsal sprint (March 26, 2026) added a deterministic takeover flow so Redis mode now proves the full successor path instead of only isolated pieces:
+
+1. **Failover Rehearsal (`tests/redisCoordinator.failover.test.ts`)**: Added a live Redis test that proves a successor node can reclaim an expired room lease, recover an expired timer snapshot with carried-forward timeout counts, and still relay a room action through the takeover path.
+2. **Redis Test Script (`package.json`)**: Expanded `npm run test:redis` so it now runs the correctness integration tests, the failover rehearsal, and the burst-load proof in one command.
+3. **Docs (`DEPLOYMENT.md`)**: Updated the coordinator notes so Redis mode is described as having deterministic failover rehearsal coverage in addition to relay and load proof, while still keeping the larger soak/chaos gap honest.
+4. **Verification**: `npm run lint` passed, `npm test` passed with `39` files and `1085` tests (`9` skipped), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `9` Redis tests.
+5. **What Remains**: Production-scale soak, chaos automation, and broader end-to-end multi-node validation remain future phases.
+
+## 95. Redis Failover Churn Proof Sprint Summary
+
+The Redis Failover Churn Proof sprint (March 26, 2026) extended the failover work into a multi-room burst so Redis mode now proves concurrent takeover behavior instead of a single-room path:
+
+1. **Failover Churn (`tests/redisCoordinator.failoverChurn.test.ts`)**: Added a live Redis test that reclaims a burst of expired rooms, recovers each room’s timer snapshot with the timeout count advancing once, and relays room actions successfully after takeover for every room in the burst.
+2. **Redis Test Script (`package.json`)**: Expanded `npm run test:redis` so it now runs the correctness integration tests, the single-room failover rehearsal, the multi-room churn proof, and the burst-load proof in one command.
+3. **Docs (`DEPLOYMENT.md`)**: Updated the coordinator notes so Redis mode is described as having deterministic failover churn proof coverage in addition to relay, recovery, and load proof, while still keeping the larger soak/chaos gap honest.
+4. **Verification**: `npm run lint` passed, `npm test` passed with `40` files and `1086` tests (`10` skipped), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `10` Redis tests.
+5. **What Remains**: Production-scale soak, chaos automation, and broader end-to-end multi-node validation remain future phases.
+
+## 98. Redis Chaos Matrix Sprint Summary
+
+The Redis Chaos Matrix sprint (March 26, 2026) turned the Redis multi-node recovery proof into a bounded restart/reconnect chaos lane that exercises live rooms without depending on brittle notification ordering:
+
+1. **Chaos Matrix (`tests/redisCoordinator.chaosMatrix.test.ts`)**: Added a deterministic Redis chaos suite that covers owner restart with lease expiry, joiner restart recovery, and alternating ownership across two live rooms.
+2. **Test Resilience**: Simplified the matrix to use coordinator snapshots and durable room-ownership signals instead of `opponent_joined`, `game_started`, or embedded `turnTimer` payloads that are not guaranteed during recovery.
+3. **Docs (`PROJECT_STATUS.md`, `DEPLOYMENT.md`)**: Updated the status snapshot and deployment notes so the repo now calls out bounded chaos-matrix coverage instead of overstating the remaining gap.
+4. **Verification**: `npm run lint` passed, `npm test` passed with `36` files and `1076` tests (`15` skipped), `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `12` tests, and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis:chaos` passed with `3` tests.
+5. **What Remains**: Production-scale soak and broader end-to-end multi-node validation remain future phases.
+
+## 99. Redis Shutdown Hygiene Sprint Summary
+
+The Redis Shutdown Hygiene sprint (March 27, 2026) hardened the coordinator’s disconnect path so best-effort persistence and pub/sub work stop producing misleading closed-client noise during restart and soak scenarios:
+
+1. **Coordinator Hardening (`server/multiplayer/redisCoordinator.ts`)**: Added command-context versioning plus a shared best-effort Redis wrapper so stale async writes and publishes are ignored once a disconnect or reconnect invalidates the old client.
+2. **Regression Test (`tests/redisCoordinator.integration.test.ts`)**: Added a live Redis integration test that forces a room persistence write to straddle `disconnect()` and proves we do not log `The client is closed` or fake room-persistence failures.
+3. **Redis Test Lane (`package.json`)**: Folded `tests/redisCoordinator.chaosMatrix.test.ts` into `npm run test:redis` so the default Redis verification command now runs integration, failover, churn, restart-soak, load, smoke, and chaos coverage together.
+4. **Docs (`PROJECT_STATUS.md`, `DEPLOYMENT.md`)**: Updated the status snapshot and deployment notes so the repo now describes the Redis lane as including bounded chaos coverage and cleaner shutdown behavior.
+5. **Verification**: `npm run lint` passed, `npm test` passed with `36` files and `1076` tests (`16` skipped), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `16` Redis tests.
+6. **What Remains**: Production-scale soak and broader end-to-end multi-node validation remain future phases.
+
+## 100. App Failover Gameplay Sprint Summary
+
+The App Failover Gameplay sprint (March 27, 2026) moved the Redis proof from coordinator-only takeover into a bounded two-process app-level gameplay recovery path:
+
+1. **Turn Timer Recovery on Adoption (`server/multiplayer/turnTimer.ts`, `server/multiplayer/roomManager.ts`)**: Added `recoverTurnTimerForRoom(roomId)` and wired room adoption to recover an active timer as soon as the current node becomes the room owner instead of only doing timer recovery at startup.
+2. **Successor State Freshness (`server/multiplayer/roomManager.ts`, `server/multiplayer/coordinator.ts`)**: Remote player and spectator relay now carry a room-state shadow, local room snapshots track `updatedAt`, and fresher relay-delivered state wins over older coordinator cache during recovery so a successor node does not resurrect stale turn ownership.
+3. **Lease Cache Hygiene (`server/multiplayer/redisCoordinator.ts`)**: Replacing a room from Redis snapshot now also refreshes the local lease cache from persisted ownership metadata so a reclaimed room cannot stay blocked behind stale in-process lease entries.
+4. **Focused Recovery Coverage (`tests/competitive-integrity.test.ts`)**: Added a default-mode regression test that proves a live turn timer only recovers after room ownership moves to the current node.
+5. **Two-Process App Failover Proof (`tests/redisAppHarness.ts`, `tests/redisCoordinator.appFailover.test.ts`, `package.json`)**: Added a live Redis test that starts two production-mode Gin Paradise processes, advances a real match, stops the owner, deterministically clears the room’s recovery leases, reconnects the displaced player through the successor, recovers ownership plus the active timer, and proves play continues without `room_handoff_required` or `error` messages.
+6. **Docs (`PROJECT_STATUS.md`, `DEPLOYMENT.md`)**: Updated the status snapshot and deployment guide so the repo now describes bounded app-process failover gameplay proof instead of implying the remaining gap is generic end-to-end validation.
+7. **Verification**: `npm run lint` passed, `npm test` passed with `36` files (`8` skipped) and `1077` tests (`17` skipped), `npx vitest run tests/competitive-integrity.test.ts` passed, and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `8` Redis files and `17` Redis tests including the new app failover lane.
+8. **What Remains**: Autonomous dead-node detection / lease-expiry automation for abrupt owner loss and sharper abrupt-crash durability remain the next bounded gaps, with broader production-scale soak still beyond that.
+
+## 101. Renewable Lease Heartbeat Sprint Summary
+
+The Renewable Lease Heartbeat sprint (March 27, 2026) turned abrupt owner-loss recovery from a deterministic cleanup exercise into a real lease-expiry handoff path:
+
+1. **Room Ownership Heartbeats (`server/multiplayer/roomManager.ts`)**: Replaced one-shot long room ownership leases with short renewable leases, added a background renewal loop for rooms owned by the current node, and aligned new room metadata with the renewable owner-lease window.
+2. **Turn Timer Heartbeats (`server/multiplayer/turnTimer.ts`)**: Replaced timer leases that lasted for the whole turn with short renewable timer leases, renewed them while the timer remains active, and stop the local timer if the process loses timer ownership so duplicate timeout authorities do not survive a lease handoff.
+3. **Crash-Capable App Harness (`tests/redisAppHarness.ts`)**: Added abrupt-process crash support plus per-process env overrides so multi-process Redis tests can exercise hard owner loss instead of only graceful shutdown.
+4. **Abrupt Owner-Loss Gameplay Proof (`tests/redisCoordinator.appFailover.test.ts`)**: Upgraded the app failover lane so it now kills the owning server without graceful cleanup, waits for room and timer leases to expire naturally, reconnects through the surviving node, and proves timer recovery plus continued gameplay without `room_handoff_required` or `error` messages.
+5. **Docs (`PROJECT_STATUS.md`, `DEPLOYMENT.md`)**: Updated the status snapshot and deployment guide so the repo now describes renewable lease-expiry handoff for abrupt owner loss as proven, while keeping the remaining crash-window and scale gaps honest.
+6. **Verification**: `npm run lint` passed, `npx vitest run tests/competitive-integrity.test.ts` passed, `REDIS_URL=redis://127.0.0.1:6379 npx vitest run --no-file-parallelism --maxWorkers=1 tests/redisCoordinator.appFailover.test.ts` passed, `npm test` passed with `36` files (`8` skipped) and `1077` tests (`17` skipped), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `8` Redis files and `17` Redis tests.
+7. **What Remains**: The next bounded gaps are immediate post-action crash durability under abrupt owner loss and broader production-scale soak / chaos automation now that lease-expiry handoff itself is real.
+
+## 102. Action Commit Durability Sprint Summary
+
+The Action Commit Durability sprint (March 27, 2026) turned the narrow post-action crash window into a real write barrier for critical gameplay actions instead of a hopeful ordering assumption:
+
+1. **Coordinator Commit Barrier (`server/multiplayer/coordinator.ts`, `server/multiplayer/memoryCoordinator.ts`, `server/multiplayer/redisCoordinator.ts`)**: Added `commitRoomGameState(...)` so the coordinator can distinguish best-effort snapshot propagation from an awaitable durable room-snapshot commit. In Redis mode, this now writes the room game snapshot to Redis and publishes the matching event in one awaited path; in memory mode, it resolves immediately after the local snapshot update.
+2. **Critical Action Hardening (`server/multiplayer/roomManager.ts`)**: Refactored room snapshot merging so `draw`, `discard`, `knock`, and `next_round` now wait for a durable merged room snapshot after timeout/timer updates and before outward success broadcast, closing the biggest abrupt-crash recovery hole in the live gameplay path.
+3. **Bounded Crash Injection (`server/multiplayer/roomManager.ts`)**: Added a one-shot test-only crash hook that can kill a node immediately after a durable gameplay-action commit, so the proof targets the exact crash boundary instead of approximating it with delayed process shutdown.
+4. **App-Level Proof Upgrade (`tests/redisCoordinator.appFailover.test.ts`)**: Expanded the two-process Redis app failover suite with a new proof where the owner crashes immediately after a durably committed `discard`, before broadcasting the result, and the successor still recovers Bob’s turn plus timer state and keeps live play moving without `room_handoff_required` or `error`.
+5. **Docs (`PROJECT_STATUS.md`, `DEPLOYMENT.md`)**: Updated the status snapshot and deployment guide so the repo now describes bounded post-action crash durability as proven for the critical gameplay path, while keeping broader abrupt-crash coverage and production-scale soak honest.
+6. **Verification**: `npm run lint` passed, `REDIS_URL=redis://127.0.0.1:6379 npx vitest run --no-file-parallelism --maxWorkers=1 tests/redisCoordinator.appFailover.test.ts` passed with `2` tests, `npm test` passed with `36` files (`8` skipped) and `1077` tests (`18` skipped), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `8` Redis files and `18` Redis tests.
+7. **What Remains**: The next bounded gaps are broader abrupt-crash durability coverage beyond the post-discard proof (for example match-start or forced-end crash surfaces) and larger production-scale soak / chaos automation.
+
+## 103. Start & Forced-End Crash Durability Sprint Summary
+
+The Start & Forced-End Crash Durability sprint (March 27, 2026) extended the durable commit boundary beyond the post-discard proof into the two other highest-value multiplayer lifecycle edges: match start and forced end.
+
+1. **Lifecycle Commit Hardening (`server/multiplayer/roomManager.ts`)**: `startMatchForRoom(...)` now waits for a durable room snapshot after the first live timer starts and before outward start broadcast. `endMatchByForfeit(...)` now waits for a durable finished snapshot after authoritative settlement, transcript/fairness work, and timer cleanup, and only then notifies the remaining player.
+2. **Timer Snapshot Inclusion (`server/multiplayer/turnTimer.ts`, `server/multiplayer/roomManager.ts`)**: Added an exported live timer snapshot accessor and threaded it into room snapshot serialization so the durable match-start commit contains the first active turn timer instead of relying on later best-effort timer persistence.
+3. **App Failover Proof Expansion (`tests/redisCoordinator.appFailover.test.ts`)**: Expanded the two-process Redis app failover lane with bounded crash proofs for a durably committed `match_start` and a durably committed `forced_end`, alongside the existing abrupt owner-loss and post-discard proofs.
+4. **Chaos Harness Truthfulness (`tests/redisCoordinator.chaosMatrix.test.ts`)**: Hardened the chaos helper to claim or renew real Redis owner/timer leases instead of only editing room metadata, and corrected the joiner-restart proof so a healthy owner keeps the room while the restarted joiner relinks cleanly.
+5. **Docs (`PROJECT_STATUS.md`, `DEPLOYMENT.md`)**: Updated the status snapshot and deployment guide so the repo now describes bounded abrupt-crash durability as proven for discard, match-start, and forced-end paths, while keeping the production-scale soak / chaos gap honest.
+6. **Verification**: `npm run lint` passed, `REDIS_URL=redis://127.0.0.1:6379 npx vitest run --no-file-parallelism --maxWorkers=1 tests/redisCoordinator.appFailover.test.ts` passed with `4` tests, `npm test` passed with `36` files (`8` skipped) and `1077` tests (`20` skipped), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `8` Redis files and `20` Redis tests.
+7. **What Remains**: The next highest-leverage gap is heavier production-scale soak and broader chaos automation for the multi-node Redis path now that the core abrupt-crash lifecycle surfaces are covered by bounded app-level proof.
+
+## 104. App Churn Soak Sprint Summary
+
+The App Churn Soak sprint (March 27, 2026) pushed the Redis proof matrix from single-room failover and coordinator-level churn into a bounded multi-room app-process soak path with repeated abrupt owner loss:
+
+1. **App Soak Lane (`tests/redisCoordinator.appSoak.test.ts`)**: Added a new two-process Redis app test that creates multiple live rooms across both nodes, crashes one owner, recovers a room onto the survivor and keeps play moving, restarts the original node, then crashes the new owner and proves both rooms recover back onto the restarted survivor with live gameplay still advancing.
+2. **Redis Test Suite (`package.json`)**: Added the new app soak proof to `npm run test:redis`, so the default Redis verification command now covers integration, failover rehearsal, churn, restart-soak, bounded load, app smoke, abrupt-crash lifecycle proofs, bounded app soak, and chaos-matrix recovery.
+3. **Scope of Proof**: The new soak lane is intentionally deterministic and bounded. It does not claim unbounded scale or arbitrary chaos coverage, but it does prove repeated abrupt owner churn across multiple live rooms at the real app-process layer instead of only at the coordinator contract layer.
+4. **Docs (`PROJECT_STATUS.md`, `DEPLOYMENT.md`)**: Updated the repo narrative so it now describes bounded app-process soak/churn proof as live while keeping the remaining production-scale soak and broader fault-matrix automation gap honest.
+5. **Verification**: `npm run lint` passed, `REDIS_URL=redis://127.0.0.1:6379 npx vitest run --no-file-parallelism --maxWorkers=1 tests/redisCoordinator.appSoak.test.ts` passed with `1` test, `npm test` passed with `36` files (`9` skipped) and `1077` tests (`21` skipped), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `9` Redis files and `21` Redis tests.
+6. **What Remains**: The next highest-leverage gap is a heavier seeded production-scale soak and broader multi-node fault-matrix automation beyond the current bounded deterministic app soak.
+
+## 105. Seeded Fault Matrix Sprint Summary
+
+The Seeded Fault Matrix sprint (March 27, 2026) extended the Redis proof from one bounded churn path into a broader deterministic matrix that covers mixed room topologies, alternating crash order, survivor-connected sockets, reconnect-driven recovery, and repeated live gameplay recovery across real app processes:
+
+1. **Seeded Fault-Matrix Lane (`tests/redisCoordinator.faultMatrix.test.ts`)**: Added a new two-process Redis app suite with multiple deterministic scenarios that combine local rooms, split rooms, alternating owner crash order, and pre-advanced turn state. Each scenario proves that rooms recover cleanly through a mix of survivor-held sockets and reconnect-driven reclaim, then continue live play after takeover.
+2. **Runtime Recovery Hardening (`server/multiplayer/roomManager.ts`)**: Added proactive reclaim of recoverable rooms on the survivor plus a rebroadcast when ownership is adopted, so rooms with still-connected local participants can recover without waiting for a manual reconnect to kick them forward.
+3. **Redis Test Lane (`package.json`)**: Expanded `npm run test:redis` so the default Redis verification command now includes the new seeded fault-matrix lane alongside integration, failover, churn, restart-soak, load, smoke, app failover, app soak, and chaos coverage.
+4. **Scope of Proof**: This is intentionally a heavier bounded app-process matrix, not a claim of unbounded production-scale certification. It does, however, raise confidence by exercising more real recovery permutations than the previous single app-soak path.
+5. **Docs (`PROJECT_STATUS.md`, `DEPLOYMENT.md`)**: Updated the repo narrative so it now describes bounded seeded fault-matrix proof as live and keeps the remaining gap honest: larger-scale sustained soak and broader long-running chaos automation still remain future work.
+6. **Verification**: `npm run lint` passed, `REDIS_URL=redis://127.0.0.1:6379 npx vitest run --no-file-parallelism --maxWorkers=1 tests/redisCoordinator.faultMatrix.test.ts` passed with `2` tests, `npm test` passed with `36` files and `1077` passing tests (`10` files and `23` tests skipped), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `10` Redis files and `23` Redis tests.
+7. **What Remains**: The next highest-leverage gap is truly larger production-scale multi-node soak and broader long-running chaos automation beyond the current bounded seeded app-soak and fault-matrix lanes.
+
+## 106. Endurance Soak Sprint Summary
+
+The Endurance Soak sprint (March 27, 2026) pushed the bounded Redis app-process confidence story beyond the seeded matrix into a heavier repeated failover workout, and it also hardened the older failover proofs to assert the real distributed invariants instead of timing-sensitive websocket ordering:
+
+1. **Endurance Soak Lane (`tests/redisCoordinator.enduranceSoak.test.ts`)**: Added a new two-process Redis endurance suite that seeds six live rooms across both nodes, mixes local-owner and split-node topologies, varies initial turn depth, alternates node crash order four times, and proves gameplay continues after each recovery cycle.
+2. **Focused Soak Command (`package.json`)**: Added `npm run test:redis:soak`, which runs the bounded heavier soak lane directly (`tests/redisCoordinator.appSoak.test.ts` plus `tests/redisCoordinator.enduranceSoak.test.ts`) without requiring the full Redis verification suite.
+3. **Default Redis Lane (`package.json`)**: Expanded `npm run test:redis` so the endurance soak now runs alongside integration, failover, churn, restart-soak, load, smoke, app failover, app soak, seeded fault-matrix, and chaos coverage.
+4. **Failover Proof Hardening (`tests/redisCoordinator.appFailover.test.ts`)**: Replaced brittle "all leases must momentarily be absent" assertions with recovery-window checks that only require the dead node to lose ownership, and relaxed reconnect assertions so the proof keys off durable room/timer truth instead of a single websocket message ordering.
+5. **Docs (`PROJECT_STATUS.md`, `DEPLOYMENT.md`)**: Updated the repo narrative so bounded endurance-soak proof is now described as live while keeping the remaining larger sustained soak / long-running chaos automation gap explicit.
+6. **Verification**: `npm run lint` passed, `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis:soak` passed with `2` files and `2` tests, `npm test` passed with `36` files and `1077` passing tests (`11` files and `24` tests skipped), and `REDIS_URL=redis://127.0.0.1:6379 npm run test:redis` passed with `11` Redis files and `24` Redis tests.
+7. **What Remains**: The next highest-leverage gap is still truly larger sustained production-style multi-node soak and broader long-running chaos automation beyond the current bounded app-soak, endurance-soak, seeded fault-matrix, and chaos lanes.

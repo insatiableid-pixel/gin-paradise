@@ -1,0 +1,93 @@
+{
+  "request_id": "gcli_0016",
+  "response_id": "gcli_0016_resp",
+  "timestamp": "2026-03-27T23:39:24.984444+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Reduce trace confidence decay for gentler risk scaling",
+  "edits": {
+    "TRACE_CONFIDENCE_DECAY = 0.08    # how much each trace event reduces risk multiplier": "TRACE_CONFIDENCE_DECAY = 0.04    # how much each trace event reduces risk multiplier"
+  },
+  "param_names": [
+    "TRACE_CONFIDENCE_DECAY"
+  ],
+  "param_changes": {
+    "TRACE_CONFIDENCE_DECAY": {
+      "old": 0.08,
+      "new": 0.04,
+      "delta": -0.04
+    }
+  },
+  "rationale": "Experiment history shows that increasing TRACE_CONFIDENCE_DECAY to 0.12 was catastrophic (-0.089 delta). By testing the opposite direction and halving the decay rate to 0.04, we make the confidence scaling more gradual and less sensitive to individual trace events, which should improve stability.",
+  "confidence": "medium",
+  "agent_prompt_hash": "e26e456e52d4",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0016.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0016.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 23.04,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 17261
+          },
+          "tokens": {
+            "input": 43639,
+            "prompt": 43639,
+            "candidates": 253,
+            "total": 45924,
+            "cached": 0,
+            "thoughts": 2032,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 17261,
+              "tokens": {
+                "input": 43639,
+                "prompt": 43639,
+                "candidates": 253,
+                "total": 45924,
+                "cached": 0,
+                "thoughts": 2032,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Reduce trace confidence decay for gentler risk scaling\",\n  \"edits\": {\n    \"TRACE_CONFIDENCE_DECAY = 0.08    # how much each trace event reduces risk multiplier\": \"TRACE_CONFIDENCE_DECAY = 0.04    # how much each trace event reduces risk multiplier\"\n  },\n  \"param_names\": [\n    \"TRACE_CONFIDENCE_DECAY\"\n  ],\n  \"param_changes\": {\n    \"TRACE_CONFIDENCE_DECAY\": {\n      \"old\": 0.08,\n      \"new\": 0.04,\n      \"delta\": -0.04\n    }\n  },\n  \"rationale\": \"Experiment history shows that increasing TRACE_CONFIDENCE_DECAY to 0.12 was catastrophic (-0.089 delta). By testing the opposite direction and halving the decay rate to 0.04, we make the confidence scaling more gradual and less sensitive to individual trace events, which should improve stability.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

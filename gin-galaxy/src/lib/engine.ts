@@ -17,6 +17,7 @@ export interface GameState {
   id: string;
   players: Player[];
   currentPlayerIndex: number;
+  turnNumber?: number;
   stock: Card[];
   discard: Card[];
   status: "waiting" | "playing" | "round_over" | "game_over";
@@ -266,6 +267,7 @@ export const createGame = (player1: Omit<Player, "hand" | "score">, player2: Omi
       { ...player2, hand: p2Hand, score: 0 }
     ],
     currentPlayerIndex: 0,
+    turnNumber: 1,
     stock: deck,
     discard,
     status: "playing",
@@ -321,6 +323,7 @@ export const discardCard = (state: GameState, playerId: string, cardIndex: numbe
 
   newState.players[playerIndex] = newPlayer;
   newState.currentPlayerIndex = (state.currentPlayerIndex + 1) % 2;
+  newState.turnNumber = (state.turnNumber ?? 1) + 1;
   newState.message = `${player.name} discarded ${discardedCard.rank}${discardedCard.suit}.`;
 
   return newState;
@@ -415,6 +418,7 @@ export const nextRound = (state: GameState): GameState => {
     stock: deck,
     discard,
     status: "playing",
+    turnNumber: 1,
     roundWinnerId: null,
     roundPoints: 0,
     message: "New round started."

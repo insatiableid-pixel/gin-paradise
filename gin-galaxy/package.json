@@ -10,6 +10,9 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "test": "vitest run",
+    "test:redis": "vitest run --no-file-parallelism --maxWorkers=1 tests/redisCoordinator.integration.test.ts tests/redisCoordinator.failover.test.ts tests/redisCoordinator.failoverChurn.test.ts tests/redisCoordinator.restartSoak.test.ts tests/redisCoordinator.load.test.ts tests/redisCoordinator.multiNodeSmoke.test.ts tests/redisCoordinator.appFailover.test.ts tests/redisCoordinator.appSoak.test.ts tests/redisCoordinator.enduranceSoak.test.ts tests/redisCoordinator.faultMatrix.test.ts tests/redisCoordinator.chaosMatrix.test.ts",
+    "test:redis:soak": "vitest run --no-file-parallelism --maxWorkers=1 tests/redisCoordinator.appSoak.test.ts tests/redisCoordinator.enduranceSoak.test.ts",
+    "test:redis:chaos": "vitest run --no-file-parallelism --maxWorkers=1 tests/redisCoordinator.chaosMatrix.test.ts",
     "start": "NODE_ENV=production tsx server.ts"
   },
   "dependencies": {
@@ -23,6 +26,7 @@
     "express": "^4.21.2",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
+    "redis": "^4.7.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",

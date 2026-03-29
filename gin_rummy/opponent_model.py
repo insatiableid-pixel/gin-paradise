@@ -69,9 +69,23 @@ class OpponentModel:
         self.weight[card] = 0.0
         self._known_opponent.add(card)
 
-        # Boost likelihood of neighboring cards
+        # ── Directive 117: Stronger Pickup Semantic Signal ─────────────
+        # Pickups are active choices; neighbor boost should be stronger
+        # than generic trace events.
         r, s = rank(card), suit(card)
-        self._boost_neighbors(r, s, same_rank_boost=0.6, adj_suit_boost=0.6, far_suit_boost=0.3)
+        
+        # Boost same-rank likelihood (sets)
+        # Multiple pickups of same rank should stack (handled by +=)
+        self._boost_neighbors(r, s, same_rank_boost=1.2, adj_suit_boost=1.0, far_suit_boost=0.5)
+        
+        # Additional logic for multiple pickups: if we already have a pickup 
+        # of the same rank, boost the remaining suits even more.
+        same_rank_count = sum(1 for c in self._known_opponent if rank(c) == r)
+        if same_rank_count >= 2:
+            for su in range(4):
+                c = make_card(r, su)
+                if self.card_state[c] == UNKNOWN:
+                    self.weight[c] = min(10.0, self.weight[c] + 1.0)
 
     def opponent_drew_stock(self):
         """Opponent drew from stock (unknown card)."""

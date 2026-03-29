@@ -1,0 +1,93 @@
+{
+  "request_id": "gcli_0025",
+  "response_id": "gcli_0025_resp",
+  "timestamp": "2026-03-28T00:39:15.526877+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Increasing CALIBRATION_MAX_WORLDS to 150 provides more accurate threshold calibration to support the high DIRECT_EVAL_WEIGHT of 0.90.",
+  "edits": {
+    "CALIBRATION_MAX_WORLDS = 100": "CALIBRATION_MAX_WORLDS = 150"
+  },
+  "param_names": [
+    "CALIBRATION_MAX_WORLDS"
+  ],
+  "param_changes": {
+    "CALIBRATION_MAX_WORLDS": {
+      "old": 100,
+      "new": 150,
+      "delta": 50
+    }
+  },
+  "rationale": "With direct eval now dominating the blend (0.90), we need higher fidelity in the calibration phase to pick the optimal threshold. Increasing the explicit calibration cap allows the adaptive budget to spend more time per spot if the budget permits, reducing threshold noise.",
+  "confidence": "medium",
+  "agent_prompt_hash": "5e55346be60d",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0025.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0025.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 30.87,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 26031
+          },
+          "tokens": {
+            "input": 45871,
+            "prompt": 45871,
+            "candidates": 241,
+            "total": 47843,
+            "cached": 0,
+            "thoughts": 1731,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 26031,
+              "tokens": {
+                "input": 45871,
+                "prompt": 45871,
+                "candidates": 241,
+                "total": 47843,
+                "cached": 0,
+                "thoughts": 1731,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"Increasing CALIBRATION_MAX_WORLDS to 150 provides more accurate threshold calibration to support the high DIRECT_EVAL_WEIGHT of 0.90.\",\n  \"edits\": {\n    \"CALIBRATION_MAX_WORLDS = 100\": \"CALIBRATION_MAX_WORLDS = 150\"\n  },\n  \"param_names\": [\n    \"CALIBRATION_MAX_WORLDS\"\n  ],\n  \"param_changes\": {\n    \"CALIBRATION_MAX_WORLDS\": {\n      \"old\": 100,\n      \"new\": 150,\n      \"delta\": 50\n    }\n  },\n  \"rationale\": \"With direct eval now dominating the blend (0.90), we need higher fidelity in the calibration phase to pick the optimal threshold. Increasing the explicit calibration cap allows the adaptive budget to spend more time per spot if the budget permits, reducing threshold noise.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

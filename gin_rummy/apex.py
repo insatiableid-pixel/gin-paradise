@@ -14,6 +14,7 @@ Upgrades:
   9. Actual-DW discard minimization (replaces heuristic)
 """
 
+import random
 from itertools import combinations
 from gin_rummy.card import (
     rank, suit, make_card, deadwood_value, NUM_CARDS
@@ -22,7 +23,7 @@ from gin_rummy.meld import (
     best_meld_arrangement, find_all_melds, compute_deadwood, compute_layoffs
 )
 from gin_rummy.player import Player
-from gin_rummy.opponent_model import OpponentModel, IN_DISCARD
+from gin_rummy.opponent_model import OpponentModel, IN_DISCARD, IN_MY_HAND, KNOWN_OPPONENT
 
 MC_KNOCK_SAMPLES = 25
 UNDERCUT_BONUS = 25
@@ -43,6 +44,7 @@ class Apex(Player):
         self._top_for_opp = None
         self.my_score = 0
         self.opp_score = 0
+        self._last_discard = None  # cycle prevention
 
     def new_hand(self, hand, opponent_id):
         self.hand = list(hand)
@@ -51,6 +53,7 @@ class Apex(Player):
         self.discard_pile_cards = set()
         self.declined = set()
         self._top_for_opp = None
+        self._last_discard = None
 
     # ════════════════════════════════════════════════════════════
     #  DRAW
@@ -70,8 +73,14 @@ class Apex(Player):
         # 1. Take if it completes/extends a meld
         test_hand = hand + [top_discard]
         melds_with = find_all_melds(test_hand)
-        if any(top_discard in m for m in melds_with):
+        completes_meld = any(top_discard in m for m in melds_with)
+        if completes_meld:
+            self._last_discard = None
             return True
+
+        # 1b. Cycle prevention: don't take back the card we just discarded
+        if top_discard == self._last_discard:
+            return False
 
         # 2. Always take Aces and Twos (paper rule: minimal DW insurance)
         if rank(top_discard) <= 1:
@@ -167,6 +176,7 @@ class Apex(Player):
     def discard_decision(self, hand, drew_from_discard, drawn_card, game_state):
         self.hand = list(hand)
         self.model.update_my_hand(self.hand)
+        self.turn = game_state.get('turn_number', self.turn)
 
         melds, dw_cards, dw = best_meld_arrangement(hand)
         melded = set()
@@ -205,6 +215,7 @@ class Apex(Player):
                 best_card = c
 
         self._top_for_opp = best_card
+        self._last_discard = best_card
         self.model.my_discard(best_card)
         if best_card in self.hand:
             self.hand.remove(best_card)
@@ -360,6 +371,7 @@ class Apex(Player):
             return False
 
         # 8. DW 6-10, mid-game, 3+ DW cards: MC layoff-aware check
+        #    Turn-sensitive EV threshold (Paper 5: threshold tuning)
         self.model.update_my_hand(hand)
         total_ev = 0.0
         for _ in range(MC_KNOCK_SAMPLES):
@@ -375,8 +387,11 @@ class Apex(Player):
                 total_ev -= (UNDERCUT_BONUS + my_dw - opp_dw_after)
         expected_value = total_ev / MC_KNOCK_SAMPLES
 
+        # Turn-sensitive threshold: cautious mid-game, aggressive late
+        ev_threshold = -5 if turn <= 8 else -1
+
         # Knock if EV is not clearly negative
-        if expected_value > -3:
+        if expected_value > ev_threshold:
             return True
 
         # Behind on score: be more aggressive

@@ -1,0 +1,63 @@
+{
+  "phase": 80,
+  "title": "Real Claude-in-Antigravity Boundary Integration",
+  "timestamp": "2026-03-24T20:26:10+00:00",
+  "incumbent": {
+    "score": 0.5873,
+    "variant_id": "phase74_baseline",
+    "threshold": 0.55,
+    "unchanged": true,
+    "reason": "The externally-generated candidate scored 0.5134, below incumbent by -0.0739"
+  },
+  "bridge_proof": {
+    "request_artifact": "oracle_autoresearch/antigravity_bridge/inbox/request_p80_001.json",
+    "response_artifact": "oracle_autoresearch/antigravity_bridge/outbox/response_p80_001.json",
+    "response_source": "claude_opus_4.6_antigravity",
+    "agent_prompt_hash": "ad4b3618005c",
+    "agent_prompt_included_in_request": true,
+    "candidate_id": "antigravity_p80_resp_001",
+    "hypothesis": "Reduce CFR budget fraction from 0.10 to 0.05 and increase DIRECT_EVAL_WEIGHT from 0.70 to 0.75",
+    "edits": {
+      "CFR_BUDGET_FRACTION = 0.10": "CFR_BUDGET_FRACTION = 0.05",
+      "DIRECT_EVAL_WEIGHT = 0.70": "DIRECT_EVAL_WEIGHT = 0.75"
+    },
+    "score": 0.5134,
+    "delta_vs_incumbent": -0.0739,
+    "decision": "discard",
+    "discard_restoration_verified": true,
+    "provenance_log": "oracle_autoresearch/artifacts/provenance/provenance_0012_20260324-152610.json",
+    "candidate_log": "oracle_autoresearch/artifacts/candidates/"
+  },
+  "architecture": {
+    "bridge_module": "oracle_autoresearch/antigravity_bridge.py",
+    "agent_loop": "oracle_autoresearch/agent_loop.py",
+    "local_fallback": "oracle_autoresearch/candidate_generator.py",
+    "protocol": "file-based inbox/outbox",
+    "inbox_dir": "oracle_autoresearch/antigravity_bridge/inbox/",
+    "outbox_dir": "oracle_autoresearch/antigravity_bridge/outbox/"
+  },
+  "boundary_honest_assessment": {
+    "is_real_boundary": true,
+    "boundary_type": "file-based request/response via active Antigravity session",
+    "is_fully_automated": false,
+    "automation_gap": "No programmatic Claude API invocation available from Python subprocess. The bridge requires an active Antigravity session to process requests.",
+    "what_is_real": [
+      "Request artifact contains full agent_prompt.md content as actual payload",
+      "Response artifact was authored by Claude Opus 4.6 reasoning about the request",
+      "The candidate edit originated from Claude's analysis, not local Python heuristics",
+      "The edit was applied, benchmarked, and discarded via the standard loop"
+    ],
+    "what_is_not_yet_automated": [
+      "Request processing requires an active Antigravity session",
+      "No programmatic API call to Claude exists in this environment",
+      "Overnight unattended operation would need a Claude API integration"
+    ]
+  },
+  "experiments_summary": {
+    "total_experiments_this_phase": 1,
+    "bridge_candidates": 1,
+    "fallback_candidates": 0,
+    "promotions": 0,
+    "discards": 1
+  }
+}

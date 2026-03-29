@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0046",
+  "response_id": "gcli_0046_resp",
+  "timestamp": "2026-03-28T17:19:15.493560+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Belief-world EV estimation is less accurate in the early game (high stock size) due to an unconstrained game tree, but highly accurate in the late game. Adding a stock_confidence term to compute_eval_weight will smoothly shift reliance from the CFR prior towards direct EV as the stock depletes.",
+  "edits": {
+    "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))": "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    stock_confidence = max(0.0, (31.0 - stock_size) / 31.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.25) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + (0.15 * stock_confidence)\n    return max(0.4, min(1.0, dynamic_weight))"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "By scaling the DIRECT_EVAL_WEIGHT baseline down by 0.10 and introducing a +0.15 bonus based on stock depletion, we effectively trust the CFR prior more in the first ~10 turns, while allowing direct EV to take full control in the late game when belief worlds are highly informative.",
+  "confidence": "high",
+  "agent_prompt_hash": "bc3bf765b34d",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0046.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0046.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 47.96,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 42874
+          },
+          "tokens": {
+            "input": 48893,
+            "prompt": 48893,
+            "candidates": 488,
+            "total": 54549,
+            "cached": 0,
+            "thoughts": 5168,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 42874,
+              "tokens": {
+                "input": 48893,
+                "prompt": 48893,
+                "candidates": 488,
+                "total": 54549,
+                "cached": 0,
+                "thoughts": 5168,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Belief-world EV estimation is less accurate in the early game (high stock size) due to an unconstrained game tree, but highly accurate in the late game. Adding a stock_confidence term to compute_eval_weight will smoothly shift reliance from the CFR prior towards direct EV as the stock depletes.\",\n  \"edits\": {\n    \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\": \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    stock_confidence = max(0.0, (31.0 - stock_size) / 31.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.25) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + (0.15 * stock_confidence)\\n    return max(0.4, min(1.0, dynamic_weight))\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"By scaling the DIRECT_EVAL_WEIGHT baseline down by 0.10 and introducing a +0.15 bonus based on stock depletion, we effectively trust the CFR prior more in the first ~10 turns, while allowing direct EV to take full control in the late game when belief worlds are highly informative.\",\n  \"confidence\": \"high\"\n}"
+}

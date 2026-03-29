@@ -254,14 +254,14 @@ export function Tournaments() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent">
             Tournaments
           </h1>
-          <p className="text-zinc-400 mt-1">
+          <p className="text-emerald-300/60 mt-1">
             Compete in sit-and-go brackets or scheduled events
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={fetchTournaments}
-            className="p-2 rounded-lg bg-zinc-800/50 border border-zinc-700/50 text-zinc-400 hover:text-zinc-200 transition-colors"
+            className="p-2 rounded-lg bg-[#0a2e1e]/50 border border-emerald-800/40 text-emerald-300/60 hover:text-emerald-100 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -292,15 +292,15 @@ export function Tournaments() {
       </AnimatePresence>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-900/50 border border-zinc-800/50 rounded-lg p-1">
+      <div className="flex gap-1 bg-emerald-950/40 border border-emerald-800/30 rounded-lg p-1">
         {(["upcoming", "open", "in_progress", "completed"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
               tab === t
-                ? "bg-zinc-700 text-zinc-100 shadow"
-                : "text-zinc-400 hover:text-zinc-300"
+                ? "bg-emerald-950/50 text-emerald-100 shadow"
+                : "text-emerald-300/60 hover:text-emerald-200"
             }`}
           >
             {t === "upcoming" && <Calendar className="w-3.5 h-3.5" />}
@@ -318,7 +318,7 @@ export function Tournaments() {
           <div className="w-8 h-8 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
         </div>
       ) : filteredTournaments.length === 0 ? (
-        <div className="text-center py-16 text-zinc-500">
+        <div className="text-center py-16 text-emerald-400/50">
           <Trophy className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="text-lg">No {tab === "upcoming" ? "upcoming" : tab.replace("_", " ")} tournaments</p>
           {tab === "open" && (
@@ -340,10 +340,10 @@ export function Tournaments() {
               layout
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`bg-zinc-900/60 border rounded-xl p-4 cursor-pointer transition-all hover:bg-zinc-800/60 ${
+              className={`bg-emerald-950/40 border rounded-xl p-4 cursor-pointer transition-all hover:bg-[#0a2e1e]/60 ${
                 selectedTournament?.id === t.id
                   ? "border-amber-500/50 ring-1 ring-amber-500/20"
-                  : "border-zinc-800/50"
+                  : "border-emerald-800/30"
               }`}
               onClick={() => setSelectedTournament(t)}
             >
@@ -353,19 +353,19 @@ export function Tournaments() {
                     className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                       t.format === "scheduled"
                         ? t.status === "registration_open"
-                          ? "bg-cyan-500/10 text-cyan-400"
+                          ? "bg-emerald-500/10 text-emerald-400"
                           : t.status === "in_progress"
                           ? "bg-amber-500/10 text-amber-400"
                           : t.status === "completed"
-                          ? "bg-indigo-500/10 text-indigo-400"
-                          : "bg-zinc-700/30 text-zinc-500"
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : "bg-emerald-900/30 text-emerald-400/50"
                         : t.status === "open"
                         ? "bg-emerald-500/10 text-emerald-400"
                         : t.status === "in_progress"
                         ? "bg-amber-500/10 text-amber-400"
                         : t.status === "completed"
-                        ? "bg-indigo-500/10 text-indigo-400"
-                        : "bg-zinc-700/30 text-zinc-500"
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : "bg-emerald-900/30 text-emerald-400/50"
                     }`}
                   >
                     {t.format === "scheduled" ? (
@@ -380,19 +380,19 @@ export function Tournaments() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-zinc-100">{t.name}</h3>
+                      <h3 className="font-semibold text-amber-50">{t.name}</h3>
                       {t.format === "scheduled" && (
-                        <span className="px-1.5 py-0.5 bg-cyan-500/10 text-cyan-400 text-[10px] rounded-full border border-cyan-500/20 font-medium">
+                        <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] rounded-full border border-emerald-500/20 font-medium">
                           SCHEDULED
                         </span>
                       )}
                       {t.adminCreated && (
-                        <span className="px-1.5 py-0.5 bg-violet-500/10 text-violet-400 text-[10px] rounded-full border border-violet-500/20 font-medium">
+                        <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 text-[10px] rounded-full border border-amber-500/20 font-medium">
                           OFFICIAL
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-zinc-500 mt-0.5">
+                    <div className="flex items-center gap-3 text-xs text-emerald-400/50 mt-0.5">
                       <span className="flex items-center gap-1">
                         <Users className="w-3 h-3" />
                         {t.entrantCount}/{t.maxEntrants}
@@ -433,7 +433,7 @@ export function Tournaments() {
                       Round {t.currentRound}/{t.totalRounds}
                     </span>
                   )}
-                  <ChevronRight className="w-4 h-4 text-zinc-600" />
+                  <ChevronRight className="w-4 h-4 text-emerald-500/40" />
                 </div>
               </div>
             </motion.div>
@@ -448,22 +448,22 @@ export function Tournaments() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="bg-zinc-900/80 border border-zinc-800/50 rounded-xl p-6 space-y-5"
+            className="bg-emerald-950/60 border border-emerald-800/30 rounded-xl p-6 space-y-5"
           >
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold text-zinc-100">
+                  <h2 className="text-xl font-bold text-amber-50">
                     {selectedTournament.name}
                   </h2>
                   {selectedTournament.format === "scheduled" && (
-                    <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-400 text-xs rounded-full border border-cyan-500/20">
+                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-xs rounded-full border border-emerald-500/20">
                       Scheduled
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-zinc-500 mt-0.5">
+                <p className="text-sm text-emerald-400/50 mt-0.5">
                   {getFormatLabel(selectedTournament)} •{" "}
                   {getStatusLabel(selectedTournament.status)}
                   {selectedTournament.totalRounds && selectedTournament.currentRound && selectedTournament.status === "in_progress" && (
@@ -473,7 +473,7 @@ export function Tournaments() {
               </div>
               <button
                 onClick={() => setSelectedTournament(null)}
-                className="text-zinc-500 hover:text-zinc-300"
+                className="text-emerald-400/50 hover:text-emerald-200"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -486,16 +486,16 @@ export function Tournaments() {
 
             {/* Economics */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-zinc-800/40 rounded-lg p-3 text-center">
-                <div className="text-xs text-zinc-500 mb-1">Entry Fee</div>
-                <div className="text-lg font-bold text-zinc-100">
+              <div className="bg-[#0a2e1e]/40 rounded-lg p-3 text-center">
+                <div className="text-xs text-emerald-400/50 mb-1">Entry Fee</div>
+                <div className="text-lg font-bold text-amber-50">
                   {selectedTournament.entryFee === 0
                     ? "Free"
                     : `${selectedTournament.entryFee} ${getCurrencyLabel(selectedTournament.currency)}`}
                 </div>
               </div>
-              <div className="bg-zinc-800/40 rounded-lg p-3 text-center">
-                <div className="text-xs text-zinc-500 mb-1">Prize Pool</div>
+              <div className="bg-[#0a2e1e]/40 rounded-lg p-3 text-center">
+                <div className="text-xs text-emerald-400/50 mb-1">Prize Pool</div>
                 <div className="text-lg font-bold text-amber-400">
                   {selectedTournament.prizePool === 0
                     ? selectedTournament.status === "in_progress" || selectedTournament.status === "completed"
@@ -506,9 +506,9 @@ export function Tournaments() {
                     : `${selectedTournament.prizePool} ${getCurrencyLabel(selectedTournament.currency)}`}
                 </div>
               </div>
-              <div className="bg-zinc-800/40 rounded-lg p-3 text-center">
-                <div className="text-xs text-zinc-500 mb-1">Rake</div>
-                <div className="text-lg font-bold text-zinc-400">
+              <div className="bg-[#0a2e1e]/40 rounded-lg p-3 text-center">
+                <div className="text-xs text-emerald-400/50 mb-1">Rake</div>
+                <div className="text-lg font-bold text-emerald-300/60">
                   {selectedTournament.rakePercent > 0
                     ? `${(selectedTournament.rakePercent * 100).toFixed(0)}%`
                     : "None"}
@@ -518,11 +518,11 @@ export function Tournaments() {
 
             {/* Entrants */}
             <div>
-              <h3 className="text-sm font-semibold text-zinc-400 mb-2">
+              <h3 className="text-sm font-semibold text-emerald-300/60 mb-2">
                 Players ({selectedTournament.entrantCount}/
                 {selectedTournament.maxEntrants})
                 {selectedTournament.minEntrants > 2 && selectedTournament.status === "registration_open" && (
-                  <span className="text-zinc-600 font-normal ml-2">
+                  <span className="text-emerald-500/40 font-normal ml-2">
                     (min {selectedTournament.minEntrants} to start)
                   </span>
                 )}
@@ -533,30 +533,30 @@ export function Tournaments() {
                     key={e.userId}
                     className={`flex items-center gap-2 p-2 rounded-lg border ${
                       e.eliminated
-                        ? "bg-zinc-800/20 border-zinc-800/30 opacity-50"
+                        ? "bg-[#0a2e1e]/20 border-emerald-800/40/30 opacity-50"
                         : e.userId === selectedTournament.winnerId
                         ? "bg-amber-500/10 border-amber-500/30"
-                        : "bg-zinc-800/40 border-zinc-700/30"
+                        : "bg-[#0a2e1e]/40 border-emerald-700/25"
                     }`}
                   >
                     <div
                       className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                         e.userId === selectedTournament.winnerId
                           ? "bg-gradient-to-tr from-amber-500 to-yellow-400 text-zinc-900"
-                          : "bg-gradient-to-tr from-indigo-500 to-purple-500 text-white"
+                          : "bg-gradient-to-tr from-emerald-500 to-emerald-600 text-white"
                       }`}
                     >
                       {e.username[0]?.toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-200 truncate">
+                      <div className="text-sm font-medium text-emerald-100 truncate">
                         {e.username}
                         {e.userId === user?.id && (
-                          <span className="text-indigo-400 ml-1">(you)</span>
+                          <span className="text-amber-400 ml-1">(you)</span>
                         )}
                       </div>
                       {e.seed && (
-                        <div className="text-[10px] text-zinc-500">
+                        <div className="text-[10px] text-emerald-400/50">
                           Seed #{e.seed}
                           {e.eliminated && " • Eliminated"}
                         </div>
@@ -573,16 +573,16 @@ export function Tournaments() {
                 }).map((_, i) => (
                   <div
                     key={`empty-${i}`}
-                    className="flex items-center gap-2 p-2 rounded-lg border border-dashed border-zinc-800/50 text-zinc-600"
+                    className="flex items-center gap-2 p-2 rounded-lg border border-dashed border-emerald-800/30 text-emerald-500/40"
                   >
-                    <div className="w-7 h-7 rounded-full bg-zinc-800/30 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-full bg-[#0a2e1e]/30 flex items-center justify-center">
                       <Users className="w-3 h-3" />
                     </div>
                     <span className="text-xs">Waiting...</span>
                   </div>
                 ))}
                 {selectedTournament.maxEntrants - selectedTournament.entrantCount > 8 && (
-                  <div className="flex items-center gap-2 p-2 rounded-lg text-zinc-600">
+                  <div className="flex items-center gap-2 p-2 rounded-lg text-emerald-500/40">
                     <span className="text-xs italic">
                       +{selectedTournament.maxEntrants - selectedTournament.entrantCount - 8} more slots
                     </span>
@@ -604,7 +604,7 @@ export function Tournaments() {
             )}
 
             {/* Actions */}
-            <div className="flex items-center gap-3 pt-2 border-t border-zinc-800/50">
+            <div className="flex items-center gap-3 pt-2 border-t border-emerald-800/30">
               {(selectedTournament.status === "open" || selectedTournament.status === "registration_open") &&
                 !isJoined(selectedTournament) && (
                   <button
@@ -622,7 +622,7 @@ export function Tournaments() {
                   <button
                     onClick={() => leaveTournament(selectedTournament.id)}
                     disabled={actionLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg font-medium text-sm transition-all disabled:opacity-50"
+                    className="flex items-center gap-2 px-4 py-2 bg-[#0a2e1e] hover:bg-emerald-900/40 border border-emerald-800/40 rounded-lg font-medium text-sm transition-all disabled:opacity-50"
                   >
                     <LogOut className="w-4 h-4" /> Leave Tournament
                   </button>
@@ -658,10 +658,10 @@ export function Tournaments() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md shadow-2xl"
+              className="bg-emerald-950 border border-emerald-800/40 rounded-2xl p-6 w-full max-w-md shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className="text-xl font-bold text-zinc-100 mb-4">
+              <h2 className="text-xl font-bold text-amber-50 mb-4">
                 Create Sit & Go Tournament
               </h2>
               <div className="space-y-3">
@@ -670,7 +670,7 @@ export function Tournaments() {
                     key={i}
                     onClick={() => createTournament(i)}
                     disabled={actionLoading}
-                    className="w-full flex items-center justify-between p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-xl hover:bg-zinc-800 hover:border-zinc-600 transition-all disabled:opacity-50"
+                    className="w-full flex items-center justify-between p-4 bg-[#0a2e1e]/50 border border-emerald-800/40 rounded-xl hover:bg-[#0a2e1e] hover:border-emerald-700/40 transition-all disabled:opacity-50"
                   >
                     <div className="flex items-center gap-3">
                       <div
@@ -683,10 +683,10 @@ export function Tournaments() {
                         <Trophy className="w-5 h-5" />
                       </div>
                       <div className="text-left">
-                        <div className="font-medium text-zinc-100">
+                        <div className="font-medium text-amber-50">
                           {preset.name}
                         </div>
-                        <div className="text-xs text-zinc-500">
+                        <div className="text-xs text-emerald-400/50">
                           {preset.entryFee === 0
                             ? "No entry fee"
                             : `${preset.entryFee} ${getCurrencyLabel(preset.currency)} entry`}
@@ -705,7 +705,7 @@ export function Tournaments() {
                               100}{" "}
                           {getCurrencyLabel(preset.currency)}
                         </div>
-                        <div className="text-[10px] text-zinc-500">
+                        <div className="text-[10px] text-emerald-400/50">
                           Winner takes all
                         </div>
                       </div>
@@ -715,7 +715,7 @@ export function Tournaments() {
               </div>
               <button
                 onClick={() => setShowCreate(false)}
-                className="w-full mt-4 py-2 text-sm text-zinc-400 hover:text-zinc-300 transition-colors"
+                className="w-full mt-4 py-2 text-sm text-emerald-300/60 hover:text-emerald-200 transition-colors"
               >
                 Cancel
               </button>
@@ -744,7 +744,7 @@ function CountdownBadge({ startTime }: { startTime: number }) {
   const secs = Math.floor((diff % (1000 * 60)) / 1000);
 
   return (
-    <span className="flex items-center gap-1 text-cyan-400 font-medium">
+    <span className="flex items-center gap-1 text-amber-400 font-medium">
       <Timer className="w-3 h-3" />
       {hours > 0 ? `${hours}h ${mins}m` : `${mins}m ${secs}s`}
     </span>
@@ -776,8 +776,8 @@ function CountdownTimer({ startTime }: { startTime: number }) {
   const secs = Math.floor((diff % (1000 * 60)) / 1000);
 
   return (
-    <div className="bg-zinc-800/40 rounded-lg p-4">
-      <div className="text-xs text-zinc-500 text-center mb-2 flex items-center justify-center gap-1">
+    <div className="bg-[#0a2e1e]/40 rounded-lg p-4">
+      <div className="text-xs text-emerald-400/50 text-center mb-2 flex items-center justify-center gap-1">
         <Calendar className="w-3.5 h-3.5" />
         Starts {new Date(startTime).toLocaleDateString()} at {new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </div>
@@ -794,10 +794,10 @@ function CountdownTimer({ startTime }: { startTime: number }) {
 function TimeUnit({ value, label }: { value: number; label: string }) {
   return (
     <div className="text-center">
-      <div className="text-2xl font-bold text-cyan-400 tabular-nums">
+      <div className="text-2xl font-bold text-amber-400 tabular-nums">
         {String(value).padStart(2, "0")}
       </div>
-      <div className="text-[10px] text-zinc-500 font-medium">{label}</div>
+      <div className="text-[10px] text-emerald-400/50 font-medium">{label}</div>
     </div>
   );
 }
@@ -836,7 +836,7 @@ function DynamicBracketView({
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-zinc-400 mb-3">
+      <h3 className="text-sm font-semibold text-emerald-300/60 mb-3">
         Bracket
       </h3>
       <div className="overflow-x-auto pb-2">
@@ -844,7 +844,7 @@ function DynamicBracketView({
           {roundGroups.map((group, gi) => (
             <React.Fragment key={group.roundNumber}>
               <div className="space-y-3 min-w-[180px]">
-                <div className="text-xs text-zinc-500 text-center font-medium capitalize">
+                <div className="text-xs text-emerald-400/50 text-center font-medium capitalize">
                   {group.round.replace("_", " ")}
                 </div>
                 <div className="space-y-2" style={{
@@ -900,14 +900,14 @@ function BracketMatchCard({
     <div
       className={`rounded-lg border p-3 space-y-2 ${
         isBye
-          ? "bg-zinc-800/10 border-zinc-800/20 opacity-70"
+          ? "bg-[#0a2e1e]/10 border-emerald-800/40/20 opacity-70"
           : match.status === "completed"
-          ? "bg-zinc-800/20 border-zinc-800/30"
+          ? "bg-[#0a2e1e]/20 border-emerald-800/40/30"
           : match.status === "in_progress"
           ? "bg-amber-500/5 border-amber-500/20"
           : canPlay
           ? "bg-emerald-500/5 border-emerald-500/20"
-          : "bg-zinc-800/40 border-zinc-700/30"
+          : "bg-[#0a2e1e]/40 border-emerald-700/25"
       } ${isFinal ? "ring-1 ring-amber-500/10" : ""}`}
     >
       {/* Player 1 */}
@@ -917,9 +917,9 @@ function BracketMatchCard({
         isMe={match.player1Id === userId}
       />
       {isBye ? (
-        <div className="text-center text-[10px] text-zinc-600 font-medium italic">BYE</div>
+        <div className="text-center text-[10px] text-emerald-500/40 font-medium italic">BYE</div>
       ) : (
-        <div className="text-center text-[10px] text-zinc-600 font-medium">VS</div>
+        <div className="text-center text-[10px] text-emerald-500/40 font-medium">VS</div>
       )}
       {/* Player 2 */}
       <PlayerSlot
@@ -947,7 +947,7 @@ function BracketMatchCard({
         </div>
       )}
       {isBye && match.winnerUsername && (
-        <div className="text-center text-[10px] text-zinc-500 flex items-center justify-center gap-1">
+        <div className="text-center text-[10px] text-emerald-400/50 flex items-center justify-center gap-1">
           <Award className="w-3 h-3" /> {match.winnerUsername} advances
         </div>
       )}
@@ -966,9 +966,9 @@ function PlayerSlot({
 }) {
   if (!name) {
     return (
-      <div className="flex items-center gap-2 p-1.5 rounded bg-zinc-800/30">
-        <div className="w-5 h-5 rounded-full bg-zinc-700/30" />
-        <span className="text-[11px] text-zinc-600 italic">TBD</span>
+      <div className="flex items-center gap-2 p-1.5 rounded bg-[#0a2e1e]/30">
+        <div className="w-5 h-5 rounded-full bg-emerald-900/30" />
+        <span className="text-[11px] text-emerald-500/40 italic">TBD</span>
       </div>
     );
   }
@@ -978,25 +978,25 @@ function PlayerSlot({
       className={`flex items-center gap-2 p-1.5 rounded ${
         isWinner
           ? "bg-amber-500/10"
-          : "bg-zinc-800/30"
+          : "bg-[#0a2e1e]/30"
       }`}
     >
       <div
         className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${
           isWinner
             ? "bg-gradient-to-tr from-amber-500 to-yellow-400 text-zinc-900"
-            : "bg-gradient-to-tr from-indigo-500 to-purple-500 text-white"
+            : "bg-gradient-to-tr from-emerald-500 to-emerald-600 text-white"
         }`}
       >
         {name[0]?.toUpperCase()}
       </div>
       <span
         className={`text-[11px] font-medium ${
-          isWinner ? "text-amber-300" : "text-zinc-300"
+          isWinner ? "text-amber-300" : "text-emerald-200"
         }`}
       >
         {name}
-        {isMe && <span className="text-indigo-400 ml-1">(you)</span>}
+        {isMe && <span className="text-amber-400 ml-1">(you)</span>}
       </span>
       {isWinner && <Crown className="w-3 h-3 text-amber-400 ml-auto" />}
     </div>

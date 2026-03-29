@@ -226,7 +226,7 @@ export function Wallet() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
+        <RefreshCw className="w-8 h-8 text-amber-500 animate-spin" />
       </div>
     );
   }
@@ -235,13 +235,13 @@ export function Wallet() {
     <div className="space-y-8 pb-20 md:pb-0">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">Wallet</h1>
-        <p className="text-zinc-400">Your coin balance, purchases, and transaction history</p>
+        <h1 className="text-3xl font-bold tracking-tight text-amber-50">Wallet</h1>
+        <p className="text-emerald-300/60">Your coin balance, purchases, and transaction history</p>
       </div>
 
       {/* Billing Mode Banner */}
       {billingMode === "dry_run" && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-950/20 border border-amber-800/30 text-amber-300/80 text-xs">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-950/30 border border-amber-800/40 text-amber-300/80 text-xs">
           <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
           <span>
             <strong>Dev Mode</strong> — Purchases auto-fulfill. Set STRIPE_SECRET_KEY for live billing.
@@ -252,7 +252,7 @@ export function Wallet() {
       {/* Balance + Daily Status Row */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Coin Balance */}
-        <Card className="bg-gradient-to-br from-amber-950/40 to-zinc-900/50 border-amber-900/40 relative overflow-hidden">
+        <Card className="bg-gradient-to-br from-amber-950/40 via-[#0a2e1e]/50 to-emerald-950/40 border-amber-800/40 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl -translate-y-8 translate-x-8" />
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-amber-300/80 flex items-center">
@@ -275,10 +275,10 @@ export function Wallet() {
         </Card>
 
         {/* Daily Claim Status (read-only — directs to Daily Hub) */}
-        <Card className="bg-gradient-to-br from-indigo-950/30 to-zinc-900/40 border-indigo-900/40">
+        <Card className="bg-gradient-to-br from-emerald-950/40 via-[#0a2e1e]/50 to-[#0d3828]/40 border-emerald-800/40">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-indigo-300/80 flex items-center">
-              <CalendarCheck className="w-4 h-4 mr-2 text-indigo-400" />
+            <CardTitle className="text-sm font-medium text-emerald-300/70 flex items-center">
+              <CalendarCheck className="w-4 h-4 mr-2 text-emerald-400" />
               Today's Earnings
             </CardTitle>
           </CardHeader>
@@ -288,7 +288,7 @@ export function Wallet() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Flame className="w-4 h-4 text-amber-500" />
-                    <span className="text-sm text-zinc-300">
+                    <span className="text-sm text-emerald-200/80">
                       {dailyStatus.streak?.currentStreak || 0} day streak
                     </span>
                     {dailyStatus.streak?.todayCheckedIn && (
@@ -300,7 +300,7 @@ export function Wallet() {
                   </span>
                 </div>
 
-                <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-[#0a2e1e]/80 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(100, dailyStatus.totalAvailableCoins > 0 ? (dailyStatus.totalClaimedCoins / dailyStatus.totalAvailableCoins) * 100 : 0)}%` }}
@@ -311,7 +311,7 @@ export function Wallet() {
                   <Button
                     variant="primary"
                     size="sm"
-                    className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-lg font-semibold"
+                    className="w-full bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-600 hover:to-emerald-500 rounded-lg font-semibold"
                     id="wallet-go-to-daily-btn"
                   >
                     <CalendarCheck className="w-4 h-4 mr-2" />
@@ -321,8 +321,8 @@ export function Wallet() {
                 </Link>
               </>
             ) : (
-              <div className="text-sm text-zinc-500">
-                <Link to="/daily" className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+              <div className="text-sm text-emerald-400/50">
+                <Link to="/daily" className="text-amber-400 hover:text-amber-300 flex items-center gap-1">
                   Go to Daily Hub to claim rewards <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
@@ -344,7 +344,7 @@ export function Wallet() {
         }
         return (
           <section key={offer.id} id={`wallet-offer-${offer.id}`}>
-            <Card className="bg-gradient-to-r from-violet-950/40 via-indigo-950/30 to-zinc-900/30 border-violet-500/30 relative overflow-hidden">
+            <Card className="bg-gradient-to-r from-emerald-950/40 via-[#0a2e1e]/30 to-[#0d3828]/30 border-amber-600/30 ring-1 ring-amber-500/10 relative overflow-hidden">
               <button
                 onClick={() => {
                   setOfferDismissed(p => ({ ...p, [offer.id]: true }));
@@ -354,7 +354,7 @@ export function Wallet() {
                     body: JSON.stringify({ surface: "wallet" }),
                   }).catch(() => {});
                 }}
-                className="absolute top-2.5 right-2.5 p-1 rounded-lg bg-zinc-800/60 hover:bg-zinc-700/80 text-zinc-400 hover:text-zinc-200 transition-colors z-10"
+                className="absolute top-2.5 right-2.5 p-1 rounded-lg bg-[#0a2e1e]/60 hover:bg-emerald-900/80 text-emerald-300/50 hover:text-emerald-200 transition-colors z-10"
                 aria-label="Dismiss"
                 id={`wallet-dismiss-offer-${offer.id}`}
               >
@@ -362,21 +362,21 @@ export function Wallet() {
               </button>
               <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-amber-500/20">
                     <Gift className="w-5 h-5 text-white" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-zinc-100">{offer.name}</span>
+                      <span className="text-sm font-bold text-amber-100">{offer.name}</span>
                       {offer.discountPercent > 0 && (
                         <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                           {offer.discountPercent}% off
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-violet-200/70 truncate">{offer.tagline}</p>
+                    <p className="text-xs text-emerald-200/70 truncate">{offer.tagline}</p>
                     {offer.contents.coins && offer.contents.premiumTrialDays && (
-                      <p className="text-[10px] text-zinc-500 mt-0.5">
+                      <p className="text-[10px] text-emerald-400/50 mt-0.5">
                         {offer.contents.coins.toLocaleString()} coins + {offer.contents.premiumTrialDays}-day Pro trial
                       </p>
                     )}
@@ -385,7 +385,7 @@ export function Wallet() {
                 <Button
                   variant="primary"
                   size="sm"
-                  className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 rounded-lg font-bold whitespace-nowrap flex-shrink-0"
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-lg font-bold whitespace-nowrap flex-shrink-0 shadow-lg shadow-amber-500/20"
                   onClick={() => handleRedeemOffer(offer.id)}
                   disabled={offerRedeeming !== null}
                   id={`wallet-redeem-offer-${offer.id}-btn`}
@@ -414,7 +414,7 @@ export function Wallet() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <ShoppingCart className="w-5 h-5 text-amber-400" />
-            <h2 className="text-xl font-semibold tracking-tight">Buy Coins</h2>
+            <h2 className="text-xl font-semibold tracking-tight text-amber-50">Buy Coins</h2>
           </div>
 
           {purchaseResult && (
@@ -434,8 +434,8 @@ export function Wallet() {
               <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
               <div>
                 <span className="text-amber-300 font-medium">Need coins to play?</span>
-                <span className="text-zinc-400 ml-1">
-                  The 100-coin stake needs just {MIN_PUBLIC_STAKE.toLocaleString()} coins. Grab a package below or earn free coins at the <Link to="/daily" className="text-indigo-400 underline">Daily Hub</Link>.
+                <span className="text-emerald-200/60 ml-1">
+                  The 100-coin stake needs just {MIN_PUBLIC_STAKE.toLocaleString()} coins. Grab a package below or earn free coins at the <Link to="/daily" className="text-amber-400 underline">Daily Hub</Link>.
                 </span>
               </div>
             </div>
@@ -451,10 +451,10 @@ export function Wallet() {
                   className={cn(
                     "relative overflow-hidden transition-all hover:scale-[1.02] cursor-pointer",
                     pkg.popular
-                      ? "bg-gradient-to-br from-amber-950/40 to-zinc-900/50 border-amber-500/40 ring-1 ring-amber-500/20"
+                      ? "bg-gradient-to-br from-amber-950/40 via-[#0a2e1e]/50 to-emerald-950/30 border-amber-500/40 ring-1 ring-amber-500/20"
                       : pkg.bestValue
-                      ? "bg-gradient-to-br from-violet-950/40 to-zinc-900/50 border-violet-500/40 ring-1 ring-violet-500/20"
-                      : "bg-zinc-900/40 border-zinc-800/40 hover:border-zinc-700"
+                      ? "bg-gradient-to-br from-emerald-950/50 via-[#0a2e1e]/50 to-[#0d3828]/30 border-emerald-500/40 ring-1 ring-emerald-500/20"
+                      : "bg-emerald-950/30 border-emerald-800/40 hover:border-emerald-700"
                   )}
                   onClick={() => !purchasing && handlePurchase(pkg.id)}
                 >
@@ -464,22 +464,22 @@ export function Wallet() {
                     </div>
                   )}
                   {pkg.bestValue && (
-                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-violet-500/20 border border-violet-500/40 text-[10px] font-bold text-violet-300 uppercase">
+                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[10px] font-bold text-emerald-300 uppercase">
                       Best Value
                     </div>
                   )}
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center gap-2">
-                      <Package className={cn("w-5 h-5", pkg.popular ? "text-amber-400" : pkg.bestValue ? "text-violet-400" : "text-zinc-400")} />
-                      <span className="text-lg font-bold text-zinc-100">{pkg.label}</span>
+                      <Package className={cn("w-5 h-5", pkg.popular ? "text-amber-400" : pkg.bestValue ? "text-emerald-400" : "text-emerald-500/60")} />
+                      <span className="text-lg font-bold text-amber-50">{pkg.label}</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-zinc-100">${pkg.priceUsd.toFixed(2)}</span>
-                      <span className="text-xs text-zinc-500">USD</span>
+                      <span className="text-2xl font-bold text-amber-100">${pkg.priceUsd.toFixed(2)}</span>
+                      <span className="text-xs text-emerald-400/50">USD</span>
                     </div>
 
                     {/* Gameplay value framing */}
-                    <div className="space-y-1 text-xs text-zinc-500">
+                    <div className="space-y-1 text-xs text-emerald-400/50">
                       <div className="flex items-center justify-between">
                         <span>≈ {info.entries100.toLocaleString()} entries at 100 coins</span>
                       </div>
@@ -488,7 +488,7 @@ export function Wallet() {
                           <span>≈ {info.entries500.toLocaleString()} entries at 500 coins</span>
                         </div>
                       )}
-                      <div className="text-zinc-600 italic">{info.playStyle}</div>
+                      <div className="text-emerald-500/40 italic">{info.playStyle}</div>
                     </div>
 
                     <Button
@@ -500,8 +500,8 @@ export function Wallet() {
                         pkg.popular
                           ? "bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500"
                           : pkg.bestValue
-                          ? "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500"
-                          : "bg-zinc-700 hover:bg-zinc-600"
+                          ? "bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400"
+                          : "bg-emerald-800 hover:bg-emerald-700"
                       )}
                       disabled={purchasing !== null}
                       id={`buy-${pkg.id}-btn`}
@@ -519,12 +519,12 @@ export function Wallet() {
           </div>
 
           {/* Premium upsell (subtle) */}
-          <Card className="bg-zinc-900/20 border-zinc-800/30">
+          <Card className="bg-emerald-950/20 border-emerald-800/30">
             <CardContent className="p-3 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <Crown className="w-4 h-4 text-amber-500" />
-                <span className="text-xs text-zinc-400">
-                  <strong className="text-zinc-300">Gin Paradise Pro</strong> — AI coaching, extended replays, bonus daily rewards
+                <span className="text-xs text-emerald-300/60">
+                  <strong className="text-emerald-200/80">Gin Paradise Pro</strong> — AI coaching, extended replays, bonus daily rewards
                 </span>
               </div>
               <Link to="/premium">
@@ -540,17 +540,17 @@ export function Wallet() {
       {/* Transaction History */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-            <History className="w-5 h-5 text-zinc-400" />
+          <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2 text-amber-50">
+            <History className="w-5 h-5 text-emerald-400/60" />
             Transaction History
           </h2>
-          <span className="text-xs text-zinc-500">{transactions.length} transactions</span>
+          <span className="text-xs text-emerald-400/50">{transactions.length} transactions</span>
         </div>
 
         <div className="space-y-2">
           {transactions.length === 0 ? (
-            <Card className="bg-zinc-900/30 border-zinc-800/40 p-6 text-center">
-              <p className="text-zinc-500">No transactions yet. <Link to="/daily" className="text-indigo-400 hover:text-indigo-300">Earn coins at the Daily Hub!</Link></p>
+            <Card className="bg-emerald-950/30 border-emerald-800/40 p-6 text-center">
+              <p className="text-emerald-400/50">No transactions yet. <Link to="/daily" className="text-amber-400 hover:text-amber-300">Earn coins at the Daily Hub!</Link></p>
             </Card>
           ) : (
             transactions.map((txn) => {
@@ -559,7 +559,7 @@ export function Wallet() {
               return (
                 <Card
                   key={txn.id}
-                  className="bg-zinc-900/30 border-zinc-800/40 hover:bg-zinc-800/30 transition-colors"
+                  className="bg-emerald-950/20 border-emerald-800/30 hover:bg-emerald-900/30 transition-colors"
                 >
                   <div className="flex items-center justify-between p-4">
                     <div className="flex items-center gap-3 min-w-0">
@@ -574,14 +574,14 @@ export function Wallet() {
                         {typeInfo.icon}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-sm font-medium text-zinc-200 truncate">
+                        <div className="text-sm font-medium text-emerald-100 truncate">
                           {typeInfo.label}
                         </div>
-                        <div className="text-xs text-zinc-500 flex items-center gap-2">
+                        <div className="text-xs text-emerald-400/40 flex items-center gap-2">
                           <Clock className="w-3 h-3" />
                           {timeAgo(txn.created_at)}
                           {txn.note && (
-                            <span className="text-zinc-600">· {txn.note}</span>
+                            <span className="text-emerald-500/30">· {txn.note}</span>
                           )}
                         </div>
                       </div>
@@ -600,7 +600,7 @@ export function Wallet() {
                           Coins
                         </span>
                       </div>
-                      <div className="text-xs text-zinc-600">
+                      <div className="text-xs text-emerald-500/40">
                         Bal: {txn.balance_after.toLocaleString()}
                       </div>
                     </div>

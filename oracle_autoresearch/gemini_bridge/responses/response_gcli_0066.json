@@ -1,0 +1,85 @@
+{
+  "request_id": "gcli_0066",
+  "response_id": "gcli_0066_resp",
+  "timestamp": "2026-03-28T19:59:46.234110+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Unify trace confidence modeling by applying the calibrated TRACE_CONFIDENCE_DECAY exponential to compute_eval_weight.",
+  "edits": {
+    "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)": "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = 1.0 - math.exp(-TRACE_CONFIDENCE_DECAY * n_trace_events)"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "The exponential decay in compute_trace_confidence_multiplier was a major win. Linking compute_eval_weight's trace_confidence to this same exponential curve ensures both functions scale their trust of trace data consistently.",
+  "confidence": "high",
+  "agent_prompt_hash": "b1cd77a97646",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0066.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0066.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 47.86,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 42777
+          },
+          "tokens": {
+            "input": 15834,
+            "prompt": 15834,
+            "candidates": 266,
+            "total": 20200,
+            "cached": 0,
+            "thoughts": 4100,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 42777,
+              "tokens": {
+                "input": 15834,
+                "prompt": 15834,
+                "candidates": 266,
+                "total": 20200,
+                "cached": 0,
+                "thoughts": 4100,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Unify trace confidence modeling by applying the calibrated TRACE_CONFIDENCE_DECAY exponential to compute_eval_weight.\",\n  \"edits\": {\n    \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\": \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = 1.0 - math.exp(-TRACE_CONFIDENCE_DECAY * n_trace_events)\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"The exponential decay in compute_trace_confidence_multiplier was a major win. Linking compute_eval_weight's trace_confidence to this same exponential curve ensures both functions scale their trust of trace data consistently.\",\n  \"confidence\": \"high\"\n}"
+}

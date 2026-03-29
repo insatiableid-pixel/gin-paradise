@@ -1,0 +1,100 @@
+{
+  "request_id": "gcli_0028",
+  "response_id": "gcli_0028_resp",
+  "timestamp": "2026-03-28T00:55:44.710625+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "With high reliance on direct eval (0.9 weight), an extremely accurate threshold is critical. Increasing calibration fraction to 0.20 and max worlds to 200 invests more budget into finding the perfect threshold.",
+  "edits": {
+    "CALIBRATION_MAX_WORLDS = 150\n\n# CFR component": "CALIBRATION_MAX_WORLDS = 200\n\n# CFR component",
+    "CALIBRATION_FRACTION = 0.15\nCALIBRATION_SEED": "CALIBRATION_FRACTION = 0.20\nCALIBRATION_SEED"
+  },
+  "param_names": [
+    "CALIBRATION_MAX_WORLDS",
+    "CALIBRATION_FRACTION"
+  ],
+  "param_changes": {
+    "CALIBRATION_MAX_WORLDS": {
+      "old": 150,
+      "new": 200,
+      "delta": 50
+    },
+    "CALIBRATION_FRACTION": {
+      "old": 0.15,
+      "new": 0.2,
+      "delta": 0.05
+    }
+  },
+  "rationale": "Following the success of high direct eval weight and increased calibration max worlds, we further improve calibration precision by allocating more data and allowing up to 200 worlds per calibration spot. This supports the 0.90 blend weight by ensuring the threshold is as robust as possible.",
+  "confidence": "medium",
+  "agent_prompt_hash": "5e55346be60d",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0028.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0028.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 33.83,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 28555
+          },
+          "tokens": {
+            "input": 46217,
+            "prompt": 46217,
+            "candidates": 367,
+            "total": 48630,
+            "cached": 0,
+            "thoughts": 2046,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 28555,
+              "tokens": {
+                "input": 46217,
+                "prompt": 46217,
+                "candidates": 367,
+                "total": 48630,
+                "cached": 0,
+                "thoughts": 2046,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "```json\n{\n  \"hypothesis\": \"With high reliance on direct eval (0.9 weight), an extremely accurate threshold is critical. Increasing calibration fraction to 0.20 and max worlds to 200 invests more budget into finding the perfect threshold.\",\n  \"edits\": {\n    \"CALIBRATION_MAX_WORLDS = 150\\n\\n# CFR component\": \"CALIBRATION_MAX_WORLDS = 200\\n\\n# CFR component\",\n    \"CALIBRATION_FRACTION = 0.15\\nCALIBRATION_SEED\": \"CALIBRATION_FRACTION = 0.20\\nCALIBRATION_SEED\"\n  },\n  \"param_names\": [\n    \"CALIBRATION_MAX_WORLDS\",\n    \"CALIBRATION_FRACTION\"\n  ],\n  \"param_changes\": {\n    \"CALIBRATION_MAX_WORLDS\": {\n      \"old\": 150,\n      \"new\": 200,\n      \"delta\": 50\n    },\n    \"CALIBRATION_FRACTION\": {\n      \"old\": 0.15,\n      \"new\": 0.2,\n      \"delta\": 0.05\n    }\n  },\n  \"rationale\": \"Following the success of high direct eval weight and increased calibration max worlds, we further improve calibration precision by allocating more data and allowing up to 200 worlds per calibration spot. This supports the 0.90 blend weight by ensuring the threshold is as robust as possible.\",\n  \"confidence\": \"medium\"\n}\n```"
+}

@@ -1,0 +1,86 @@
+{
+  "request_id": "gcli_0106",
+  "response_id": "gcli_0106_resp",
+  "timestamp": "2026-03-29T02:59:04.987112+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "High pickup_pressure indicates specific opponent meld threats, warranting reduced trust in direct EV and an increased risk multiplier floor to improve calibration.",
+  "edits": {
+    "    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))": "    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence) - (0.15 * pickup_pressure)\n    return max(0.5, min(1.0, dynamic_weight))",
+    "    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress)\n    return max(dynamic_floor, min(1.0, multiplier))": "    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress) + (0.20 * pickup_pressure)\n    return max(dynamic_floor, min(1.0, multiplier))"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "Following Directive 117, we explicitly wire the new pickup_pressure signal into both evaluation blending and risk adjustment. When the opponent shows strong meld-seeking behavior, we lean more on the CFR prior and raise the risk floor to prevent reckless knocks.",
+  "confidence": "high",
+  "agent_prompt_hash": "6a4f67f53c4c",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0106.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0106.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 48.46,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 43568
+          },
+          "tokens": {
+            "input": 15617,
+            "prompt": 15617,
+            "candidates": 446,
+            "total": 19709,
+            "cached": 0,
+            "thoughts": 3646,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 43568,
+              "tokens": {
+                "input": 15617,
+                "prompt": 15617,
+                "candidates": 446,
+                "total": 19709,
+                "cached": 0,
+                "thoughts": 3646,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"High pickup_pressure indicates specific opponent meld threats, warranting reduced trust in direct EV and an increased risk multiplier floor to improve calibration.\",\n  \"edits\": {\n    \"    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\": \"    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence) - (0.15 * pickup_pressure)\\n    return max(0.5, min(1.0, dynamic_weight))\",\n    \"    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress)\\n    return max(dynamic_floor, min(1.0, multiplier))\": \"    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress) + (0.20 * pickup_pressure)\\n    return max(dynamic_floor, min(1.0, multiplier))\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight, compute_trace_confidence_multiplier\",\n  \"rationale\": \"Following Directive 117, we explicitly wire the new pickup_pressure signal into both evaluation blending and risk adjustment. When the opponent shows strong meld-seeking behavior, we lean more on the CFR prior and raise the risk floor to prevent reckless knocks.\",\n  \"confidence\": \"high\"\n}"
+}

@@ -1,0 +1,86 @@
+{
+  "request_id": "gcli_0081",
+  "response_id": "gcli_0081_resp",
+  "timestamp": "2026-03-28T22:57:29.188794+00:00",
+  "source": "gemini_cli_headless",
+  "model": "gemini-3.1-pro-preview",
+  "hypothesis": "Coupling progress-sensitive direct-EV trust with a steeper late-game risk floor reduction will push the 0.8052 signal over the promotion margin by capitalizing on high-fidelity late-game rollouts.",
+  "edits": {
+    "    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\n    return max(0.5, min(1.0, dynamic_weight))": "    progress = max(0.0, 31.0 - stock_size) / 31.0\n    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * (2.0 + 2.0 * progress))\n    trace_confidence = min(1.0, n_trace_events / 10.0)\n    \n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + (0.15 * progress)\n    return max(0.5, min(1.0, dynamic_weight))",
+    "    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress)": "    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.10 * progress)"
+  },
+  "param_names": [],
+  "param_changes": {},
+  "rationale": "Candidate 0075 showed a +0.0042 improvement using progress-sensitive eval weight, just shy of the +0.005 margin. Integrating late-game progress into both EV gap sensitivity and the CFR trust baseline, while simultaneously lowering the trace risk floor further in the late game, creates a unified mechanism to fully exploit high-fidelity deep searches when the deck is depleted.",
+  "confidence": "high",
+  "agent_prompt_hash": "73d51a4f96bd",
+  "request_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\request_gcli_0081.json",
+  "prompt_path": "C:\\Users\\mrwat\\OneDrive\\Desktop\\Gin Rummy\\oracle_autoresearch\\gemini_bridge\\requests\\prompt_gcli_0081.md",
+  "cli": {
+    "command": [
+      "C:\\Users\\mrwat\\AppData\\Roaming\\npm\\gemini.CMD",
+      "--prompt=",
+      "--output-format",
+      "json",
+      "--approval-mode",
+      "plan"
+    ],
+    "elapsed_sec": 50.48,
+    "returncode": 0,
+    "stderr": "Loaded cached credentials.",
+    "stats": {
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "api": {
+            "totalRequests": 1,
+            "totalErrors": 0,
+            "totalLatencyMs": 46262
+          },
+          "tokens": {
+            "input": 16144,
+            "prompt": 16144,
+            "candidates": 579,
+            "total": 21243,
+            "cached": 0,
+            "thoughts": 4520,
+            "tool": 0
+          },
+          "roles": {
+            "main": {
+              "totalRequests": 1,
+              "totalErrors": 0,
+              "totalLatencyMs": 46262,
+              "tokens": {
+                "input": 16144,
+                "prompt": 16144,
+                "candidates": 579,
+                "total": 21243,
+                "cached": 0,
+                "thoughts": 4520,
+                "tool": 0
+              }
+            }
+          }
+        }
+      },
+      "tools": {
+        "totalCalls": 0,
+        "totalSuccess": 0,
+        "totalFail": 0,
+        "totalDurationMs": 0,
+        "totalDecisions": {
+          "accept": 0,
+          "reject": 0,
+          "modify": 0,
+          "auto_accept": 0
+        },
+        "byName": {}
+      },
+      "files": {
+        "totalLinesAdded": 0,
+        "totalLinesRemoved": 0
+      }
+    }
+  },
+  "raw_response": "{\n  \"hypothesis\": \"Coupling progress-sensitive direct-EV trust with a steeper late-game risk floor reduction will push the 0.8052 signal over the promotion margin by capitalizing on high-fidelity late-game rollouts.\",\n  \"edits\": {\n    \"    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * 2.5)\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.15) + (0.15 * gap_confidence) + (0.10 * trace_confidence)\\n    return max(0.5, min(1.0, dynamic_weight))\": \"    progress = max(0.0, 31.0 - stock_size) / 31.0\\n    gap_confidence = 1.0 - math.exp(-abs(ev_gap) * (2.0 + 2.0 * progress))\\n    trace_confidence = min(1.0, n_trace_events / 10.0)\\n    \\n    dynamic_weight = (DIRECT_EVAL_WEIGHT - 0.20) + (0.15 * gap_confidence) + (0.10 * trace_confidence) + (0.15 * progress)\\n    return max(0.5, min(1.0, dynamic_weight))\",\n    \"    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.05 * progress)\": \"    dynamic_floor = TRACE_CONFIDENCE_FLOOR + (0.015 * max(0, hero_deadwood - 4)) - (0.10 * progress)\"\n  },\n  \"target_file\": \"train.py\",\n  \"param_names\": [],\n  \"param_changes\": {},\n  \"mutation_type\": \"semantic\",\n  \"mutation_target\": \"compute_eval_weight\",\n  \"rationale\": \"Candidate 0075 showed a +0.0042 improvement using progress-sensitive eval weight, just shy of the +0.005 margin. Integrating late-game progress into both EV gap sensitivity and the CFR trust baseline, while simultaneously lowering the trace risk floor further in the late game, creates a unified mechanism to fully exploit high-fidelity deep searches when the deck is depleted.\",\n  \"confidence\": \"high\"\n}"
+}
