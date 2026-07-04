@@ -1,0 +1,11 @@
+{
+  "entry": [
+    "server.ts",
+    "src/main.tsx",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "tests/**/*.test.ts"
+  ],
+  "project": ["**/*.{ts,tsx}"],
+  "ignore": ["dist/**", "coverage/**", "node_modules/**", ".codex-test/**"]
+}

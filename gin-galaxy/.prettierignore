@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+.codex-test
+.codex-test-3001
+database.sqlite*
+*.log
+package-lock.json

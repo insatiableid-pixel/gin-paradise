@@ -2,9 +2,10 @@ import crypto from "crypto";
 import Database from "better-sqlite3";
 import net from "net";
 import path from "path";
-import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
+import { spawn, type ChildProcessByStdio } from "child_process";
 import { once } from "events";
 import { fileURLToPath } from "url";
+import type { Readable } from "stream";
 import { WebSocket } from "ws";
 import { expect } from "vitest";
 
@@ -37,7 +38,7 @@ export interface HealthBody {
 }
 
 export interface ServerHandle {
-  proc: ChildProcessWithoutNullStreams;
+  proc: ChildProcessByStdio<null, Readable, Readable>;
   baseUrl: string;
   nodeId: string;
   port: number;
@@ -51,7 +52,10 @@ export interface SocketHarness {
   ws: WebSocket;
   messages: Array<Record<string, any>>;
   send: (message: unknown) => void;
-  waitForMessage: (predicate: (message: Record<string, any>) => boolean, timeoutMs?: number) => Promise<Record<string, any>>;
+  waitForMessage: (
+    predicate: (message: Record<string, any>) => boolean,
+    timeoutMs?: number,
+  ) => Promise<Record<string, any>>;
   count: (type: string) => number;
   close: () => Promise<void>;
 }
@@ -158,12 +162,13 @@ export async function startServer(
     exited = true;
   });
 
-  const getLogs = (): string => [
-    `--- stdout (${nodeId}) ---`,
-    stdout.trimEnd(),
-    `--- stderr (${nodeId}) ---`,
-    stderr.trimEnd(),
-  ].join("\n");
+  const getLogs = (): string =>
+    [
+      `--- stdout (${nodeId}) ---`,
+      stdout.trimEnd(),
+      `--- stderr (${nodeId}) ---`,
+      stderr.trimEnd(),
+    ].join("\n");
 
   const baseUrl = `http://127.0.0.1:${port}`;
   await waitForHealth(
@@ -245,7 +250,10 @@ export async function crashServer(handle: ServerHandle): Promise<void> {
   await Promise.race([once(handle.proc, "exit"), delay(5_000)]);
 }
 
-export async function registerUser(baseUrl: string, username: string): Promise<{ sessionId: string; user: { id: string; username: string } }> {
+export async function registerUser(
+  baseUrl: string,
+  username: string,
+): Promise<{ sessionId: string; user: { id: string; username: string } }> {
   const suffix = `${username}_${crypto.randomUUID().slice(0, 8)}`;
   const response = await fetch(`${baseUrl}/api/auth/register`, {
     method: "POST",
@@ -257,7 +265,7 @@ export async function registerUser(baseUrl: string, username: string): Promise<{
     }),
   });
   expect(response.status).toBe(200);
-  return await response.json() as { sessionId: string; user: { id: string; username: string } };
+  return (await response.json()) as { sessionId: string; user: { id: string; username: string } };
 }
 
 export function updateRatings(databasePath: string, userIds: string[], rating: number): void {
@@ -274,7 +282,9 @@ export function updateRatings(databasePath: string, userIds: string[], rating: n
 
 export function openSocket(baseUrl: string, sessionId: string): Promise<SocketHarness> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`${baseUrl.replace("http://", "ws://")}/ws?token=${encodeURIComponent(sessionId)}`);
+    const ws = new WebSocket(
+      `${baseUrl.replace("http://", "ws://")}/ws?token=${encodeURIComponent(sessionId)}`,
+    );
     const messages: Array<Record<string, any>> = [];
     const waiters: Array<{
       predicate: (message: Record<string, any>) => boolean;
@@ -307,11 +317,12 @@ export function openSocket(baseUrl: string, sessionId: string): Promise<SocketHa
     };
 
     ws.on("message", (data) => {
-      const text = typeof data === "string"
-        ? data
-        : Buffer.isBuffer(data)
-          ? data.toString("utf8")
-          : data.toString();
+      const text =
+        typeof data === "string"
+          ? data
+          : Buffer.isBuffer(data)
+            ? data.toString("utf8")
+            : data.toString();
 
       try {
         const message = JSON.parse(text) as Record<string, any>;
@@ -351,7 +362,9 @@ export function openSocket(baseUrl: string, sessionId: string): Promise<SocketHa
                   waiters.splice(index, 1);
                 }
                 const observed = messages.map((message) => JSON.stringify(message)).join(", ");
-                rejectMessage(new Error(`Timed out waiting for websocket message. Observed: [${observed}]`));
+                rejectMessage(
+                  new Error(`Timed out waiting for websocket message. Observed: [${observed}]`),
+                );
               }, timeoutMs),
             };
 

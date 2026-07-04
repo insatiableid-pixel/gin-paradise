@@ -83,15 +83,17 @@ suite("RedisCoordinator restart soak proof", () => {
         return;
       }
 
-      const request = event.payload?.request as {
-        requestId: string;
-        targetNodeId: string;
-        sourceNodeId: string;
-        roomId: string;
-        userId: string;
-        username: string;
-        message: unknown;
-      } | undefined;
+      const request = event.payload?.request as
+        | {
+            requestId: string;
+            targetNodeId: string;
+            sourceNodeId: string;
+            roomId: string;
+            userId: string;
+            username: string;
+            message: unknown;
+          }
+        | undefined;
       if (!request) {
         return;
       }
@@ -114,11 +116,23 @@ suite("RedisCoordinator restart soak proof", () => {
           players: new Map([
             [
               room.actorId,
-              { userId: room.actorId, username: room.actorName, ws: null, connected: true, nodeId: coordA.getNodeId() },
+              {
+                userId: room.actorId,
+                username: room.actorName,
+                ws: null,
+                connected: true,
+                nodeId: coordA.getNodeId(),
+              },
             ],
             [
               room.opponentId,
-              { userId: room.opponentId, username: room.opponentName, ws: null, connected: true, nodeId: coordA.getNodeId() },
+              {
+                userId: room.opponentId,
+                username: room.opponentName,
+                ws: null,
+                connected: true,
+                nodeId: coordA.getNodeId(),
+              },
             ],
           ]),
           status: "playing",
@@ -161,16 +175,26 @@ suite("RedisCoordinator restart soak proof", () => {
           nodeId: coordA.getNodeId(),
         });
 
-        expect(coordA.claimLease(roomOwnerLeaseName(room.roomId), coordA.getNodeId(), 120)).toBe(true);
-        expect(coordA.claimLease(roomTimerLeaseName(room.roomId), coordA.getNodeId(), 120)).toBe(true);
+        expect(coordA.claimLease(roomOwnerLeaseName(room.roomId), coordA.getNodeId(), 120)).toBe(
+          true,
+        );
+        expect(coordA.claimLease(roomTimerLeaseName(room.roomId), coordA.getNodeId(), 120)).toBe(
+          true,
+        );
       }
 
-      await waitFor(() => rooms.every((room) => coordB.getRoom(room.roomId)?.ownerNodeId === coordA.getNodeId()));
+      await waitFor(() =>
+        rooms.every((room) => coordB.getRoom(room.roomId)?.ownerNodeId === coordA.getNodeId()),
+      );
 
       await new Promise((resolve) => setTimeout(resolve, 250));
       for (const room of rooms) {
-        expect(coordB.claimLease(roomOwnerLeaseName(room.roomId), coordB.getNodeId(), 10_000)).toBe(true);
-        expect(coordB.claimLease(roomTimerLeaseName(room.roomId), coordB.getNodeId(), 10_000)).toBe(true);
+        expect(coordB.claimLease(roomOwnerLeaseName(room.roomId), coordB.getNodeId(), 10_000)).toBe(
+          true,
+        );
+        expect(coordB.claimLease(roomTimerLeaseName(room.roomId), coordB.getNodeId(), 10_000)).toBe(
+          true,
+        );
         coordB.updateRoomOwnership(room.roomId, {
           ownerNodeId: coordB.getNodeId(),
           ownerLeaseExpiresAt: Date.now() + 10_000,
@@ -179,7 +203,9 @@ suite("RedisCoordinator restart soak proof", () => {
         });
       }
 
-      await waitFor(() => rooms.every((room) => coordA.getRoom(room.roomId)?.ownerNodeId === coordB.getNodeId()));
+      await waitFor(() =>
+        rooms.every((room) => coordA.getRoom(room.roomId)?.ownerNodeId === coordB.getNodeId()),
+      );
 
       recoverTurnTimersFromCoordinator();
       await waitFor(() => rooms.every((room) => timeoutCounts.get(room.roomId) === 1));
@@ -188,7 +214,9 @@ suite("RedisCoordinator restart soak proof", () => {
         const expectedCount = cycle + 1;
 
         for (const room of rooms) {
-          const persistedCount = coordB.getRoomGameState(room.roomId)?.timeoutCounts?.[room.actorId] ?? expectedCount - 1;
+          const persistedCount =
+            coordB.getRoomGameState(room.roomId)?.timeoutCounts?.[room.actorId] ??
+            expectedCount - 1;
           coordB.setRoomGameState(room.roomId, {
             match: coordB.getRoomGameState(room.roomId)?.match ?? null,
             lastShowdown: coordB.getRoomGameState(room.roomId)?.lastShowdown ?? null,
@@ -216,21 +244,30 @@ suite("RedisCoordinator restart soak proof", () => {
         }
 
         await waitFor(() =>
-          rooms.every((room) => coordA.getRoomGameState(room.roomId)?.timeoutCounts?.[room.actorId] === expectedCount)
+          rooms.every(
+            (room) =>
+              coordA.getRoomGameState(room.roomId)?.timeoutCounts?.[room.actorId] === expectedCount,
+          ),
         );
 
-        await coordB.disconnect();
+        await coordB.disconnect?.();
         _clearAllTimers();
-        await coordB.connect();
+        await coordB.connect?.();
 
-        await waitFor(() => rooms.every((room) => coordB.getRoom(room.roomId)?.ownerNodeId === coordB.getNodeId()));
+        await waitFor(() =>
+          rooms.every((room) => coordB.getRoom(room.roomId)?.ownerNodeId === coordB.getNodeId()),
+        );
         recoverTurnTimersFromCoordinator();
 
         await waitFor(() =>
-          rooms.every((room) => timeoutCounts.get(room.roomId) === expectedCount + 1)
+          rooms.every((room) => timeoutCounts.get(room.roomId) === expectedCount + 1),
         );
         await waitFor(() =>
-          rooms.every((room) => coordA.getRoomGameState(room.roomId)?.timeoutCounts?.[room.actorId] === expectedCount + 1)
+          rooms.every(
+            (room) =>
+              coordA.getRoomGameState(room.roomId)?.timeoutCounts?.[room.actorId] ===
+              expectedCount + 1,
+          ),
         );
 
         const responses = await Promise.all(
@@ -243,8 +280,8 @@ suite("RedisCoordinator restart soak proof", () => {
               userId: room.actorId,
               username: room.actorName,
               message: { type: "join_room", roomId: room.roomId },
-            })
-          )
+            }),
+          ),
         );
 
         expect(responses).toHaveLength(roomCount);
@@ -256,7 +293,7 @@ suite("RedisCoordinator restart soak proof", () => {
               (response.messages[0] as { type?: string }).type === "room_joined" &&
               (response.messages[0] as { room?: { id?: string } }).room?.id === roomId
             );
-          })
+          }),
         ).toBe(true);
       }
     } finally {

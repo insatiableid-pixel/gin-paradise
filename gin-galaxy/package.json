@@ -8,12 +8,31 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit",
+    "prepare": "cd .. && husky",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:timed": "vitest run --reporter=verbose",
     "test:redis": "vitest run --no-file-parallelism --maxWorkers=1 tests/redisCoordinator.integration.test.ts tests/redisCoordinator.failover.test.ts tests/redisCoordinator.failoverChurn.test.ts tests/redisCoordinator.restartSoak.test.ts tests/redisCoordinator.load.test.ts tests/redisCoordinator.multiNodeSmoke.test.ts tests/redisCoordinator.appFailover.test.ts tests/redisCoordinator.appSoak.test.ts tests/redisCoordinator.enduranceSoak.test.ts tests/redisCoordinator.faultMatrix.test.ts tests/redisCoordinator.chaosMatrix.test.ts",
     "test:redis:soak": "vitest run --no-file-parallelism --maxWorkers=1 tests/redisCoordinator.appSoak.test.ts tests/redisCoordinator.enduranceSoak.test.ts",
     "test:redis:chaos": "vitest run --no-file-parallelism --maxWorkers=1 tests/redisCoordinator.chaosMatrix.test.ts",
+    "quality:dead-code": "knip",
+    "quality:duplicates": "jscpd --config jscpd.config.json",
+    "quality:todos": "node scripts/check-todos.mjs",
+    "quality:large-files": "node scripts/check-large-files.mjs",
+    "analyze:bundle": "vite build --mode analyze",
+    "ci": "npm run typecheck && npm run lint && npm test && npm run build",
     "start": "NODE_ENV=production tsx server.ts"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,cjs,mjs,json,md,css,html,yml,yaml}": "prettier --write"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
@@ -26,27 +45,48 @@
     "express": "^4.21.2",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
-    "redis": "^4.7.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.13.1",
+    "redis": "^4.7.0",
     "tailwind-merge": "^3.5.0",
     "vite": "^6.2.0",
     "ws": "^8.19.0",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "@types/ws": "^8.18.1",
+    "@vitest/coverage-v8": "^4.1.9",
     "autoprefixer": "^10.4.21",
+    "eslint": "^10.6.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.7.0",
+    "husky": "^9.1.7",
+    "jscpd": "^5.0.11",
+    "knip": "^6.24.0",
+    "lint-staged": "^17.0.8",
+    "prettier": "^3.9.4",
+    "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
+    "typescript-eslint": "^8.62.1",
     "vite": "^6.2.0",
     "vitest": "^4.0.18"
+  },
+  "overrides": {
+    "tsx": {
+      "esbuild": "^0.28.1"
+    }
   }
 }

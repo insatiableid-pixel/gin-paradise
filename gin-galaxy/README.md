@@ -17,6 +17,19 @@ A competitive Gin Rummy platform with AI opponents, real-time multiplayer, tourn
    ```
 4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
+## Common Commands
+
+```bash
+npm run dev          # Start the Express + Vite development server
+npm run build        # Build the production frontend bundle
+npm run preview      # Preview the production bundle locally
+npm run typecheck    # Run TypeScript with strict checking
+npm run lint         # Run ESLint
+npm test             # Run the Vitest unit suite
+npm run test:timed   # Run Vitest with per-test timing output
+npm run analyze:bundle # Build and write dist/bundle-stats.html
+```
+
 ## Production Deployment
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for full deployment instructions.

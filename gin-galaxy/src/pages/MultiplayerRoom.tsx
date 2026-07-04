@@ -1,19 +1,63 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Copy, Check, Wifi, WifiOff, Users, Loader2, Search, Zap, Clock, AlertTriangle, Coins, Sparkles, Trophy, Settings, Volume2, VolumeX, RotateCcw, Shield } from "lucide-react";
+import {
+  ArrowLeft,
+  Copy,
+  Check,
+  Wifi,
+  WifiOff,
+  Users,
+  Loader2,
+  Search,
+  Zap,
+  Clock,
+  AlertTriangle,
+  Coins,
+  Sparkles,
+  Trophy,
+  Settings,
+  Volume2,
+  VolumeX,
+  RotateCcw,
+  Shield,
+} from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/components/ui/Button";
 import { motion, AnimatePresence } from "motion/react";
 import { useMultiplayer } from "@/src/lib/useMultiplayer";
 import { useAuthStore } from "@/src/lib/store";
 import { usePreferences, getSuitColor } from "@/src/lib/preferences";
-import { computeMeldHighlights, getMeldColor, getCardMeldIndex, type MeldHighlightMap } from "@/src/lib/meldHighlight";
+import {
+  computeMeldHighlights,
+  getMeldColor,
+  getCardMeldIndex,
+  type MeldHighlightMap,
+} from "@/src/lib/meldHighlight";
 import { useHandDrag } from "@/src/lib/handDrag";
-import { playDrawSound, playDiscardSound, playDealSound, playKnockSound, playResultSound, prefersReducedMotion } from "@/src/lib/audio";
+import {
+  playDrawSound,
+  playDiscardSound,
+  playDealSound,
+  playKnockSound,
+  playResultSound,
+  prefersReducedMotion,
+} from "@/src/lib/audio";
 import type { Card as EngineCard } from "@/src/lib/engine";
-import type { ShowdownData, ShowdownPlayerData, ShowdownMeld, CardView } from "../../server/multiplayer/types";
+import type {
+  ShowdownData,
+  ShowdownPlayerData,
+  ShowdownMeld,
+  CardView,
+} from "../../server/multiplayer/types";
 import { SpectatorView } from "./SpectatorView";
-import { PlayingCard, OverlappingCard, CardBack, ShowdownCardMini, TABLE_FELT_GRADIENT, TABLE_NOISE_STYLE } from "@/src/components/cards";
+import {
+  PlayingCard,
+  OverlappingCard,
+  CardBack,
+  ShowdownCardMini,
+  TABLE_FELT_GRADIENT,
+  TABLE_NOISE_STYLE,
+} from "@/src/components/cards";
 import * as MP from "@/src/lib/motionPresets";
 
 // ── Card display types ───────────────────────────────────────────────
@@ -21,7 +65,21 @@ import * as MP from "@/src/lib/motionPresets";
 type Suit = "♠" | "♥" | "♦" | "♣";
 type Rank = "A" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "J" | "Q" | "K";
 const SUIT_ORDER: Record<string, number> = { "♣": 0, "♦": 1, "♥": 2, "♠": 3 };
-const RANK_ORDER: Record<string, number> = { "A": 0, "2": 1, "3": 2, "4": 3, "5": 4, "6": 5, "7": 6, "8": 7, "9": 8, "10": 9, "J": 10, "Q": 11, "K": 12 };
+const RANK_ORDER: Record<string, number> = {
+  A: 0,
+  "2": 1,
+  "3": 2,
+  "4": 3,
+  "5": 4,
+  "6": 5,
+  "7": 6,
+  "8": 7,
+  "9": 8,
+  "10": 9,
+  J: 10,
+  Q: 11,
+  K: 12,
+};
 
 function sortCards(cards: CardView[]): CardView[] {
   return [...cards].sort((a, b) => {
@@ -47,19 +105,19 @@ const ShowdownPlayerSection: React.FC<{
       <div className="flex items-center gap-2">
         <span className="text-sm font-bold text-zinc-100">{data.username}</span>
         {isKnocker && (
-          <span className={cn(
-            "px-2 py-0.5 rounded text-[10px] font-bold border",
-            knockOutcome === "gin"
-              ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-              : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-          )}>
+          <span
+            className={cn(
+              "px-2 py-0.5 rounded text-[10px] font-bold border",
+              knockOutcome === "gin"
+                ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+            )}
+          >
             {knockOutcome === "gin" ? "GIN" : "KNOCKER"}
           </span>
         )}
         {showDeadwoodCount && (
-          <span className="text-[10px] text-emerald-600/60 ml-auto">
-            DW: {data.deadwoodValue}
-          </span>
+          <span className="text-[10px] text-emerald-600/60 ml-auto">DW: {data.deadwoodValue}</span>
         )}
       </div>
 
@@ -73,7 +131,13 @@ const ShowdownPlayerSection: React.FC<{
               </span>
               <div className="flex gap-0.5 flex-wrap">
                 {meld.cards.map((c, ci) => (
-                  <ShowdownCardMini key={ci} suit={c.suit} rank={c.rank} highlight="meld" fourColor={fourColor} />
+                  <ShowdownCardMini
+                    key={ci}
+                    suit={c.suit}
+                    rank={c.rank}
+                    highlight="meld"
+                    fourColor={fourColor}
+                  />
                 ))}
               </div>
             </div>
@@ -87,7 +151,13 @@ const ShowdownPlayerSection: React.FC<{
           <span className="text-[9px] text-amber-500 w-8 flex-shrink-0 font-medium">Laid</span>
           <div className="flex gap-0.5 flex-wrap">
             {data.laidOffCards.map((c, ci) => (
-              <ShowdownCardMini key={ci} suit={c.suit} rank={c.rank} highlight="layoff" fourColor={fourColor} />
+              <ShowdownCardMini
+                key={ci}
+                suit={c.suit}
+                rank={c.rank}
+                highlight="layoff"
+                fourColor={fourColor}
+              />
             ))}
           </div>
         </div>
@@ -99,7 +169,13 @@ const ShowdownPlayerSection: React.FC<{
           <span className="text-[9px] text-zinc-500 w-8 flex-shrink-0 font-medium">DW</span>
           <div className="flex gap-0.5 flex-wrap">
             {data.deadwood.map((c, ci) => (
-              <ShowdownCardMini key={ci} suit={c.suit} rank={c.rank} highlight="deadwood" fourColor={fourColor} />
+              <ShowdownCardMini
+                key={ci}
+                suit={c.suit}
+                rank={c.rank}
+                highlight="deadwood"
+                fourColor={fourColor}
+              />
             ))}
           </div>
         </div>
@@ -108,25 +184,42 @@ const ShowdownPlayerSection: React.FC<{
   );
 };
 
-// ── Main Component ───────────────────────────────────────────────────
-
 export function MultiplayerRoom() {
-  const { user } = useAuthStore();
-  const mp = useMultiplayer();
-  const { showDeadwoodCount, fourColorDeck, soundEnabled, animationsEnabled, setShowDeadwoodCount, setFourColorDeck, setSoundEnabled, setAnimationsEnabled } = usePreferences();
   const [searchParams] = useSearchParams();
 
-  // If navigated with ?watch=ROOMID, show spectator view
   if (searchParams.get("watch")) {
     return <SpectatorView />;
   }
+
+  return <MultiplayerGameRoom />;
+}
+
+// ── Main Component ───────────────────────────────────────────────────
+
+function MultiplayerGameRoom() {
+  const { user } = useAuthStore();
+  const mp = useMultiplayer();
+  const {
+    showDeadwoodCount,
+    fourColorDeck,
+    soundEnabled,
+    animationsEnabled,
+    setShowDeadwoodCount,
+    setFourColorDeck,
+    setSoundEnabled,
+    setAnimationsEnabled,
+  } = usePreferences();
+  const [searchParams] = useSearchParams();
   const [joinCode, setJoinCode] = useState("");
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const autoQueueTriggered = useRef(false);
   const [displayTimer, setDisplayTimer] = useState<number | null>(null);
   const [selectedStake, setSelectedStake] = useState("gold_100");
-  const [walletBalance, setWalletBalance] = useState<{ gold_coins: number; sweeps_coins: number } | null>(null);
+  const [walletBalance, setWalletBalance] = useState<{
+    gold_coins: number;
+    sweeps_coins: number;
+  } | null>(null);
   const [showPrefs, setShowPrefs] = useState(false);
   const [knockAnimating, setKnockAnimating] = useState(false);
   const [discardAnimating, setDiscardAnimating] = useState(false);
@@ -135,7 +228,39 @@ export function MultiplayerRoom() {
 
   const reducedMotion = prefersReducedMotion();
   const shouldAnimate = animationsEnabled && !reducedMotion;
-  const playSound = useCallback((fn: () => void) => { if (soundEnabled) fn(); }, [soundEnabled]);
+  const playSound = useCallback(
+    (fn: () => void) => {
+      if (soundEnabled) fn();
+    },
+    [soundEnabled],
+  );
+  const activeHand = mp.gameState?.myHand ?? [];
+
+  // Drag-and-drop hand management
+  const {
+    displayHand,
+    dragState,
+    isCustomOrder,
+    onDragStart,
+    onDragOver,
+    onDragEnd,
+    resetToAutoSort,
+  } = useHandDrag(activeHand);
+
+  // Meld highlighting
+  const meldHighlights = useMemo<MeldHighlightMap>(() => {
+    const hand10 = activeHand.length <= 10 ? activeHand : activeHand.slice(0, 10);
+    return computeMeldHighlights(hand10 as EngineCard[]);
+  }, [activeHand]);
+
+  // Global pointer up for drag end
+  useEffect(() => {
+    const handler = () => {
+      if (dragState.isDragging) onDragEnd();
+    };
+    window.addEventListener("pointerup", handler);
+    return () => window.removeEventListener("pointerup", handler);
+  }, [dragState.isDragging, onDragEnd]);
 
   // Fetch wallet balances
   useEffect(() => {
@@ -143,13 +268,21 @@ export function MultiplayerRoom() {
     const { sessionId } = useAuthStore.getState();
     if (!sessionId) return;
     fetch("/api/wallet", { headers: { Authorization: `Bearer ${sessionId}` } })
-      .then(r => r.json())
-      .then(d => setWalletBalance(d.balances))
+      .then((r) => r.json())
+      .then((d) => setWalletBalance(d.balances))
       .catch(() => {});
   }, [mp.phase]);
 
   // Helper to compute rake-adjusted presets (mirrors server logic)
-  function makeClientPreset(id: string, label: string, currency: string, entryFee: number, rakePercent: number, icon: any, color: string) {
+  function makeClientPreset(
+    id: string,
+    label: string,
+    currency: string,
+    entryFee: number,
+    rakePercent: number,
+    icon: any,
+    color: string,
+  ) {
     const totalHeld = entryFee * 2;
     const rakeAmount = Math.round(totalHeld * rakePercent * 100) / 100;
     const prizePool = totalHeld - rakeAmount;
@@ -157,21 +290,22 @@ export function MultiplayerRoom() {
   }
 
   const STAKE_PRESETS = [
-    makeClientPreset("free",         "Practice",       "gold_coins",   0,      0,    Zap,      "emerald"),
-    makeClientPreset("gold_100",     "100 Coins",      "gold_coins",   100,    0.05, Coins,    "amber"),
-    makeClientPreset("gold_500",     "500 Coins",      "gold_coins",   500,    0.05, Coins,    "amber"),
-    makeClientPreset("gold_2000",    "2,000 Coins",    "gold_coins",   2000,   0.05, Coins,    "amber"),
-    makeClientPreset("gold_5000",    "5,000 Coins",    "gold_coins",   5000,   0.05, Coins,    "amber"),
-    makeClientPreset("gold_10000",   "10,000 Coins",   "gold_coins",   10000,  0.05, Coins,    "amber"),
+    makeClientPreset("free", "Practice", "gold_coins", 0, 0, Zap, "emerald"),
+    makeClientPreset("gold_100", "100 Coins", "gold_coins", 100, 0.05, Coins, "amber"),
+    makeClientPreset("gold_500", "500 Coins", "gold_coins", 500, 0.05, Coins, "amber"),
+    makeClientPreset("gold_2000", "2,000 Coins", "gold_coins", 2000, 0.05, Coins, "amber"),
+    makeClientPreset("gold_5000", "5,000 Coins", "gold_coins", 5000, 0.05, Coins, "amber"),
+    makeClientPreset("gold_10000", "10,000 Coins", "gold_coins", 10000, 0.05, Coins, "amber"),
   ];
 
   // Compute recommended (highest affordable) stake
-  const affordablePresets = STAKE_PRESETS.filter(p =>
-    p.entryFee === 0 || (walletBalance ? walletBalance.gold_coins >= p.entryFee : true)
+  const affordablePresets = STAKE_PRESETS.filter(
+    (p) => p.entryFee === 0 || (walletBalance ? walletBalance.gold_coins >= p.entryFee : true),
   );
-  const recommendedStake = affordablePresets.length > 1
-    ? affordablePresets[affordablePresets.length - 1] // highest affordable
-    : affordablePresets[0] || STAKE_PRESETS[0];
+  const recommendedStake =
+    affordablePresets.length > 1
+      ? affordablePresets[affordablePresets.length - 1] // highest affordable
+      : affordablePresets[0] || STAKE_PRESETS[0];
   const canAffordAnyStake = walletBalance ? walletBalance.gold_coins >= 100 : true;
 
   // Auto-select recommended gold stake when wallet loads (only once)
@@ -193,7 +327,7 @@ export function MultiplayerRoom() {
     if (mp.gameState?.turnTimer) {
       setDisplayTimer(mp.gameState.turnTimer.remainingSeconds);
       const interval = setInterval(() => {
-        setDisplayTimer(prev => prev !== null && prev > 0 ? prev - 1 : 0);
+        setDisplayTimer((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
       }, 1000);
       return () => clearInterval(interval);
     } else {
@@ -212,7 +346,11 @@ export function MultiplayerRoom() {
 
   // Once connected in lobby, auto-queue if quickmatch param is set
   useEffect(() => {
-    if (searchParams.get("quickmatch") === "true" && mp.phase === "lobby" && !autoQueueTriggered.current) {
+    if (
+      searchParams.get("quickmatch") === "true" &&
+      mp.phase === "lobby" &&
+      !autoQueueTriggered.current
+    ) {
       autoQueueTriggered.current = true;
       mp.queueMatch(selectedStake);
     }
@@ -284,11 +422,20 @@ export function MultiplayerRoom() {
           </div>
           <div className="flex items-center gap-2">
             {mp.phase === "connecting" ? (
-              <><Loader2 className="w-4 h-4 animate-spin text-amber-400" /><span className="text-xs text-amber-400">Connecting...</span></>
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                <span className="text-xs text-amber-400">Connecting...</span>
+              </>
             ) : mp.phase === "lobby" ? (
-              <><Wifi className="w-4 h-4 text-emerald-400" /><span className="text-xs text-emerald-400">Connected</span></>
+              <>
+                <Wifi className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs text-emerald-400">Connected</span>
+              </>
             ) : (
-              <><WifiOff className="w-4 h-4 text-rose-400" /><span className="text-xs text-rose-400">Disconnected</span></>
+              <>
+                <WifiOff className="w-4 h-4 text-rose-400" />
+                <span className="text-xs text-rose-400">Disconnected</span>
+              </>
             )}
           </div>
         </header>
@@ -296,11 +443,16 @@ export function MultiplayerRoom() {
         <main className="flex-1 flex items-center justify-center p-4 relative">
           {/* Felt background for lobby */}
           <div className={cn("absolute inset-0 pointer-events-none", TABLE_FELT_GRADIENT)} />
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={TABLE_NOISE_STYLE} />
+          <div
+            className="absolute inset-0 opacity-[0.03] pointer-events-none"
+            style={TABLE_NOISE_STYLE}
+          />
           <div className="max-w-md w-full space-y-8 relative z-10">
             <div className="text-center space-y-2">
               <h1 className="text-4xl font-bold tracking-tighter text-white">Multiplayer</h1>
-              <p className="text-emerald-400/60">Find an opponent instantly, or create a room to play with a friend.</p>
+              <p className="text-emerald-400/60">
+                Find an opponent instantly, or create a room to play with a friend.
+              </p>
             </div>
 
             {mp.error && (
@@ -310,12 +462,18 @@ export function MultiplayerRoom() {
                 className="bg-rose-500/10 border border-rose-500/30 rounded-lg p-3 text-sm text-rose-400 text-center"
               >
                 {mp.error}
-                <button onClick={mp.clearError} className="ml-2 underline text-xs">dismiss</button>
+                <button onClick={mp.clearError} className="ml-2 underline text-xs">
+                  dismiss
+                </button>
               </motion.div>
             )}
 
             {mp.phase === "disconnected" && (
-              <Button variant="primary" onClick={mp.connect} className="w-full h-14 text-lg bg-amber-600 hover:bg-amber-500 rounded-xl shadow-[0_0_40px_-10px_rgba(217,119,6,0.5)]">
+              <Button
+                variant="primary"
+                onClick={mp.connect}
+                className="w-full h-14 text-lg bg-amber-600 hover:bg-amber-500 rounded-xl shadow-[0_0_40px_-10px_rgba(217,119,6,0.5)]"
+              >
                 Connect to Server
               </Button>
             )}
@@ -346,19 +504,18 @@ export function MultiplayerRoom() {
                     {walletBalance && (
                       <div className="flex items-center gap-3 text-xs">
                         <span className="text-amber-400 flex items-center gap-1">
-                          <Coins className="w-3 h-3" /> {walletBalance.gold_coins.toLocaleString()} Coins
+                          <Coins className="w-3 h-3" /> {walletBalance.gold_coins.toLocaleString()}{" "}
+                          Coins
                         </span>
                       </div>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    {STAKE_PRESETS.map(preset => {
+                    {STAKE_PRESETS.map((preset) => {
                       const isSelected = selectedStake === preset.id;
-                      const canAfford = preset.entryFee === 0 || (
-                        walletBalance
-                          ? walletBalance.gold_coins >= preset.entryFee
-                          : true
-                      );
+                      const canAfford =
+                        preset.entryFee === 0 ||
+                        (walletBalance ? walletBalance.gold_coins >= preset.entryFee : true);
                       const Icon = preset.icon;
                       return (
                         <button
@@ -372,30 +529,46 @@ export function MultiplayerRoom() {
                                 ? "bg-emerald-950/50 border-emerald-500/60 text-emerald-300 shadow-[0_0_20px_-8px_rgba(16,185,129,0.3)]"
                                 : "bg-amber-950/50 border-amber-500/60 text-amber-300 shadow-[0_0_20px_-8px_rgba(245,158,11,0.3)]"
                               : canAfford
-                              ? "bg-[#0a2e1e]/50 border-emerald-800/50 text-emerald-400/60 hover:bg-[#0a2e1e]/70 hover:border-emerald-700/60"
-                              : "bg-[#0a2e1e]/30 border-emerald-900/30 text-emerald-600/40 cursor-not-allowed opacity-60"
+                                ? "bg-[#0a2e1e]/50 border-emerald-800/50 text-emerald-400/60 hover:bg-[#0a2e1e]/70 hover:border-emerald-700/60"
+                                : "bg-[#0a2e1e]/30 border-emerald-900/30 text-emerald-600/40 cursor-not-allowed opacity-60",
                           )}
                         >
-                          <Icon className={cn("w-4 h-4 flex-shrink-0",
-                            isSelected
-                              ? preset.color === "emerald" ? "text-emerald-400" : preset.color === "amber" ? "text-amber-400" : "text-violet-400"
-                              : "text-zinc-500"
-                          )} />
+                          <Icon
+                            className={cn(
+                              "w-4 h-4 flex-shrink-0",
+                              isSelected
+                                ? preset.color === "emerald"
+                                  ? "text-emerald-400"
+                                  : preset.color === "amber"
+                                    ? "text-amber-400"
+                                    : "text-violet-400"
+                                : "text-zinc-500",
+                            )}
+                          />
                           <div className="flex-1 min-w-0">
                             <div className="font-medium truncate">{preset.label}</div>
                             {preset.entryFee > 0 && (
                               <div className="text-[10px] text-zinc-500">
                                 Win {preset.prizePool.toLocaleString()}
                                 {preset.rakePercent > 0 && (
-                                  <span className="text-zinc-600 ml-1">({(preset.rakePercent * 100).toFixed(0)}% rake)</span>
+                                  <span className="text-zinc-600 ml-1">
+                                    ({(preset.rakePercent * 100).toFixed(0)}% rake)
+                                  </span>
                                 )}
                               </div>
                             )}
                           </div>
                           {isSelected && (
-                            <div className={cn("w-2 h-2 rounded-full",
-                              preset.color === "emerald" ? "bg-emerald-400" : preset.color === "amber" ? "bg-amber-400" : "bg-violet-400"
-                            )} />
+                            <div
+                              className={cn(
+                                "w-2 h-2 rounded-full",
+                                preset.color === "emerald"
+                                  ? "bg-emerald-400"
+                                  : preset.color === "amber"
+                                    ? "bg-amber-400"
+                                    : "bg-violet-400",
+                              )}
+                            />
                           )}
                         </button>
                       );
@@ -408,8 +581,13 @@ export function MultiplayerRoom() {
                       <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
                       <span className="text-zinc-400">
                         Need coins for staked play.
-                        <Link to="/daily" className="text-emerald-400 underline ml-1">Earn free coins</Link> or
-                        <Link to="/wallet" className="text-amber-400 underline ml-1">buy coins</Link>
+                        <Link to="/daily" className="text-emerald-400 underline ml-1">
+                          Earn free coins
+                        </Link>{" "}
+                        or
+                        <Link to="/wallet" className="text-amber-400 underline ml-1">
+                          buy coins
+                        </Link>
                       </span>
                     </div>
                   )}
@@ -418,7 +596,9 @@ export function MultiplayerRoom() {
                   {walletBalance && canAffordAnyStake && recommendedStake.entryFee > 0 && (
                     <div className="text-[10px] text-zinc-500 px-1 flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-amber-500" />
-                      Recommended: <strong className="text-zinc-400">{recommendedStake.label}</strong> based on your bankroll
+                      Recommended:{" "}
+                      <strong className="text-zinc-400">{recommendedStake.label}</strong> based on
+                      your bankroll
                     </div>
                   )}
                 </div>
@@ -431,11 +611,13 @@ export function MultiplayerRoom() {
                       <Clock className="w-3.5 h-3.5" /> Timer Speed
                     </h3>
                     <div className="space-y-1.5">
-                      {([
-                        { id: "fast", label: "Fast", sub: "20s per turn", color: "rose" },
-                        { id: "medium", label: "Medium", sub: "30s per turn", color: "amber" },
-                        { id: "slow", label: "Slow", sub: "40s per turn", color: "emerald" },
-                      ] as const).map(opt => {
+                      {(
+                        [
+                          { id: "fast", label: "Fast", sub: "20s per turn", color: "rose" },
+                          { id: "medium", label: "Medium", sub: "30s per turn", color: "amber" },
+                          { id: "slow", label: "Slow", sub: "40s per turn", color: "emerald" },
+                        ] as const
+                      ).map((opt) => {
                         const isSelected = timerSpeed === opt.id;
                         return (
                           <button
@@ -447,9 +629,9 @@ export function MultiplayerRoom() {
                                 ? opt.color === "rose"
                                   ? "bg-rose-950/40 border-rose-500/50 text-rose-300"
                                   : opt.color === "amber"
-                                  ? "bg-amber-950/40 border-amber-500/50 text-amber-300"
-                                  : "bg-emerald-950/40 border-emerald-500/50 text-emerald-300"
-                              : "bg-[#0a2e1e]/40 border-emerald-800/40 text-emerald-500/60 hover:border-emerald-700/50 hover:text-emerald-400/80"
+                                    ? "bg-amber-950/40 border-amber-500/50 text-amber-300"
+                                    : "bg-emerald-950/40 border-emerald-500/50 text-emerald-300"
+                                : "bg-[#0a2e1e]/40 border-emerald-800/40 text-emerald-500/60 hover:border-emerald-700/50 hover:text-emerald-400/80",
                             )}
                           >
                             <span className="font-medium">{opt.label}</span>
@@ -466,10 +648,22 @@ export function MultiplayerRoom() {
                       <Users className="w-3.5 h-3.5" /> Match Quality
                     </h3>
                     <div className="space-y-1.5">
-                      {([
-                        { id: "like_rated", label: "Like Rated", sub: "Tighter skill match", color: "emerald" },
-                        { id: "wider_field", label: "Wider Field", sub: "Faster queue times", color: "amber" },
-                      ] as const).map(opt => {
+                      {(
+                        [
+                          {
+                            id: "like_rated",
+                            label: "Like Rated",
+                            sub: "Tighter skill match",
+                            color: "emerald",
+                          },
+                          {
+                            id: "wider_field",
+                            label: "Wider Field",
+                            sub: "Faster queue times",
+                            color: "amber",
+                          },
+                        ] as const
+                      ).map((opt) => {
                         const isSelected = matchPosture === opt.id;
                         return (
                           <button
@@ -481,7 +675,7 @@ export function MultiplayerRoom() {
                                 ? opt.color === "emerald"
                                   ? "bg-emerald-950/40 border-emerald-500/50 text-emerald-300"
                                   : "bg-amber-950/40 border-amber-500/50 text-amber-300"
-                                : "bg-[#0a2e1e]/40 border-emerald-800/40 text-emerald-500/60 hover:border-emerald-700/50 hover:text-emerald-400/80"
+                                : "bg-[#0a2e1e]/40 border-emerald-800/40 text-emerald-500/60 hover:border-emerald-700/50 hover:text-emerald-400/80",
                             )}
                           >
                             <span className="font-medium">{opt.label}</span>
@@ -497,8 +691,12 @@ export function MultiplayerRoom() {
                 </div>
 
                 <div className="relative">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-emerald-800/40" /></div>
-                  <div className="relative flex justify-center text-sm"><span className="px-4 bg-[#0a1f15] text-emerald-600/50">or play a friend</span></div>
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-emerald-800/40" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-[#0a1f15] text-emerald-600/50">or play a friend</span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -542,7 +740,12 @@ export function MultiplayerRoom() {
       <div className="fixed inset-0 bg-[#0a1f15] flex flex-col font-sans">
         <header className="h-14 border-b border-emerald-900/50 bg-[#0d1a12]/90 backdrop-blur flex items-center justify-between px-4 z-10">
           <div className="flex items-center gap-4">
-            <button onClick={() => { mp.cancelQueue(); }} className="text-emerald-700 hover:text-emerald-300 transition-colors">
+            <button
+              onClick={() => {
+                mp.cancelQueue();
+              }}
+              className="text-emerald-700 hover:text-emerald-300 transition-colors"
+            >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <span className="text-sm font-medium text-emerald-400/70">Finding Opponent</span>
@@ -555,7 +758,10 @@ export function MultiplayerRoom() {
 
         <main className="flex-1 flex items-center justify-center p-4 relative">
           <div className={cn("absolute inset-0 pointer-events-none", TABLE_FELT_GRADIENT)} />
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={TABLE_NOISE_STYLE} />
+          <div
+            className="absolute inset-0 opacity-[0.03] pointer-events-none"
+            style={TABLE_NOISE_STYLE}
+          />
           <div className="max-w-md w-full text-center space-y-8 relative z-10">
             <div className="space-y-4">
               <motion.div
@@ -566,14 +772,21 @@ export function MultiplayerRoom() {
                 <Zap className="w-12 h-12 text-amber-400" />
               </motion.div>
               <h2 className="text-2xl font-bold text-white">Finding your opponent...</h2>
-              <p className="text-emerald-400/60">You're in the matchmaking queue. We'll pair you as soon as another player joins.</p>
+              <p className="text-emerald-400/60">
+                You're in the matchmaking queue. We'll pair you as soon as another player joins.
+              </p>
             </div>
 
             <div className="flex flex-col gap-3">
               <motion.div
                 initial={{ width: "0%" }}
                 animate={{ width: "100%" }}
-                transition={{ repeat: Infinity, duration: 3, ease: "easeInOut", repeatType: "reverse" }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 3,
+                  ease: "easeInOut",
+                  repeatType: "reverse",
+                }}
                 className="h-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"
               />
               <Button
@@ -597,7 +810,10 @@ export function MultiplayerRoom() {
       <div className="fixed inset-0 bg-[#0a1f15] flex flex-col font-sans">
         <header className="h-14 border-b border-emerald-900/50 bg-[#0d1a12]/90 backdrop-blur flex items-center justify-between px-4 z-10">
           <div className="flex items-center gap-4">
-            <button onClick={mp.leaveRoom} className="text-emerald-700 hover:text-emerald-300 transition-colors">
+            <button
+              onClick={mp.leaveRoom}
+              className="text-emerald-700 hover:text-emerald-300 transition-colors"
+            >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <span className="text-sm font-medium text-emerald-400/70">Waiting for Opponent</span>
@@ -610,7 +826,10 @@ export function MultiplayerRoom() {
 
         <main className="flex-1 flex items-center justify-center p-4 relative">
           <div className={cn("absolute inset-0 pointer-events-none", TABLE_FELT_GRADIENT)} />
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={TABLE_NOISE_STYLE} />
+          <div
+            className="absolute inset-0 opacity-[0.03] pointer-events-none"
+            style={TABLE_NOISE_STYLE}
+          />
           <div className="max-w-md w-full text-center space-y-8 relative z-10">
             <div className="space-y-4">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-amber-500/10 border border-amber-500/30">
@@ -630,7 +849,11 @@ export function MultiplayerRoom() {
                     onClick={copyRoomCode}
                     className="p-3 rounded-xl bg-[#0a2e1e]/60 border border-emerald-700/50 text-emerald-400 hover:text-white hover:bg-emerald-800/40 transition-colors"
                   >
-                    {copied ? <Check className="w-5 h-5 text-emerald-400" /> : <Copy className="w-5 h-5" />}
+                    {copied ? (
+                      <Check className="w-5 h-5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
                 {copied && <p className="text-xs text-emerald-400">Copied to clipboard!</p>}
@@ -640,7 +863,7 @@ export function MultiplayerRoom() {
             {mp.room && (
               <div className="bg-[#0a2e1e]/40 border border-emerald-800/40 rounded-xl p-4 space-y-2">
                 <h3 className="text-sm font-medium text-emerald-400/60">Players in room</h3>
-                {mp.room.players.map(p => (
+                {mp.room.players.map((p) => (
                   <div key={p.userId} className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-[10px] font-bold">
                       {p.username[0]?.toUpperCase()}
@@ -652,7 +875,11 @@ export function MultiplayerRoom() {
               </div>
             )}
 
-            <Button variant="outline" onClick={mp.leaveRoom} className="border-emerald-700/50 hover:bg-emerald-900/30 text-emerald-400">
+            <Button
+              variant="outline"
+              onClick={mp.leaveRoom}
+              className="border-emerald-700/50 hover:bg-emerald-900/30 text-emerald-400"
+            >
               Leave Room
             </Button>
           </div>
@@ -663,25 +890,14 @@ export function MultiplayerRoom() {
 
   // ── Active Game ──────────────────────────────────────────────────
   const gs = mp.gameState;
-  if (!gs) return <div className="min-h-screen bg-[#0a1f15] flex items-center justify-center text-emerald-400/60">Loading game...</div>;
+  if (!gs)
+    return (
+      <div className="min-h-screen bg-[#0a1f15] flex items-center justify-center text-emerald-400/60">
+        Loading game...
+      </div>
+    );
 
   const isMyTurn = gs.isMyTurn;
-
-  // Drag-and-drop hand management
-  const { displayHand, dragState, isCustomOrder, onDragStart, onDragOver, onDragEnd, resetToAutoSort } = useHandDrag(gs.myHand);
-
-  // Meld highlighting
-  const meldHighlights = useMemo<MeldHighlightMap>(() => {
-    const hand10 = gs.myHand.length <= 10 ? gs.myHand : gs.myHand.slice(0, 10);
-    return computeMeldHighlights(hand10 as EngineCard[]);
-  }, [gs.myHand]);
-
-  // Global pointer up for drag end
-  useEffect(() => {
-    const handler = () => { if (dragState.isDragging) onDragEnd(); };
-    window.addEventListener("pointerup", handler);
-    return () => window.removeEventListener("pointerup", handler);
-  }, [dragState.isDragging, onDragEnd]);
 
   const overlapPx = 38;
   const cardWidth = 72;
@@ -697,7 +913,10 @@ export function MultiplayerRoom() {
   const handleDiscard = () => {
     if (!isMyTurn || !gs.hasDrawn || selectedCardIndex === null) return;
     playSound(playDiscardSound);
-    if (shouldAnimate) { setDiscardAnimating(true); setTimeout(() => setDiscardAnimating(false), 400); }
+    if (shouldAnimate) {
+      setDiscardAnimating(true);
+      setTimeout(() => setDiscardAnimating(false), 400);
+    }
     mp.discard(selectedCardIndex);
     setSelectedCardIndex(null);
   };
@@ -705,20 +924,24 @@ export function MultiplayerRoom() {
   const handleKnock = () => {
     if (!isMyTurn || !gs.hasDrawn || selectedCardIndex === null) return;
     playSound(playKnockSound);
-    if (shouldAnimate) { setKnockAnimating(true); setTimeout(() => setKnockAnimating(false), MP.KNOCK_FLASH_DURATION * 1000); }
+    if (shouldAnimate) {
+      setKnockAnimating(true);
+      setTimeout(() => setKnockAnimating(false), MP.KNOCK_FLASH_DURATION * 1000);
+    }
     mp.knock(selectedCardIndex);
     setSelectedCardIndex(null);
   };
 
-  const livePrompt = gs.status === "game_over"
-    ? "Match complete. Review the board and line up the next set."
-    : gs.status === "round_over"
-    ? "Round locked. Review the reveal and advance when both players are ready."
-    : isMyTurn
-    ? (gs.hasDrawn
-        ? "Your move: choose the cleanest discard or close the door with a knock."
-        : "Your move: read the discard and decide whether to draw blind or take the shown card.")
-    : `${gs.opponentUsername} is on the clock. Track the discard lane and be ready to answer.`;
+  const livePrompt =
+    gs.status === "game_over"
+      ? "Match complete. Review the board and line up the next set."
+      : gs.status === "round_over"
+        ? "Round locked. Review the reveal and advance when both players are ready."
+        : isMyTurn
+          ? gs.hasDrawn
+            ? "Your move: choose the cleanest discard or close the door with a knock."
+            : "Your move: read the discard and decide whether to draw blind or take the shown card."
+          : `${gs.opponentUsername} is on the clock. Track the discard lane and be ready to answer.`;
   const tableTelemetry = [
     { label: "Turn", value: gs.turnNumber ?? 1 },
     { label: "Cards Remaining", value: gs.stockCount },
@@ -731,11 +954,16 @@ export function MultiplayerRoom() {
       {/* Game Header — Compact */}
       <header className="h-14 border-b border-emerald-900/40 bg-[#0d1a12]/85 backdrop-blur-xl flex items-center justify-between px-3 sm:px-4 z-20">
         <div className="flex min-w-0 items-center gap-3">
-          <button onClick={mp.leaveRoom} className="text-emerald-700 hover:text-emerald-300 transition-colors">
+          <button
+            onClick={mp.leaveRoom}
+            className="text-emerald-700 hover:text-emerald-300 transition-colors"
+          >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0">
-            <div className="text-[9px] uppercase tracking-[0.34em] text-emerald-500/45">Competitive Table</div>
+            <div className="text-[9px] uppercase tracking-[0.34em] text-emerald-500/45">
+              Competitive Table
+            </div>
             <div className="flex min-w-0 items-center gap-2">
               <span
                 className="truncate text-sm font-semibold text-zinc-100"
@@ -751,37 +979,76 @@ export function MultiplayerRoom() {
           {/* Trust Shield badge */}
           {mp.fairnessStatus && (
             <div className="relative group" id="trust-shield-badge">
-              <span className={cn(
-                "px-1.5 py-0.5 rounded text-[9px] font-bold border flex items-center gap-0.5 cursor-default transition-colors",
-                mp.fairnessStatus.activeVersion >= 2
-                  ? "bg-emerald-500/10 text-emerald-400/80 border-emerald-500/20"
-                  : mp.fairnessStatus.mySeedSubmitted || mp.fairnessStatus.opponentSeedSubmitted
-                  ? "bg-amber-500/10 text-amber-400/80 border-amber-500/20"
-                  : "bg-emerald-800/30 text-emerald-600/60 border-emerald-800/40"
-              )}>
-                <Shield className={cn("w-2.5 h-2.5", mp.fairnessStatus.activeVersion >= 2 && "text-emerald-400")} />
+              <span
+                className={cn(
+                  "px-1.5 py-0.5 rounded text-[9px] font-bold border flex items-center gap-0.5 cursor-default transition-colors",
+                  mp.fairnessStatus.activeVersion >= 2
+                    ? "bg-emerald-500/10 text-emerald-400/80 border-emerald-500/20"
+                    : mp.fairnessStatus.mySeedSubmitted || mp.fairnessStatus.opponentSeedSubmitted
+                      ? "bg-amber-500/10 text-amber-400/80 border-amber-500/20"
+                      : "bg-emerald-800/30 text-emerald-600/60 border-emerald-800/40",
+                )}
+              >
+                <Shield
+                  className={cn(
+                    "w-2.5 h-2.5",
+                    mp.fairnessStatus.activeVersion >= 2 && "text-emerald-400",
+                  )}
+                />
                 {mp.fairnessStatus.activeVersion >= 2 ? "v2" : "v1"}
               </span>
               {/* Tooltip on hover */}
               <div className="absolute right-0 top-8 w-56 bg-[#0d1a12] border border-emerald-800/50 rounded-xl shadow-xl p-3 space-y-1.5 z-50 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity">
                 <div className="text-[10px] font-bold text-zinc-200">{mp.fairnessStatus.label}</div>
                 <div className="text-[9px] text-emerald-500/60">
-                  Commitment: <span className="font-mono text-emerald-400/70">{mp.fairnessStatus.commitmentHashShort}…</span>
+                  Commitment:{" "}
+                  <span className="font-mono text-emerald-400/70">
+                    {mp.fairnessStatus.commitmentHashShort}…
+                  </span>
                 </div>
                 <div className="flex items-center gap-1 text-[9px]">
-                  <span className={mp.fairnessStatus.commitmentPublished ? "text-emerald-400" : "text-emerald-800"}>●</span>
+                  <span
+                    className={
+                      mp.fairnessStatus.commitmentPublished
+                        ? "text-emerald-400"
+                        : "text-emerald-800"
+                    }
+                  >
+                    ●
+                  </span>
                   <span className="text-emerald-400/70">Commitment published</span>
                 </div>
                 <div className="flex items-center gap-1 text-[9px]">
-                  <span className={mp.fairnessStatus.mySeedSubmitted ? "text-emerald-400" : "text-emerald-800"}>●</span>
+                  <span
+                    className={
+                      mp.fairnessStatus.mySeedSubmitted ? "text-emerald-400" : "text-emerald-800"
+                    }
+                  >
+                    ●
+                  </span>
                   <span className="text-emerald-400/70">My seed submitted</span>
                 </div>
                 <div className="flex items-center gap-1 text-[9px]">
-                  <span className={mp.fairnessStatus.opponentSeedSubmitted ? "text-emerald-400" : "text-amber-500"}>●</span>
-                  <span className="text-emerald-400/70">{mp.fairnessStatus.opponentSeedSubmitted ? "Opponent seed received" : "Waiting for opponent seed"}</span>
+                  <span
+                    className={
+                      mp.fairnessStatus.opponentSeedSubmitted
+                        ? "text-emerald-400"
+                        : "text-amber-500"
+                    }
+                  >
+                    ●
+                  </span>
+                  <span className="text-emerald-400/70">
+                    {mp.fairnessStatus.opponentSeedSubmitted
+                      ? "Opponent seed received"
+                      : "Waiting for opponent seed"}
+                  </span>
                 </div>
                 <div className="border-t border-emerald-800/40 pt-1 text-[9px] text-emerald-500/50 mt-1">
-                  Round {mp.fairnessStatus.roundNumber} • {mp.fairnessStatus.activeVersion >= 2 ? "Both players contributed entropy" : "Server-only entropy"}
+                  Round {mp.fairnessStatus.roundNumber} •{" "}
+                  {mp.fairnessStatus.activeVersion >= 2
+                    ? "Both players contributed entropy"
+                    : "Server-only entropy"}
                 </div>
               </div>
             </div>
@@ -790,16 +1057,18 @@ export function MultiplayerRoom() {
         <div className="flex items-center gap-2">
           {/* Turn Timer Display */}
           {displayTimer !== null && (
-            <div className={cn(
-              "flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-mono font-bold transition-colors",
-              displayTimer <= 10
-                ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
-                : displayTimer <= 30
-                ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-            )}>
+            <div
+              className={cn(
+                "flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-mono font-bold transition-colors",
+                displayTimer <= 10
+                  ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
+                  : displayTimer <= 30
+                    ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                    : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
+              )}
+            >
               <Clock className={cn("w-3 h-3", displayTimer <= 10 && "animate-pulse")} />
-              {Math.floor(displayTimer / 60)}:{(displayTimer % 60).toString().padStart(2, '0')}
+              {Math.floor(displayTimer / 60)}:{(displayTimer % 60).toString().padStart(2, "0")}
             </div>
           )}
           {mp.opponentDisconnected && (
@@ -813,7 +1082,11 @@ export function MultiplayerRoom() {
             className="w-7 h-7 rounded-full bg-emerald-900/40 hover:bg-emerald-800/60 flex items-center justify-center transition-colors"
             title={soundEnabled ? "Mute sounds" : "Enable sounds"}
           >
-            {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-500/60" /> : <VolumeX className="w-3.5 h-3.5 text-emerald-700/50" />}
+            {soundEnabled ? (
+              <Volume2 className="w-3.5 h-3.5 text-emerald-500/60" />
+            ) : (
+              <VolumeX className="w-3.5 h-3.5 text-emerald-700/50" />
+            )}
           </button>
           <div className="relative">
             <button
@@ -904,14 +1177,20 @@ export function MultiplayerRoom() {
               gs.status === "game_over"
                 ? "border-rose-500/16 bg-rose-500/8 text-rose-100"
                 : gs.status === "round_over"
-                ? "border-amber-500/18 bg-amber-500/10 text-amber-100"
-                : isMyTurn
-                ? "border-emerald-500/18 bg-emerald-500/10 text-emerald-100"
-                : "border-emerald-500/12 bg-emerald-500/6 text-emerald-100/90",
+                  ? "border-amber-500/18 bg-amber-500/10 text-amber-100"
+                  : isMyTurn
+                    ? "border-emerald-500/18 bg-emerald-500/10 text-emerald-100"
+                    : "border-emerald-500/12 bg-emerald-500/6 text-emerald-100/90",
             )}
           >
             <div className="text-[10px] uppercase tracking-[0.28em] text-emerald-400/45">
-              {gs.status === "game_over" ? "Post-match" : gs.status === "round_over" ? "Round reveal" : isMyTurn ? "On move" : "Reading the table"}
+              {gs.status === "game_over"
+                ? "Post-match"
+                : gs.status === "round_over"
+                  ? "Round reveal"
+                  : isMyTurn
+                    ? "On move"
+                    : "Reading the table"}
             </div>
             <div className="mt-1">{livePrompt}</div>
             <div className="mt-1 text-zinc-300/72">{gs.message}</div>
@@ -922,28 +1201,45 @@ export function MultiplayerRoom() {
       {/* Game Board — Vertical seat composition */}
       <main className="flex-1 relative overflow-hidden flex flex-col">
         <div className={cn("absolute inset-0 pointer-events-none", TABLE_FELT_GRADIENT)} />
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={TABLE_NOISE_STYLE} />
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={TABLE_NOISE_STYLE}
+        />
 
         {/* ═══════ ZONE 1: Opponent seat (top-center) — unified identity + cards ═══════ */}
         <div className="relative z-10 flex flex-col items-center pt-3 sm:pt-4 md:pt-4 pb-0.5 sm:pb-1 flex-shrink-0">
           {/* Opponent seat pill — avatar + name/score + hidden cards as one coherent unit */}
           <div className="flex items-center gap-2 sm:gap-3 bg-[#0a2e1e]/40 md:bg-[#0a2e1e]/55 border border-emerald-700/20 md:border-emerald-700/35 rounded-full px-3 sm:px-4 py-1.5 sm:py-2 backdrop-blur-sm shadow-lg shadow-black/10">
-            <div className={cn(
-              "w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full bg-rose-500/20 border-2 flex items-center justify-center text-rose-400 font-bold text-xs sm:text-sm shadow-md transition-colors flex-shrink-0",
-              !isMyTurn ? "border-amber-500/60" : "border-rose-500/40"
-            )}>
+            <div
+              className={cn(
+                "w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full bg-rose-500/20 border-2 flex items-center justify-center text-rose-400 font-bold text-xs sm:text-sm shadow-md transition-colors flex-shrink-0",
+                !isMyTurn ? "border-amber-500/60" : "border-rose-500/40",
+              )}
+            >
               {gs.opponentUsername[0]}
             </div>
             <div className="flex flex-col mr-1">
-              <span className="text-xs sm:text-sm font-bold text-zinc-200 leading-none">{gs.opponentUsername}</span>
+              <span className="text-xs sm:text-sm font-bold text-zinc-200 leading-none">
+                {gs.opponentUsername}
+              </span>
               <div className="flex items-center gap-2">
-                <span className="text-[9px] sm:text-[10px] text-emerald-400/60 uppercase tracking-wider">Score: {gs.opponentScore}</span>
-                <span className="text-[9px] text-emerald-500/40">• {gs.opponentCardCount} cards</span>
+                <span className="text-[9px] sm:text-[10px] text-emerald-400/60 uppercase tracking-wider">
+                  Score: {gs.opponentScore}
+                </span>
+                <span className="text-[9px] text-emerald-500/40">
+                  • {gs.opponentCardCount} cards
+                </span>
               </div>
             </div>
             {/* Opponent Cards (Hidden) — compact overlapping inline */}
             <div className="flex items-center opacity-70">
-              <div className="relative" style={{ width: gs.opponentCardCount > 0 ? (gs.opponentCardCount - 1) * 18 + 48 : 0, height: 56 }}>
+              <div
+                className="relative"
+                style={{
+                  width: gs.opponentCardCount > 0 ? (gs.opponentCardCount - 1) * 18 + 48 : 0,
+                  height: 56,
+                }}
+              >
                 {Array.from({ length: gs.opponentCardCount }).map((_, i) => (
                   <div
                     key={i}
@@ -973,10 +1269,14 @@ export function MultiplayerRoom() {
                   transition={shouldAnimate ? { duration: 0.25 } : { duration: 0 }}
                   className={cn(
                     "text-xs sm:text-sm font-bold tracking-[0.2em] uppercase inline-block",
-                    isMyTurn ? "text-amber-300" : "text-emerald-400/50"
+                    isMyTurn ? "text-amber-300" : "text-emerald-400/50",
                   )}
                 >
-                  {isMyTurn ? (gs.hasDrawn ? "SELECT & ACT" : "YOUR TURN — DRAW") : `${gs.opponentUsername}'S TURN`}
+                  {isMyTurn
+                    ? gs.hasDrawn
+                      ? "SELECT & ACT"
+                      : "YOUR TURN — DRAW"
+                    : `${gs.opponentUsername}'S TURN`}
                 </motion.span>
               </AnimatePresence>
             </div>
@@ -984,20 +1284,38 @@ export function MultiplayerRoom() {
             {/* Stock & Discard — centered horizontal pair */}
             <div className="flex items-start gap-4 sm:gap-6 md:gap-10">
               {/* Stock */}
-              <div className="flex flex-col items-center cursor-pointer" onClick={() => handleDraw("stock")}>
-                <span className="text-[10px] sm:text-xs font-semibold text-emerald-200/60 tracking-wide mb-1">Stock</span>
+              <div
+                className="flex flex-col items-center cursor-pointer"
+                onClick={() => handleDraw("stock")}
+              >
+                <span className="text-[10px] sm:text-xs font-semibold text-emerald-200/60 tracking-wide mb-1">
+                  Stock
+                </span>
                 <div className="relative">
-                  <div className={cn("absolute inset-0 blur-xl rounded-full transition-colors", isMyTurn && !gs.hasDrawn ? "bg-amber-500/20" : "bg-transparent")} />
+                  <div
+                    className={cn(
+                      "absolute inset-0 blur-xl rounded-full transition-colors",
+                      isMyTurn && !gs.hasDrawn ? "bg-amber-500/20" : "bg-transparent",
+                    )}
+                  />
                   <motion.div
-                    animate={shouldAnimate ? {
-                      ...(isMyTurn && !gs.hasDrawn ? MP.DRAW_TARGET_PULSE : {}),
-                    } : {}}
-                    transition={shouldAnimate ? {
-                      boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
-                    } : { duration: 0 }}
+                    animate={
+                      shouldAnimate
+                        ? {
+                            ...(isMyTurn && !gs.hasDrawn ? MP.DRAW_TARGET_PULSE : {}),
+                          }
+                        : {}
+                    }
+                    transition={
+                      shouldAnimate
+                        ? {
+                            boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                          }
+                        : { duration: 0 }
+                    }
                     className={cn(
                       "relative w-[64px] h-[90px] sm:w-[72px] sm:h-[100px] md:w-[80px] md:h-[110px] rounded-xl shadow-xl transition-colors overflow-hidden",
-                      isMyTurn && !gs.hasDrawn ? "ring-2 ring-amber-400" : ""
+                      isMyTurn && !gs.hasDrawn ? "ring-2 ring-amber-400" : "",
                     )}
                   >
                     <CardBack className="w-full h-full" />
@@ -1012,28 +1330,49 @@ export function MultiplayerRoom() {
               </div>
 
               {/* Discard */}
-              <div className="flex flex-col items-center cursor-pointer" onClick={() => handleDraw("discard")}>
-                <span className="text-[10px] sm:text-xs font-semibold text-emerald-200/60 tracking-wide mb-1">Discard</span>
+              <div
+                className="flex flex-col items-center cursor-pointer"
+                onClick={() => handleDraw("discard")}
+              >
+                <span className="text-[10px] sm:text-xs font-semibold text-emerald-200/60 tracking-wide mb-1">
+                  Discard
+                </span>
                 <div className="relative">
                   {gs.topDiscard ? (
                     <motion.div
                       key={`${gs.topDiscard.suit}${gs.topDiscard.rank}`}
-                      initial={shouldAnimate && discardAnimating ? MP.DISCARD_PILE_ENTRY_INITIAL : {}}
-                      animate={shouldAnimate ? {
-                        ...MP.DISCARD_PILE_ENTRY_ANIMATE,
-                        ...(isMyTurn && !gs.hasDrawn ? MP.DRAW_TARGET_PULSE : {}),
-                      } : MP.DISCARD_PILE_ENTRY_ANIMATE}
-                      transition={shouldAnimate ? {
-                        ...MP.CARD_SPRING,
-                        boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
-                      } : { duration: 0 }}
-                      className={cn("transition-transform", isMyTurn && !gs.hasDrawn ? "hover:-translate-y-2" : "")}
+                      initial={
+                        shouldAnimate && discardAnimating ? MP.DISCARD_PILE_ENTRY_INITIAL : {}
+                      }
+                      animate={
+                        shouldAnimate
+                          ? {
+                              ...MP.DISCARD_PILE_ENTRY_ANIMATE,
+                              ...(isMyTurn && !gs.hasDrawn ? MP.DRAW_TARGET_PULSE : {}),
+                            }
+                          : MP.DISCARD_PILE_ENTRY_ANIMATE
+                      }
+                      transition={
+                        shouldAnimate
+                          ? {
+                              ...MP.CARD_SPRING,
+                              boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                            }
+                          : { duration: 0 }
+                      }
+                      className={cn(
+                        "transition-transform",
+                        isMyTurn && !gs.hasDrawn ? "hover:-translate-y-2" : "",
+                      )}
                     >
                       <PlayingCard
                         suit={gs.topDiscard.suit}
                         rank={gs.topDiscard.rank}
                         fourColor={fourColorDeck}
-                        className={cn("!w-[64px] !h-[90px] sm:!w-[72px] sm:!h-[100px] md:!w-[80px] md:!h-[110px]", isMyTurn && !gs.hasDrawn ? "ring-2 ring-amber-400" : "")}
+                        className={cn(
+                          "!w-[64px] !h-[90px] sm:!w-[72px] sm:!h-[100px] md:!w-[80px] md:!h-[110px]",
+                          isMyTurn && !gs.hasDrawn ? "ring-2 ring-amber-400" : "",
+                        )}
                       />
                     </motion.div>
                   ) : (
@@ -1042,7 +1381,9 @@ export function MultiplayerRoom() {
                     </div>
                   )}
                 </div>
-                <span className="text-[10px] text-emerald-600/40 mt-1">{gs.topDiscard ? "Ready" : "Empty"}</span>
+                <span className="text-[10px] text-emerald-600/40 mt-1">
+                  {gs.topDiscard ? "Ready" : "Empty"}
+                </span>
               </div>
             </div>
           </div>
@@ -1089,17 +1430,21 @@ export function MultiplayerRoom() {
               </motion.div>
             )}
             {!isMyTurn && (
-              <div className="text-[11px] text-emerald-500/50 font-medium">Waiting for {gs.opponentUsername}...</div>
+              <div className="text-[11px] text-emerald-500/50 font-medium">
+                Waiting for {gs.opponentUsername}...
+              </div>
             )}
           </div>
 
           {/* Player seat bar — avatar + score + action buttons as one coherent unit */}
           <div className="flex items-center gap-2 sm:gap-3 bg-[#0a2e1e]/40 md:bg-[#0a2e1e]/55 border border-emerald-700/20 md:border-emerald-700/35 rounded-full px-2 sm:px-3 py-1 sm:py-1.5 mb-2 md:mb-2.5 backdrop-blur-sm shadow-lg shadow-black/10">
             {/* Player identity pill */}
-            <div className={cn(
-              "flex items-center gap-1.5 sm:gap-2 rounded-full pl-1 pr-2.5 py-0.5 transition-colors",
-              isMyTurn ? "bg-[#0a2e1e]/50" : ""
-            )}>
+            <div
+              className={cn(
+                "flex items-center gap-1.5 sm:gap-2 rounded-full pl-1 pr-2.5 py-0.5 transition-colors",
+                isMyTurn ? "bg-[#0a2e1e]/50" : "",
+              )}
+            >
               <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-[10px] sm:text-xs font-bold flex-shrink-0">
                 {gs.myUsername[0]}
               </div>
@@ -1136,7 +1481,10 @@ export function MultiplayerRoom() {
 
           {/* Player Hand — overlapping card layout with drag + meld highlights */}
           <div className="w-full overflow-x-auto px-4">
-            <div className="mx-auto" style={{ width: handWidth, position: "relative", height: 114 }}>
+            <div
+              className="mx-auto"
+              style={{ width: handWidth, position: "relative", height: 114 }}
+            >
               {displayHand.map((card, displayIndex) => {
                 const meldIdx = getCardMeldIndex(meldHighlights, card as EngineCard);
                 const meldColorCls = meldIdx !== undefined ? getMeldColor(meldIdx) : undefined;
@@ -1149,7 +1497,7 @@ export function MultiplayerRoom() {
                     onClick={() => {
                       if (!dragState.isDragging) {
                         setSelectedCardIndex(
-                          selectedCardIndex === card.originalIndex ? null : card.originalIndex
+                          selectedCardIndex === card.originalIndex ? null : card.originalIndex,
                         );
                       }
                     }}
@@ -1160,8 +1508,13 @@ export function MultiplayerRoom() {
                     meldColorCls={meldColorCls}
                     isDragging={dragState.isDragging && dragState.dragIndex === displayIndex}
                     isDragOver={dragState.isDragging && dragState.dragOverIndex === displayIndex}
-                    onPointerDown={(e) => { e.preventDefault(); onDragStart(displayIndex); }}
-                    onPointerEnter={() => { if (dragState.isDragging) onDragOver(displayIndex); }}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      onDragStart(displayIndex);
+                    }}
+                    onPointerEnter={() => {
+                      if (dragState.isDragging) onDragOver(displayIndex);
+                    }}
                     animationsEnabled={animationsEnabled}
                   />
                 );
@@ -1185,31 +1538,42 @@ export function MultiplayerRoom() {
                 animate={MP.SHOWDOWN_PANEL_ANIMATE}
                 transition={shouldAnimate ? { ...MP.EMPHASIS_SPRING, delay: 0.1 } : { duration: 0 }}
                 className="bg-[#0d1a12] border border-emerald-800/50 p-6 rounded-2xl text-center max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
-                style={mp.showdownData && shouldAnimate ? { boxShadow: MP.getOutcomeBadgeShadow(mp.showdownData.knockOutcome) } : {}}
+                style={
+                  mp.showdownData && shouldAnimate
+                    ? { boxShadow: MP.getOutcomeBadgeShadow(mp.showdownData.knockOutcome) }
+                    : {}
+                }
               >
                 <motion.h2
                   initial={shouldAnimate ? { opacity: 0, y: -10 } : {}}
                   animate={{ opacity: 1, y: 0 }}
                   transition={shouldAnimate ? { delay: 0.15 } : { duration: 0 }}
                   className="text-2xl font-bold text-zinc-100 mb-1"
-                >Round Over</motion.h2>
+                >
+                  Round Over
+                </motion.h2>
                 {mp.showdownData && (
                   <>
                     <motion.div
                       initial={shouldAnimate ? MP.OUTCOME_BADGE_INITIAL : {}}
                       animate={MP.OUTCOME_BADGE_ANIMATE}
-                      transition={shouldAnimate ? { ...MP.EMPHASIS_SPRING, delay: 0.25 } : { duration: 0 }}
+                      transition={
+                        shouldAnimate ? { ...MP.EMPHASIS_SPRING, delay: 0.25 } : { duration: 0 }
+                      }
                       className={cn(
                         "inline-flex px-3 py-1 rounded-full text-xs font-bold mb-3",
                         mp.showdownData.knockOutcome === "gin"
                           ? "bg-amber-500/20 text-amber-400"
                           : mp.showdownData.knockOutcome === "undercut"
-                          ? "bg-rose-500/20 text-rose-400"
-                          : "bg-emerald-500/20 text-emerald-400"
-                      )}>
-                      {mp.showdownData.knockOutcome === "gin" ? "🔥 GIN" :
-                       mp.showdownData.knockOutcome === "undercut" ? "⚡ UNDERCUT" :
-                       "👊 KNOCK"}
+                            ? "bg-rose-500/20 text-rose-400"
+                            : "bg-emerald-500/20 text-emerald-400",
+                      )}
+                    >
+                      {mp.showdownData.knockOutcome === "gin"
+                        ? "🔥 GIN"
+                        : mp.showdownData.knockOutcome === "undercut"
+                          ? "⚡ UNDERCUT"
+                          : "👊 KNOCK"}
                       {" — "}
                       {mp.showdownData.roundWinnerUsername} wins {mp.showdownData.roundPoints} pts
                     </motion.div>
@@ -1264,44 +1628,55 @@ export function MultiplayerRoom() {
                 animate={{ scale: 1, opacity: 1 }}
                 className="bg-[#0d1a12] border border-emerald-800/50 p-6 rounded-2xl text-center max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
               >
-                <h2 className={cn("text-3xl font-bold mb-1",
-                  gs.winnerId ? "text-amber-500" : "text-rose-500"
-                )}>Game Over</h2>
+                <h2
+                  className={cn(
+                    "text-3xl font-bold mb-1",
+                    gs.winnerId ? "text-amber-500" : "text-rose-500",
+                  )}
+                >
+                  Game Over
+                </h2>
                 <p className="text-zinc-300 mb-2">{gs.message}</p>
 
-                {mp.showdownData && mp.showdownData.knocker.melds.length + mp.showdownData.knocker.deadwood.length > 0 && (
-                  <>
-                    <div className={cn(
-                      "inline-flex px-3 py-1 rounded-full text-xs font-bold mb-3",
-                      mp.showdownData.knockOutcome === "gin"
-                        ? "bg-amber-500/20 text-amber-400"
-                        : mp.showdownData.knockOutcome === "undercut"
-                        ? "bg-rose-500/20 text-rose-400"
-                        : "bg-emerald-500/20 text-emerald-400"
-                    )}>
-                      {mp.showdownData.knockOutcome === "gin" ? "🔥 GIN" :
-                       mp.showdownData.knockOutcome === "undercut" ? "⚡ UNDERCUT" :
-                       "👊 KNOCK"}
-                    </div>
-                    <div className="space-y-4 mt-3 text-left">
-                      <ShowdownPlayerSection
-                        data={mp.showdownData.knocker}
-                        isKnocker={true}
-                        knockOutcome={mp.showdownData.knockOutcome}
-                        fourColor={fourColorDeck}
-                        showDeadwoodCount={showDeadwoodCount}
-                      />
-                      <div className="border-t border-emerald-800/40" />
-                      <ShowdownPlayerSection
-                        data={mp.showdownData.opponent}
-                        isKnocker={false}
-                        knockOutcome={mp.showdownData.knockOutcome}
-                        fourColor={fourColorDeck}
-                        showDeadwoodCount={showDeadwoodCount}
-                      />
-                    </div>
-                  </>
-                )}
+                {mp.showdownData &&
+                  mp.showdownData.knocker.melds.length + mp.showdownData.knocker.deadwood.length >
+                    0 && (
+                    <>
+                      <div
+                        className={cn(
+                          "inline-flex px-3 py-1 rounded-full text-xs font-bold mb-3",
+                          mp.showdownData.knockOutcome === "gin"
+                            ? "bg-amber-500/20 text-amber-400"
+                            : mp.showdownData.knockOutcome === "undercut"
+                              ? "bg-rose-500/20 text-rose-400"
+                              : "bg-emerald-500/20 text-emerald-400",
+                        )}
+                      >
+                        {mp.showdownData.knockOutcome === "gin"
+                          ? "🔥 GIN"
+                          : mp.showdownData.knockOutcome === "undercut"
+                            ? "⚡ UNDERCUT"
+                            : "👊 KNOCK"}
+                      </div>
+                      <div className="space-y-4 mt-3 text-left">
+                        <ShowdownPlayerSection
+                          data={mp.showdownData.knocker}
+                          isKnocker={true}
+                          knockOutcome={mp.showdownData.knockOutcome}
+                          fourColor={fourColorDeck}
+                          showDeadwoodCount={showDeadwoodCount}
+                        />
+                        <div className="border-t border-emerald-800/40" />
+                        <ShowdownPlayerSection
+                          data={mp.showdownData.opponent}
+                          isKnocker={false}
+                          knockOutcome={mp.showdownData.knockOutcome}
+                          fourColor={fourColorDeck}
+                          showDeadwoodCount={showDeadwoodCount}
+                        />
+                      </div>
+                    </>
+                  )}
 
                 <div className="flex justify-center gap-8 my-4 text-sm">
                   <div>
@@ -1311,7 +1686,9 @@ export function MultiplayerRoom() {
                   <div className="border-l border-emerald-800/40" />
                   <div>
                     <div className="text-zinc-500">{gs.opponentUsername}</div>
-                    <div className="text-2xl font-bold font-mono text-white">{gs.opponentScore}</div>
+                    <div className="text-2xl font-bold font-mono text-white">
+                      {gs.opponentScore}
+                    </div>
                   </div>
                 </div>
 
@@ -1324,7 +1701,10 @@ export function MultiplayerRoom() {
 
                 <div className="flex gap-3 mt-3">
                   <Link to="/" className="flex-1">
-                    <Button variant="outline" className="w-full border-emerald-700/50 text-emerald-400">
+                    <Button
+                      variant="outline"
+                      className="w-full border-emerald-700/50 text-emerald-400"
+                    >
                       Dashboard
                     </Button>
                   </Link>
@@ -1343,8 +1723,18 @@ export function MultiplayerRoom() {
 
 // ── In-Game Rematch Button Component ──────────────────────────────────
 
-function RematchButton({ opponentUsername, stakeId, stakeLabel }: { opponentUsername: string; stakeId: string; stakeLabel?: string }) {
-  const [rematchState, setRematchState] = React.useState<"idle" | "sending" | "sent" | "error" | "accepted">("idle");
+function RematchButton({
+  opponentUsername,
+  stakeId,
+  stakeLabel,
+}: {
+  opponentUsername: string;
+  stakeId: string;
+  stakeLabel?: string;
+}) {
+  const [rematchState, setRematchState] = React.useState<
+    "idle" | "sending" | "sent" | "error" | "accepted"
+  >("idle");
   const [rematchRoomId, setRematchRoomId] = React.useState<string | null>(null);
   const [rematchError, setRematchError] = React.useState<string | null>(null);
   const { sessionId } = useAuthStore();
@@ -1355,7 +1745,7 @@ function RematchButton({ opponentUsername, stakeId, stakeLabel }: { opponentUser
     setRematchError(null);
 
     try {
-      // First, look up opponent's userId by username  
+      // First, look up opponent's userId by username
       const profileRes = await fetch(`/api/profile/${encodeURIComponent(opponentUsername)}`, {
         headers: { Authorization: `Bearer ${sessionId}` },
       });
@@ -1440,26 +1830,38 @@ function RematchButton({ opponentUsername, stakeId, stakeLabel }: { opponentUser
         disabled={rematchState === "sending" || rematchState === "sent"}
         className={cn(
           "w-full border-emerald-700/50 text-emerald-400 hover:bg-emerald-900/30 hover:text-emerald-300 transition-all",
-          rematchState === "sent" && "border-emerald-700/50 text-emerald-400"
+          rematchState === "sent" && "border-emerald-700/50 text-emerald-400",
         )}
         id="rematch-btn"
       >
         {rematchState === "sending" && (
-          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Proposing Rematch...</>
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Proposing Rematch...
+          </>
         )}
         {rematchState === "idle" && (
-          <><RotateCcw className="mr-2 h-4 w-4" /> Rematch {stakeLabel && stakeId !== "free" ? `(${stakeLabel})` : ""}</>
+          <>
+            <RotateCcw className="mr-2 h-4 w-4" /> Rematch{" "}
+            {stakeLabel && stakeId !== "free" ? `(${stakeLabel})` : ""}
+          </>
         )}
         {rematchState === "sent" && (
-          <><Check className="mr-2 h-4 w-4" /> Rematch Sent — Waiting for {opponentUsername}</>
+          <>
+            <Check className="mr-2 h-4 w-4" /> Rematch Sent — Waiting for {opponentUsername}
+          </>
         )}
         {rematchState === "error" && (
-          <><AlertTriangle className="mr-2 h-4 w-4" /> {rematchError || "Rematch failed"}</>
+          <>
+            <AlertTriangle className="mr-2 h-4 w-4" /> {rematchError || "Rematch failed"}
+          </>
         )}
       </Button>
       {rematchState === "error" && (
         <button
-          onClick={() => { setRematchState("idle"); setRematchError(null); }}
+          onClick={() => {
+            setRematchState("idle");
+            setRematchError(null);
+          }}
           className="text-xs text-zinc-500 hover:text-zinc-300 mt-1 underline"
         >
           Try again

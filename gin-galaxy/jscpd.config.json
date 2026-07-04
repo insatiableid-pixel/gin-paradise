@@ -1,0 +1,12 @@
+{
+  "threshold": 3,
+  "reporters": ["console"],
+  "ignore": [
+    "node_modules/**",
+    "dist/**",
+    "coverage/**",
+    ".codex-test/**",
+    "package-lock.json",
+    "database.sqlite*"
+  ]
+}

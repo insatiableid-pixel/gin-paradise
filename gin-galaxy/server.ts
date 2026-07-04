@@ -5,7 +5,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 
 import { loadConfig, validateAndLogConfig, getLiveRoomRoutingMode } from "./server/config.js";
-import { initializeDatabase, purgeExpiredSessions, getDatabasePath, db } from "./server/db.js";
+import { initializeDatabase, purgeExpiredSessions, db } from "./server/db.js";
 import authRoutes from "./server/routes/auth.js";
 import matchRoutes, { statsRouter } from "./server/routes/matches.js";
 import leaderboardRoutes from "./server/routes/leaderboard.js";
@@ -28,7 +28,10 @@ import billingRoutes from "./server/routes/billing.js";
 import webhookRoutes from "./server/routes/webhooks.js";
 import dailyRetentionRoutes from "./server/routes/dailyRetention.js";
 import offerRoutes from "./server/routes/offers.js";
-import { attachWebSocketServer, prepareRoomsForShutdown } from "./server/multiplayer/roomManager.js";
+import {
+  attachWebSocketServer,
+  prepareRoomsForShutdown,
+} from "./server/multiplayer/roomManager.js";
 import { initCoordinator, getCoordinator } from "./server/multiplayer/coordinatorFactory.js";
 import { loadTournamentsFromDB } from "./server/tournament.js";
 import { initializeAchievementTables } from "./server/achievements.js";
@@ -42,6 +45,13 @@ import { initOfferTables } from "./server/offers.js";
 import { initOutboxTable } from "./server/outbox.js";
 import { startWorker, stopWorker, getWorkerStatus } from "./server/outboxWorker.js";
 import { registerAllHandlers } from "./server/outboxHandlers.js";
+import { logger } from "./server/logger.js";
+import {
+  apiNotFoundHandler,
+  errorHandler,
+  metricsHandler,
+  requestContextMiddleware,
+} from "./server/observability.js";
 
 // ─── Load and validate config ────────────────────────────────────────
 const config = loadConfig();
@@ -51,9 +61,10 @@ validateAndLogConfig(config);
 await initCoordinator({
   mode: config.coordinatorMode,
   nodeId: config.coordinatorNodeId,
-  redis: config.coordinatorMode === "redis" && config.redisUrl
-    ? { url: config.redisUrl, keyPrefix: config.redisKeyPrefix }
-    : undefined,
+  redis:
+    config.coordinatorMode === "redis" && config.redisUrl
+      ? { url: config.redisUrl, keyPrefix: config.redisKeyPrefix }
+      : undefined,
 });
 
 // ─── Initialize database ────────────────────────────────────────────
@@ -87,21 +98,26 @@ async function startServer() {
   // or TRUST_PROXY=loopback for local nginx.
   if (config.trustProxy) {
     app.set("trust proxy", config.trustProxy);
-    console.log(`  Trust proxy enabled: ${config.trustProxy}`);
+    logger.info("server.trust_proxy_enabled", { trustProxy: config.trustProxy });
   }
 
   // Raw body preservation for Stripe webhook signature verification.
   // This must come BEFORE express.json() so the raw bytes are captured first.
   // The rawBody is attached to the request object for use by the webhook handler.
-  app.use("/api/webhooks", express.raw({ type: "application/json" }), (req: any, _res: any, next: any) => {
-    if (Buffer.isBuffer(req.body)) {
-      req.rawBody = req.body;
-      req.body = JSON.parse(req.body.toString("utf8"));
-    }
-    next();
-  });
+  app.use(
+    "/api/webhooks",
+    express.raw({ type: "application/json" }),
+    (req: any, _res: any, next: any) => {
+      if (Buffer.isBuffer(req.body)) {
+        req.rawBody = req.body;
+        req.body = JSON.parse(req.body.toString("utf8"));
+      }
+      next();
+    },
+  );
 
   app.use(express.json());
+  app.use(requestContextMiddleware);
 
   // ─── Health endpoint (unauthenticated) ────────────────────────────
   app.get("/api/health", (_req, res) => {
@@ -124,13 +140,17 @@ async function startServer() {
           spectators: diag.spectatorConnectionCount,
           snapshots: (diag.details as any)?.roomGameSnapshotCount ?? 0,
         };
-      } catch { /* coordinator not initialized — skip */ }
+      } catch {
+        /* coordinator not initialized — skip */
+      }
 
       // Outbox worker status (graceful if not started, e.g. in test envs)
       let workerInfo: any = { running: false };
       try {
         workerInfo = getWorkerStatus();
-      } catch { /* worker not initialized — skip */ }
+      } catch {
+        /* worker not initialized — skip */
+      }
 
       res.json({
         status: dbOk ? "healthy" : "degraded",
@@ -151,7 +171,7 @@ async function startServer() {
         outboxWorker: workerInfo,
         environment: config.nodeEnv,
       });
-    } catch (err) {
+    } catch (_err) {
       res.status(503).json({
         status: "unhealthy",
         timestamp: new Date().toISOString(),
@@ -162,6 +182,7 @@ async function startServer() {
       });
     }
   });
+  app.get("/api/metrics", metricsHandler);
 
   // ─── API Routes ──────────────────────────────────────────────────
   app.use("/api/auth", authRoutes);
@@ -188,6 +209,8 @@ async function startServer() {
   app.use("/api/offers", offerRoutes);
   app.use("/api/replays", fairnessRoutes);
   app.use("/api/fairness", fairnessVerifyRouter);
+  app.use("/api", apiNotFoundHandler);
+  app.use(errorHandler);
 
   // Create the raw HTTP server so WebSocket upgrades are registered
   // BEFORE Vite's HMR handler can intercept them.
@@ -212,16 +235,15 @@ async function startServer() {
   }
 
   httpServer.listen(config.port, config.host, () => {
-    console.log(`\n🚀 Gin Paradise running on http://${config.host === "0.0.0.0" ? "localhost" : config.host}:${config.port}`);
-    console.log(`   WebSocket multiplayer on ws://${config.host === "0.0.0.0" ? "localhost" : config.host}:${config.port}/ws`);
-    console.log(`   Health check: http://${config.host === "0.0.0.0" ? "localhost" : config.host}:${config.port}/api/health`);
-    console.log(`   Live room routing: ${getLiveRoomRoutingMode(config.coordinatorMode)}`);
-    if (config.nodeEnv === "production") {
-      console.log(`   Mode: PRODUCTION (serving static bundle from ./dist)`);
-    } else {
-      console.log(`   Mode: DEVELOPMENT (Vite HMR active)`);
-    }
-    console.log("");
+    const host = config.host === "0.0.0.0" ? "localhost" : config.host;
+    logger.info("server.started", {
+      url: `http://${host}:${config.port}`,
+      websocketUrl: `ws://${host}:${config.port}/ws`,
+      healthUrl: `http://${host}:${config.port}/api/health`,
+      metricsUrl: `http://${host}:${config.port}/api/metrics`,
+      liveRoomRouting: getLiveRoomRoutingMode(config.coordinatorMode),
+      nodeEnv: config.nodeEnv,
+    });
   });
 
   // ─── Graceful Shutdown ────────────────────────────────────────────
@@ -230,18 +252,20 @@ async function startServer() {
   async function shutdown(signal: string) {
     if (isShuttingDown) return;
     isShuttingDown = true;
-    console.log(`\n⏹  Received ${signal}. Graceful shutdown...`);
+    logger.info("server.shutdown_started", { signal });
 
     // Release live-room ownership metadata before close handlers run so
     // recoverable rooms stay in Redis instead of being torn down as empty.
     try {
       prepareRoomsForShutdown();
-      console.log("   Live room ownership released.");
-    } catch {}
+      logger.info("server.live_room_ownership_released");
+    } catch (err) {
+      logger.warn("server.live_room_shutdown_prepare_failed", { error: err });
+    }
 
     // Stop accepting new connections
     httpServer.close(() => {
-      console.log("   HTTP server closed.");
+      logger.info("server.http_closed");
     });
 
     // Close WebSocket connections
@@ -252,15 +276,17 @@ async function startServer() {
         } catch {}
       }
       wss.close(() => {
-        console.log("   WebSocket server closed.");
+        logger.info("server.websocket_closed");
       });
     }
 
     // Stop outbox worker
     try {
       stopWorker();
-      console.log("   Outbox worker stopped.");
-    } catch {}
+      logger.info("server.outbox_worker_stopped");
+    } catch (err) {
+      logger.warn("server.outbox_worker_stop_failed", { error: err });
+    }
 
     // Give the coordinator a moment to flush the fire-and-forget lease
     // release writes before we disconnect the Redis client.
@@ -270,8 +296,10 @@ async function startServer() {
     try {
       const coord = getCoordinator();
       await coord.disconnect?.();
-      console.log("   Coordinator disconnected.");
-    } catch {}
+      logger.info("server.coordinator_disconnected");
+    } catch (err) {
+      logger.warn("server.coordinator_disconnect_failed", { error: err });
+    }
 
     // Clear recurring intervals
     clearInterval(sessionPurgeInterval);
@@ -279,12 +307,14 @@ async function startServer() {
     // Close database connection
     try {
       db.close();
-      console.log("   Database connection closed.");
-    } catch {}
+      logger.info("server.database_closed");
+    } catch (err) {
+      logger.warn("server.database_close_failed", { error: err });
+    }
 
     // Allow a brief drain period, then force exit
     setTimeout(() => {
-      console.log("   Shutdown complete.");
+      logger.info("server.shutdown_complete");
       process.exit(0);
     }, 2000);
   }
@@ -294,6 +324,6 @@ async function startServer() {
 }
 
 startServer().catch((err) => {
-  console.error("Failed to start Gin Paradise server:", err);
+  logger.error("server.start_failed", { error: err });
   process.exit(1);
 });

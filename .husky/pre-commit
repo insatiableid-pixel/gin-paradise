@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+cd gin-galaxy || exit 1
+npm run quality:large-files
+npx lint-staged --relative

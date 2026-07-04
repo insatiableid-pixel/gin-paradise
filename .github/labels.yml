@@ -1,0 +1,12 @@
+- name: bug
+  color: d73a4a
+  description: Something is not working as intended.
+- name: enhancement
+  color: a2eeef
+  description: Product or engineering improvement.
+- name: documentation
+  color: 0075ca
+  description: Documentation-only change.
+- name: security
+  color: b60205
+  description: Security-sensitive work.
