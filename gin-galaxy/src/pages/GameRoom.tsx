@@ -35,6 +35,14 @@ interface LocalShowdown {
   laidOffCards: EngineCard[];
 }
 
+type DrawSource = "stock" | "discard";
+
+interface OpponentDrawNotice {
+  source: DrawSource;
+  card: EngineCard | null;
+  id: number;
+}
+
 export function GameRoom() {
   const { user } = useAuthStore();
   const { showDeadwoodCount, fourColorDeck, soundEnabled, animationsEnabled, setShowDeadwoodCount, setFourColorDeck, setSoundEnabled, setAnimationsEnabled } = usePreferences();
@@ -50,8 +58,14 @@ export function GameRoom() {
   const [discardAnimating, setDiscardAnimating] = useState(false);
   const [knockAnimating, setKnockAnimating] = useState(false);
   const [lastDrawSource, setLastDrawSource] = useState<"stock" | "discard" | null>(null);
+  const [tablePulseSource, setTablePulseSource] = useState<DrawSource | null>(null);
+  const [opponentDrawNotice, setOpponentDrawNotice] = useState<OpponentDrawNotice | null>(null);
   const [showdownRevealing, setShowdownRevealing] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(() =>
+    typeof window !== "undefined" ? window.innerHeight : 1080
+  );
   const prevIsMyTurn = useRef<boolean | null>(null);
+  const opponentDrawNoticeTimer = useRef<number | null>(null);
 
   const reducedMotion = prefersReducedMotion();
   const shouldAnimate = animationsEnabled && !reducedMotion;
@@ -60,6 +74,24 @@ export function GameRoom() {
   const playSound = useCallback((fn: () => void) => {
     if (soundEnabled) fn();
   }, [soundEnabled]);
+
+  const announceOpponentDraw = useCallback((source: DrawSource, card: EngineCard | null) => {
+    setTablePulseSource(source);
+    setOpponentDrawNotice({ source, card, id: Date.now() });
+
+    window.setTimeout(() => {
+      setTablePulseSource((current) => (current === source ? null : current));
+    }, 650);
+
+    if (opponentDrawNoticeTimer.current) {
+      window.clearTimeout(opponentDrawNoticeTimer.current);
+    }
+
+    opponentDrawNoticeTimer.current = window.setTimeout(() => {
+      setOpponentDrawNotice(null);
+      opponentDrawNoticeTimer.current = null;
+    }, 2200);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -95,6 +127,20 @@ export function GameRoom() {
     return () => window.removeEventListener("pointerup", handler);
   }, [dragState.isDragging, onDragEnd]);
 
+  useEffect(() => {
+    const handleResize = () => setViewportHeight(window.innerHeight);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (opponentDrawNoticeTimer.current) {
+        window.clearTimeout(opponentDrawNoticeTimer.current);
+      }
+    };
+  }, []);
+
   // Smart AI bot — two-phase turn for natural UX
   useEffect(() => {
     if (!gameState || gameState.status !== "playing") return;
@@ -108,6 +154,7 @@ export function GameRoom() {
         const topDiscard = gameState.discard[gameState.discard.length - 1];
         const source = decideDrawSource(currentPlayer.hand, topDiscard, gameState.discard);
         botDrewFromDiscard.current = source === "discard";
+        announceOpponentDraw(source, source === "discard" ? topDiscard : null);
         playSound(playDrawSound);
         setGameState(prev => prev ? drawCard(prev, "bot", source) : prev);
       }, 600);
@@ -354,6 +401,8 @@ export function GameRoom() {
   const handleNextRound = () => {
     setShowdown(null);
     setLastDrawSource(null);
+    setTablePulseSource(null);
+    setOpponentDrawNotice(null);
     setGameState(nextRound(gameState));
     playSound(playDealSound);
     if (shouldAnimate) {
@@ -367,18 +416,31 @@ export function GameRoom() {
     { label: "Turn", value: gameState.turnNumber ?? 1 },
     { label: "Cards Remaining", value: gameState.stock.length },
   ];
+  const tableScale =
+    viewportHeight < 780 ? 0.64 :
+    viewportHeight < 900 ? 0.72 :
+    viewportHeight < 1080 ? 0.84 :
+    1;
+  const tableContentStyle = tableScale === 1
+    ? undefined
+    : {
+        transform: `scale(${tableScale})`,
+        transformOrigin: "top center",
+        width: `${100 / tableScale}%`,
+        height: `${100 / tableScale}%`,
+      };
 
   return (
-    <div className="fixed inset-0 flex flex-col font-sans overflow-hidden">
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden font-sans">
       {/* Tropical paradise background image */}
-      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'url(/assets/tropical-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
-      {/* Subtle dark overlay so the header text is readable */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0.3) 100%)' }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'url(/assets/tropical-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(0.7) saturate(1.1)' }} />
+      {/* Layered dark overlay — richer depth */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 65% 50% at 50% 50%, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.55) 100%)' }} />
 
       {/* Game Board — Table with integrated header on wood trim */}
-      <main className="flex-1 relative overflow-hidden flex items-center justify-center p-3 sm:p-5 z-10">
-        {/* Outer bevel / blonde wood trim frame with integrated title */}
-        <div className="relative w-full h-full max-w-[1050px] rounded-[16px] sm:rounded-[24px] overflow-hidden" style={{ background: 'linear-gradient(180deg, #c9a96e 0%, #b89356 15%, #a88248 30%, #9a7440 50%, #8d6838 70%, #b89356 90%, #c9a96e 100%)', padding: '8px 8px 10px 8px', boxShadow: '0 10px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.2)' }}>
+      <main className="relative z-10 flex flex-1 items-start justify-center overflow-x-hidden p-3 sm:p-5">
+        {/* Outer bevel / rich walnut wood trim frame with integrated title */}
+        <div className="relative flex min-h-full w-full max-w-[1050px] flex-col overflow-hidden rounded-[16px] sm:rounded-[24px]" style={{ background: 'linear-gradient(180deg, #d4b896 0%, #c4a47a 8%, #b89260 16%, #a67e4c 28%, #8c6638 45%, #7a5a30 55%, #8c6638 65%, #a67e4c 78%, #b89260 88%, #c4a47a 95%, #d4b896 100%)', padding: '9px 9px 11px 9px', boxShadow: '0 12px 48px rgba(0,0,0,0.6), 0 3px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -2px 0 rgba(0,0,0,0.3)' }}>
           {/* Title + controls on the wood trim — sits on top edge like reference */}
           <div className="flex items-center justify-between px-3 sm:px-5 -mt-0.5 mb-1.5 relative z-30">
             <Link to="/" className="text-emerald-900/60 hover:text-emerald-900 transition-colors">
@@ -444,13 +506,15 @@ export function GameRoom() {
             </div>
           </div>
           {/* Inner dark border before felt */}
-          <div className="relative w-full flex-1 rounded-[10px] sm:rounded-[16px] overflow-hidden" style={{ boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.5), 0 -1px 0 rgba(255,255,255,0.15)' }}>
-            {/* Inner felt surface — flex column to prevent all overlap */}
-            <div className="relative w-full h-full rounded-[10px] sm:rounded-[16px] overflow-hidden flex flex-col" style={{ background: 'radial-gradient(ellipse 90% 80% at 50% 45%, #2a8a6a 0%, #1d7a5a 25%, #186e50 50%, #135e44 75%, #0e5038 100%)' }}>
-            {/* Felt cloth texture */}
-            <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%270 0 256 256%27 xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.9%27 numOctaves=%274%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27/%3E%3C/svg%3E")', backgroundSize: '128px 128px' }} />
-            {/* Inner bevel highlight */}
-            <div className="absolute inset-0 rounded-[10px] sm:rounded-[16px] pointer-events-none z-20" style={{ boxShadow: 'inset 0 2px 6px rgba(255,255,255,0.05), inset 0 -3px 10px rgba(0,0,0,0.3)' }} />
+          <div className="relative min-h-0 w-full flex-1 overflow-hidden rounded-[10px] sm:rounded-[16px]" style={{ boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.5), 0 -1px 0 rgba(255,255,255,0.15)' }}>
+            {/* Inner felt surface — deep premium green with ambient lighting */}
+            <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[10px] sm:rounded-[16px]" style={{ background: 'radial-gradient(ellipse 90% 85% at 50% 48%, #1f7a5a 0%, #1a6e4e 20%, #156344 40%, #10573a 60%, #0d4c32 80%, #0a4028 100%)' }}>
+            {/* Felt cloth texture — richer weave */}
+            <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%270 0 256 256%27 xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.75%27 numOctaves=%274%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27/%3E%3C/svg%3E")', backgroundSize: '160px 160px' }} />
+            {/* Ambient spotlight vignette on felt */}
+            <div className="absolute inset-0 pointer-events-none rounded-[10px] sm:rounded-[16px]" style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 50%, transparent 30%, rgba(0,0,0,0.15) 70%, rgba(0,0,0,0.25) 100%)' }} />
+            {/* Inner bevel highlight — depth on the felt edge */}
+            <div className="absolute inset-0 rounded-[10px] sm:rounded-[16px] pointer-events-none z-20" style={{ boxShadow: 'inset 0 3px 8px rgba(255,255,255,0.04), inset 0 -4px 12px rgba(0,0,0,0.35), inset 5px 0 8px rgba(0,0,0,0.08), inset -5px 0 8px rgba(0,0,0,0.08)' }} />
 
             {/* Knock / outcome emphasis flash */}
             <AnimatePresence>
@@ -480,6 +544,7 @@ export function GameRoom() {
               )}
             </AnimatePresence>
 
+            <div className="relative z-10 flex h-full min-h-0 w-full flex-col items-stretch" style={tableContentStyle}>
             {/* ═══════ ZONE 1: Opponent seat (top-center) — unified identity + cards ═══════ */}
             <div className="flex flex-col items-center pt-2 sm:pt-3 md:pt-3 pb-0.5 sm:pb-1 z-10 flex-shrink-0">
               {/* Opponent seat pill — avatar + name/score + fanned cards as one coherent unit */}
@@ -517,6 +582,35 @@ export function GameRoom() {
                   {opponent.hand.length}
                 </div>
               </div>
+              <div className="mt-1.5 h-6 flex items-center justify-center">
+                <AnimatePresence mode="wait">
+                  {opponentDrawNotice && (
+                    <motion.div
+                      key={opponentDrawNotice.id}
+                      initial={shouldAnimate ? { opacity: 0, y: -8, scale: 0.96 } : {}}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={shouldAnimate ? { opacity: 0, y: -6, scale: 0.98 } : {}}
+                      transition={shouldAnimate ? { duration: 0.2 } : { duration: 0 }}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] shadow-lg",
+                        opponentDrawNotice.source === "discard"
+                          ? "bg-amber-100/95 text-amber-950"
+                          : "bg-emerald-100/95 text-emerald-950"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "h-2 w-2 rounded-full",
+                          opponentDrawNotice.source === "discard" ? "bg-amber-500" : "bg-emerald-500"
+                        )}
+                      />
+                      {opponentDrawNotice.source === "discard" && opponentDrawNotice.card
+                        ? `${opponent.name} took ${opponentDrawNotice.card.rank}${opponentDrawNotice.card.suit}`
+                        : `${opponent.name} drew stock`}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             {/* ═══════ ZONE 2: Draw area — centered, lifted to upper-middle ═══════ */}
@@ -548,17 +642,33 @@ export function GameRoom() {
                   <div className="flex flex-col items-center cursor-pointer" onClick={() => handleDraw("stock")}>
                     <span className="text-[10px] sm:text-xs font-semibold text-emerald-200/60 tracking-wide mb-1">Stock</span>
                     <div className="relative">
-                      <div className={cn("absolute inset-0 blur-xl rounded-full transition-colors", isMyTurn && myPlayer.hand.length === 10 ? "bg-amber-500/20" : "bg-transparent")} />
+                      <div
+                        className={cn(
+                          "absolute inset-0 blur-xl rounded-full transition-colors",
+                          isMyTurn && myPlayer.hand.length === 10
+                            ? "bg-amber-500/20"
+                            : tablePulseSource === "stock"
+                            ? "bg-emerald-300/30"
+                            : "bg-transparent"
+                        )}
+                      />
                       <motion.div
                         animate={shouldAnimate ? {
-                          scale: drawAnimating === "stock" ? [1, 0.92, 1] : 1,
+                          scale: drawAnimating === "stock" || tablePulseSource === "stock" ? [1, 0.92, 1] : 1,
                           ...(isMyTurn && myPlayer.hand.length === 10 ? MP.DRAW_TARGET_PULSE : {}),
                         } : {}}
                         transition={shouldAnimate ? {
                           scale: { duration: 0.25 },
                           boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
                         } : { duration: 0 }}
-                        className={cn("relative", isMyTurn && myPlayer.hand.length === 10 ? "ring-2 ring-amber-400 rounded-xl" : "")}
+                        className={cn(
+                          "relative rounded-xl",
+                          isMyTurn && myPlayer.hand.length === 10
+                            ? "ring-2 ring-amber-400"
+                            : tablePulseSource === "stock"
+                            ? "ring-2 ring-emerald-300"
+                            : ""
+                        )}
                       >
                         <CardBack className="w-[68px] h-[96px] sm:w-[80px] sm:h-[112px]" />
                       </motion.div>
@@ -580,15 +690,30 @@ export function GameRoom() {
                           initial={shouldAnimate && discardAnimating ? MP.DISCARD_PILE_ENTRY_INITIAL : {}}
                           animate={shouldAnimate ? {
                             ...MP.DISCARD_PILE_ENTRY_ANIMATE,
+                            scale: tablePulseSource === "discard" ? [1, 1.06, 1] : 1,
                             ...(isMyTurn && myPlayer.hand.length === 10 ? MP.DRAW_TARGET_PULSE : {}),
                           } : MP.DISCARD_PILE_ENTRY_ANIMATE}
                           transition={shouldAnimate ? {
                             ...MP.CARD_SPRING,
+                            scale: { duration: 0.3 },
                             boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
                           } : { duration: 0 }}
                           className={cn("transition-transform", isMyTurn && myPlayer.hand.length === 10 ? "hover:-translate-y-2" : "")}
                         >
-                          <PlayingCard suit={topDiscard.suit} rank={topDiscard.rank} fourColor={fourColorDeck} animate={shouldAnimate} className={cn("!w-[68px] !h-[96px] sm:!w-[80px] sm:!h-[112px]", isMyTurn && myPlayer.hand.length === 10 ? "ring-2 ring-amber-400" : "")} />
+                          <PlayingCard
+                            suit={topDiscard.suit}
+                            rank={topDiscard.rank}
+                            fourColor={fourColorDeck}
+                            animate={shouldAnimate}
+                            className={cn(
+                              "!w-[68px] !h-[96px] sm:!w-[80px] sm:!h-[112px]",
+                              isMyTurn && myPlayer.hand.length === 10
+                                ? "ring-2 ring-amber-400"
+                                : tablePulseSource === "discard"
+                                ? "ring-2 ring-amber-200"
+                                : ""
+                            )}
+                          />
                         </motion.div>
                       ) : (
                         <div className="w-[68px] h-[96px] sm:w-[80px] sm:h-[112px] rounded-xl border-2 border-dashed border-emerald-600/40 flex items-center justify-center">
@@ -614,7 +739,7 @@ export function GameRoom() {
               </div>
 
               {/* Open felt spacer — deliberate breathing room between draw area and player hand */}
-              <div className="flex-1 min-h-[28px] sm:min-h-[48px] md:min-h-[72px]" />
+              <div className="flex-1 min-h-[8px] sm:min-h-[20px] md:min-h-[32px]" />
             </div>
 
             {/* ═══════ ZONE 3: Player seat + Hand + Buttons (bottom) ═══════ */}
@@ -758,6 +883,7 @@ export function GameRoom() {
                 </div>
               );
             })()}
+            </div>
 
         {/* ── Round Over / Showdown ───────────────────────────── */}
         <AnimatePresence>

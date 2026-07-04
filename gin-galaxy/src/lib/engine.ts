@@ -286,25 +286,33 @@ export const drawCard = (state: GameState, playerId: string, source: "stock" | "
   const player = state.players[playerIndex];
   if (player.hand.length > 10) return state; // Already drew
 
-  const newState = { ...state, players: [...state.players] };
+  let stock = [...state.stock];
+  let discard = [...state.discard];
   const newPlayer = { ...player, hand: [...player.hand] };
 
   if (source === "stock") {
-    if (newState.stock.length === 0) {
+    if (stock.length === 0) {
       // Reshuffle discard into stock if empty (except top card)
-      const topDiscard = newState.discard.pop()!;
-      newState.stock = shuffleDeck(newState.discard);
-      newState.discard = [topDiscard];
+      const topDiscard = discard.pop()!;
+      stock = shuffleDeck(discard);
+      discard = [topDiscard];
     }
-    newPlayer.hand.push(newState.stock.pop()!);
+    newPlayer.hand.push(stock.pop()!);
   } else {
-    if (newState.discard.length === 0) return state;
-    newPlayer.hand.push(newState.discard.pop()!);
+    if (discard.length === 0) return state;
+    newPlayer.hand.push(discard.pop()!);
   }
 
-  newState.players[playerIndex] = newPlayer;
-  newState.message = `${player.name} drew from ${source}.`;
-  return newState;
+  const newPlayers = [...state.players];
+  newPlayers[playerIndex] = newPlayer;
+
+  return {
+    ...state,
+    players: newPlayers,
+    stock,
+    discard,
+    message: `${player.name} drew from ${source}.`,
+  };
 };
 
 export const discardCard = (state: GameState, playerId: string, cardIndex: number): GameState => {
@@ -315,18 +323,21 @@ export const discardCard = (state: GameState, playerId: string, cardIndex: numbe
   const player = state.players[playerIndex];
   if (player.hand.length <= 10) return state; // Must draw first
 
-  const newState = { ...state, players: [...state.players] };
   const newPlayer = { ...player, hand: [...player.hand] };
-
   const [discardedCard] = newPlayer.hand.splice(cardIndex, 1);
-  newState.discard.push(discardedCard);
+  const discard = [...state.discard, discardedCard];
 
-  newState.players[playerIndex] = newPlayer;
-  newState.currentPlayerIndex = (state.currentPlayerIndex + 1) % 2;
-  newState.turnNumber = (state.turnNumber ?? 1) + 1;
-  newState.message = `${player.name} discarded ${discardedCard.rank}${discardedCard.suit}.`;
+  const newPlayers = [...state.players];
+  newPlayers[playerIndex] = newPlayer;
 
-  return newState;
+  return {
+    ...state,
+    players: newPlayers,
+    discard,
+    currentPlayerIndex: (state.currentPlayerIndex + 1) % 2,
+    turnNumber: (state.turnNumber ?? 1) + 1,
+    message: `${player.name} discarded ${discardedCard.rank}${discardedCard.suit}.`,
+  };
 };
 
 export const knock = (state: GameState, playerId: string, cardIndex: number): GameState => {
