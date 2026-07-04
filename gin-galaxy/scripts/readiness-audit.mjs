@@ -71,7 +71,7 @@ const report = {
   checks: checks.map(([name, pass, level]) => ({ name, pass, level })),
   externalBlockers: [
     "Production deployment frequency and rollback metrics require a connected deployment platform.",
-    "GitHub secret scanning and branch protection require repository settings access and plan support.",
+    "GitHub code scanning, secret scanning, and branch protection require repository settings access and plan support.",
     "Self-improvement output should be reviewed by maintainers before autonomous changes are merged.",
   ],
 };

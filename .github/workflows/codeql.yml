@@ -27,3 +27,13 @@ jobs:
 
       - name: Analyze
         uses: github/codeql-action/analyze@v3
+        with:
+          output: codeql-results
+          upload: never
+
+      - name: Upload SARIF artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif
+          path: codeql-results/*.sarif
