@@ -5,6 +5,7 @@
 - Health: `GET /api/health`
 - Metrics: `GET /api/metrics`
 - Logs: structured JSON on stdout/stderr. Use `LOG_LEVEL=debug|info|warn|error` to tune verbosity.
+- Tracing: preserve inbound `traceparent`; the server emits `traceparent`, `traceId`, and `spanId` for each request log.
 
 ## Deploy
 
@@ -25,6 +26,7 @@
 
 - 5xx spike: inspect `request.failed` logs by `requestId`, route, and status code.
 - Slow responses: compare `gin_paradise_request_duration_ms_avg` and `gin_paradise_request_duration_ms_max`.
+- Cross-service failures: search logs by `traceId` first, then by `requestId`.
 - Multiplayer issues: check `/api/health` coordinator fields and WebSocket startup logs.
 - Database issues: check `/api/health` database status and SQLite file permissions.
 

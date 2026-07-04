@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build Release
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gin-galaxy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: gin-galaxy/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate
+        run: npm run ci
+
+      - name: Archive bundle
+        run: Compress-Archive -Path dist -DestinationPath gin-paradise-dist.zip
+        shell: pwsh
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" gin-galaxy/gin-paradise-dist.zip --generate-notes --verify-tag
+        working-directory: .

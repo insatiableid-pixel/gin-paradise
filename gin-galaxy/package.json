@@ -24,8 +24,16 @@
     "quality:todos": "node scripts/check-todos.mjs",
     "quality:large-files": "node scripts/check-large-files.mjs",
     "analyze:bundle": "vite build --mode analyze",
-    "ci": "npm run typecheck && npm run lint && npm test && npm run build",
-    "start": "NODE_ENV=production tsx server.ts"
+    "ci": "npm run security:audit && npm run security:secrets && npm run typecheck && npm run lint && npm test && npm run build && npm run quality:bundle",
+    "start": "NODE_ENV=production tsx server.ts",
+    "test:e2e": "playwright test",
+    "test:flaky": "node scripts/flaky-repeat.mjs --runs 2 -- npm test",
+    "security:audit": "npm audit --audit-level=low",
+    "security:secrets": "node scripts/scan-secrets.mjs",
+    "quality:bundle": "node scripts/check-bundle-budget.mjs",
+    "quality:readiness": "node scripts/readiness-audit.mjs --target 5",
+    "agent:decompose": "node scripts/decompose-goal.mjs",
+    "ci:full": "npm run ci && npm run test:e2e && npm run quality:readiness"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -57,6 +65,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^4.17.21",

@@ -15,6 +15,8 @@ npm run build
 npm run typecheck
 npm run lint
 npm test
+npm run test:e2e
+npm run quality:readiness
 ```
 
 Redis-backed integration tests require `REDIS_URL`:
@@ -30,14 +32,13 @@ npm run test:redis
 - Runtime code lives in `src/` for the client and `server/` for Express, SQLite, and multiplayer services.
 - Unit tests live in `gin-galaxy/tests/` and use the `*.test.ts` naming convention.
 - Do not commit generated artifacts, local databases, logs, screenshots, or dependency folders.
+- Use `npm run agent:decompose` for broad objectives that need parallel work lanes.
 
 ## Validation
 
 Before opening a PR or pushing a risky change, run:
 
 ```bash
-npm run typecheck
-npm run lint
-npm test
-npm run build
+npm run ci
+npm run test:e2e
 ```

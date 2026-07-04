@@ -1,0 +1,54 @@
+name: Quality Loops
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 10 * * 2"
+
+permissions:
+  contents: read
+
+jobs:
+  quality-loops:
+    name: Flake and Quality Signals
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gin-galaxy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: gin-galaxy/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Repeat test suite for flake signal
+        run: npm run test:flaky
+
+      - name: Build
+        run: npm run build
+
+      - name: Bundle budget
+        run: npm run quality:bundle
+
+      - name: Dead code signal
+        continue-on-error: true
+        run: npm run quality:dead-code
+
+      - name: Duplicate code signal
+        continue-on-error: true
+        run: npm run quality:duplicates
+
+      - name: Upload quality reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-loop-reports
+          path: gin-galaxy/reports

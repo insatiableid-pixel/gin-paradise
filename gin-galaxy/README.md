@@ -26,9 +26,17 @@ npm run preview      # Preview the production bundle locally
 npm run typecheck    # Run TypeScript with strict checking
 npm run lint         # Run ESLint
 npm test             # Run the Vitest unit suite
+npm run test:e2e     # Run Playwright browser smoke tests
+npm run test:flaky   # Repeat the test suite for flake detection
 npm run test:timed   # Run Vitest with per-test timing output
 npm run analyze:bundle # Build and write dist/bundle-stats.html
+npm run quality:readiness # Generate the readiness audit report
+npm run agent:decompose # Generate parallel work lanes for a broad objective
 ```
+
+## Autonomous Readiness
+
+See [docs/AUTONOMOUS_OPERATIONS.md](docs/AUTONOMOUS_OPERATIONS.md) for the Level 5 automation loop, evidence surfaces, and external platform requirements.
 
 ## Production Deployment
 

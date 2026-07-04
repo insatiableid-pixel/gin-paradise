@@ -16,9 +16,38 @@ const metrics = {
   byRoute: new Map<string, number>(),
 };
 
+interface TraceContext {
+  traceId: string;
+  spanId: string;
+  sampled: boolean;
+}
+
 function getRequestId(headerValue: string | string[] | undefined) {
   if (Array.isArray(headerValue)) return headerValue[0] ?? crypto.randomUUID();
   return headerValue || crypto.randomUUID();
+}
+
+function getHeaderValue(headerValue: string | string[] | undefined) {
+  return Array.isArray(headerValue) ? headerValue[0] : headerValue;
+}
+
+function randomHex(bytes: number) {
+  return crypto.randomBytes(bytes).toString("hex");
+}
+
+function getTraceContext(headerValue: string | string[] | undefined): TraceContext {
+  const traceparent = getHeaderValue(headerValue);
+  const match = traceparent?.match(/^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/i);
+
+  return {
+    traceId: match?.[1]?.toLowerCase() ?? randomHex(16),
+    spanId: randomHex(8),
+    sampled: match ? (parseInt(match[3], 16) & 1) === 1 : true,
+  };
+}
+
+function formatTraceparent(trace: TraceContext) {
+  return `00-${trace.traceId}-${trace.spanId}-${trace.sampled ? "01" : "00"}`;
 }
 
 function normalizePath(path: string) {
@@ -43,9 +72,13 @@ function prometheusLine(name: string, value: number, help: string, type: "counte
 
 export const requestContextMiddleware: RequestHandler = (req, res, next) => {
   const requestId = getRequestId(req.headers["x-request-id"]);
+  const trace = getTraceContext(req.headers.traceparent);
   const startedAt = process.hrtime.bigint();
   res.locals.requestId = requestId;
+  res.locals.traceId = trace.traceId;
+  res.locals.spanId = trace.spanId;
   res.setHeader("x-request-id", requestId);
+  res.setHeader("traceparent", formatTraceparent(trace));
   metrics.inflight += 1;
 
   res.on("finish", () => {
@@ -55,6 +88,8 @@ export const requestContextMiddleware: RequestHandler = (req, res, next) => {
 
     logger.info("request.completed", {
       requestId,
+      traceId: trace.traceId,
+      spanId: trace.spanId,
       method: req.method,
       path: normalizePath(req.originalUrl),
       statusCode: res.statusCode,
@@ -137,6 +172,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   const statusCode = typeof err?.status === "number" && err.status >= 400 ? err.status : 500;
   logger.error("request.failed", {
     requestId: res.locals.requestId,
+    traceId: res.locals.traceId,
     method: req.method,
     path: normalizePath(req.originalUrl),
     statusCode,
@@ -146,5 +182,6 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   res.status(statusCode).json({
     error: statusCode >= 500 ? "internal_server_error" : "request_error",
     requestId: res.locals.requestId,
+    traceId: res.locals.traceId,
   });
 };
