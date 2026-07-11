@@ -67,7 +67,12 @@ function loadPrefs(): StoredPrefs {
       };
     }
   } catch {}
-  return { showDeadwoodCount: true, fourColorDeck: false, soundEnabled: true, animationsEnabled: true };
+  return {
+    showDeadwoodCount: true,
+    fourColorDeck: false,
+    soundEnabled: true,
+    animationsEnabled: true,
+  };
 }
 
 function savePrefs(prefs: StoredPrefs): void {
@@ -115,10 +120,23 @@ export function getSuitColor(suit: string, fourColor: boolean, onDark: boolean =
   }
   // Four-color deck:
   switch (suit) {
-    case "♠": return onDark ? "text-zinc-200" : "text-zinc-900";  // White on dark, Black on light
-    case "♥": return "text-red-500";         // Red
-    case "♦": return "text-blue-400";        // Blue
-    case "♣": return "text-emerald-400";     // Green
-    default:  return onDark ? "text-zinc-200" : "text-zinc-900";
+    case "♠":
+      return onDark ? "text-zinc-200" : "text-zinc-900"; // White on dark, Black on light
+    case "♥":
+      return "text-red-500"; // Red
+    case "♦":
+      return "text-blue-400"; // Blue
+    case "♣":
+      return "text-emerald-400"; // Green
+    default:
+      return onDark ? "text-zinc-200" : "text-zinc-900";
   }
+}
+
+export function getSuitAccentColor(suit: string, fourColor: boolean = false): string {
+  if (suit === "♥") return "#dc2626";
+  if (suit === "♦") return fourColor ? "#2563eb" : "#dc2626";
+  if (suit === "♣") return fourColor ? "#16a34a" : "#15803d";
+  if (suit === "♠") return fourColor ? "#1a1a2e" : "#334155";
+  return "#1a1a2e";
 }

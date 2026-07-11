@@ -17,5 +17,6 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": ["e2e", "node_modules", "dist", "playwright.config.ts"]
 }

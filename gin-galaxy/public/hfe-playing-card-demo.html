@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Human Factors Playing Card</title>
+    <link rel="stylesheet" href="/hfe-playing-card.css" />
+  </head>
+  <body>
+    <main class="specimen-page">
+      <header class="masthead">
+        <p class="kicker">Human Factors Playing Card</p>
+        <h1>Readable in one glance.</h1>
+        <p class="summary">
+          Deep-charcoal faces cut glare, the corners obey real rotational symmetry, and the pip
+          layouts use standard visual grouping so the eye does not have to count.
+        </p>
+      </header>
+
+      <section class="specimen">
+        <div class="specimen-header">
+          <p class="section-label">Large Surface Specimens</p>
+          <p class="section-note">
+            Large enough to judge the hierarchy honestly before integration.
+          </p>
+        </div>
+
+        <div class="specimen-row specimen-row--large" style="--card-scale: 2.06">
+          <figure class="sample">
+            <article
+              class="playing-card playing-card--face suit-spades rank-a"
+              aria-label="Ace of Spades"
+            >
+              <div class="card__corner card__corner--top">
+                <span class="card__value">A</span>
+                <span class="card__mini-suit">♠</span>
+              </div>
+              <div class="card__body card__body--ace">
+                <span class="pip pip--hero" aria-hidden="true">♠</span>
+              </div>
+              <div class="card__corner card__corner--bottom">
+                <span class="card__value">A</span>
+                <span class="card__mini-suit">♠</span>
+              </div>
+            </article>
+            <figcaption>Ace</figcaption>
+          </figure>
+
+          <figure class="sample">
+            <article
+              class="playing-card playing-card--face suit-clubs rank-7 is-selected"
+              aria-label="Seven of Clubs"
+            >
+              <div class="card__corner card__corner--top">
+                <span class="card__value">7</span>
+                <span class="card__mini-suit">♣</span>
+              </div>
+              <div class="card__body card__body--three-one-three" aria-hidden="true">
+                <div class="pip-row pip-row--three">
+                  <span class="pip">♣</span>
+                  <span class="pip">♣</span>
+                  <span class="pip">♣</span>
+                </div>
+                <div class="pip-row pip-row--single">
+                  <span class="pip">♣</span>
+                </div>
+                <div class="pip-row pip-row--three pip-row--invert">
+                  <span class="pip">♣</span>
+                  <span class="pip">♣</span>
+                  <span class="pip">♣</span>
+                </div>
+              </div>
+              <div class="card__corner card__corner--bottom">
+                <span class="card__value">7</span>
+                <span class="card__mini-suit">♣</span>
+              </div>
+            </article>
+            <figcaption>Selected 7, standard 3-1-3 read</figcaption>
+          </figure>
+
+          <figure class="sample">
+            <article
+              class="playing-card playing-card--face suit-diamonds rank-10"
+              aria-label="Ten of Diamonds"
+            >
+              <div class="card__corner card__corner--top">
+                <span class="card__value">10</span>
+                <span class="card__mini-suit">♦</span>
+              </div>
+              <div class="card__body card__body--four-two-four" aria-hidden="true">
+                <div class="pip-cluster pip-cluster--top">
+                  <div class="pip-row pip-row--pair">
+                    <span class="pip">♦</span>
+                    <span class="pip">♦</span>
+                  </div>
+                  <div class="pip-row pip-row--pair">
+                    <span class="pip">♦</span>
+                    <span class="pip">♦</span>
+                  </div>
+                </div>
+                <div class="pip-cluster pip-cluster--middle">
+                  <div class="pip-row pip-row--pair">
+                    <span class="pip">♦</span>
+                    <span class="pip">♦</span>
+                  </div>
+                </div>
+                <div class="pip-cluster pip-cluster--bottom">
+                  <div class="pip-row pip-row--pair pip-row--invert">
+                    <span class="pip">♦</span>
+                    <span class="pip">♦</span>
+                  </div>
+                  <div class="pip-row pip-row--pair pip-row--invert">
+                    <span class="pip">♦</span>
+                    <span class="pip">♦</span>
+                  </div>
+                </div>
+              </div>
+              <div class="card__corner card__corner--bottom">
+                <span class="card__value">10</span>
+                <span class="card__mini-suit">♦</span>
+              </div>
+            </article>
+            <figcaption>Ten with distinct 4-2-4 grouping</figcaption>
+          </figure>
+
+          <figure class="sample">
+            <article
+              class="playing-card playing-card--face suit-hearts rank-q is-disabled"
+              aria-label="Queen of Hearts"
+            >
+              <div class="card__corner card__corner--top">
+                <span class="card__value">Q</span>
+                <span class="card__mini-suit">♥</span>
+              </div>
+              <div class="card__body card__body--face" aria-hidden="true">
+                <div class="face-mark">
+                  <span class="face-mark__rank">Q</span>
+                  <span class="face-mark__suit">♥</span>
+                </div>
+              </div>
+              <div class="card__corner card__corner--bottom">
+                <span class="card__value">Q</span>
+                <span class="card__mini-suit">♥</span>
+              </div>
+            </article>
+            <figcaption>Disabled face card</figcaption>
+          </figure>
+
+          <figure class="sample">
+            <article class="playing-card playing-card--back" aria-label="Card back">
+              <div class="back-mark" aria-hidden="true">
+                <span class="back-mark__line">Gin</span>
+                <span class="back-mark__glyph">✦</span>
+                <span class="back-mark__line">Paradise</span>
+              </div>
+            </article>
+            <figcaption>Deep teal back</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="specimen">
+        <div class="specimen-header">
+          <p class="section-label">Fanned Touch Rack</p>
+          <p class="section-note">
+            Each slot keeps a minimum 48px tap width while the faces overlap.
+          </p>
+        </div>
+
+        <div class="rack-shell">
+          <div class="fan-rack" style="--card-scale: 1.26">
+            <button class="fan-slot" type="button" aria-label="Three of Clubs">
+              <article class="playing-card playing-card--face suit-clubs rank-3">
+                <div class="card__corner card__corner--top">
+                  <span class="card__value">3</span>
+                  <span class="card__mini-suit">♣</span>
+                </div>
+                <div class="card__body card__body--single-column" aria-hidden="true">
+                  <span class="pip">♣</span>
+                  <span class="pip">♣</span>
+                  <span class="pip pip--invert">♣</span>
+                </div>
+                <div class="card__corner card__corner--bottom">
+                  <span class="card__value">3</span>
+                  <span class="card__mini-suit">♣</span>
+                </div>
+              </article>
+            </button>
+
+            <button class="fan-slot" type="button" aria-label="Seven of Diamonds">
+              <article class="playing-card playing-card--face suit-diamonds rank-7">
+                <div class="card__corner card__corner--top">
+                  <span class="card__value">7</span>
+                  <span class="card__mini-suit">♦</span>
+                </div>
+                <div class="card__body card__body--three-one-three" aria-hidden="true">
+                  <div class="pip-row pip-row--three">
+                    <span class="pip">♦</span>
+                    <span class="pip">♦</span>
+                    <span class="pip">♦</span>
+                  </div>
+                  <div class="pip-row pip-row--single">
+                    <span class="pip">♦</span>
+                  </div>
+                  <div class="pip-row pip-row--three pip-row--invert">
+                    <span class="pip">♦</span>
+                    <span class="pip">♦</span>
+                    <span class="pip">♦</span>
+                  </div>
+                </div>
+                <div class="card__corner card__corner--bottom">
+                  <span class="card__value">7</span>
+                  <span class="card__mini-suit">♦</span>
+                </div>
+              </article>
+            </button>
+
+            <button class="fan-slot" type="button" aria-label="Queen of Hearts">
+              <article class="playing-card playing-card--face suit-hearts rank-q is-selected">
+                <div class="card__corner card__corner--top">
+                  <span class="card__value">Q</span>
+                  <span class="card__mini-suit">♥</span>
+                </div>
+                <div class="card__body card__body--face" aria-hidden="true">
+                  <div class="face-mark">
+                    <span class="face-mark__rank">Q</span>
+                    <span class="face-mark__suit">♥</span>
+                  </div>
+                </div>
+                <div class="card__corner card__corner--bottom">
+                  <span class="card__value">Q</span>
+                  <span class="card__mini-suit">♥</span>
+                </div>
+              </article>
+            </button>
+
+            <button class="fan-slot" type="button" aria-label="King of Spades">
+              <article class="playing-card playing-card--face suit-spades rank-k">
+                <div class="card__corner card__corner--top">
+                  <span class="card__value">K</span>
+                  <span class="card__mini-suit">♠</span>
+                </div>
+                <div class="card__body card__body--face" aria-hidden="true">
+                  <div class="face-mark">
+                    <span class="face-mark__rank">K</span>
+                    <span class="face-mark__suit">♠</span>
+                  </div>
+                </div>
+                <div class="card__corner card__corner--bottom">
+                  <span class="card__value">K</span>
+                  <span class="card__mini-suit">♠</span>
+                </div>
+              </article>
+            </button>
+
+            <button class="fan-slot fan-slot--tail" type="button" aria-label="Card back">
+              <article class="playing-card playing-card--back">
+                <div class="back-mark" aria-hidden="true">
+                  <span class="back-mark__line">Gin</span>
+                  <span class="back-mark__glyph">✦</span>
+                  <span class="back-mark__line">Paradise</span>
+                </div>
+              </article>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
