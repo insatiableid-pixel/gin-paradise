@@ -343,6 +343,16 @@ suite("RedisCoordinator chaos matrix", () => {
         15_000,
       );
 
+      const roomAJoinerReconnect = await openSocket(lab.nodeB.baseUrl, roomA.joiner.sessionId);
+      await roomAJoinerReconnect.waitForMessage(
+        (message) => message.type === "room_joined" && message.room?.id === roomA.roomId,
+        15_000,
+      );
+      await roomAJoinerReconnect.waitForMessage(
+        (message) => message.type === "game_update" && message.state?.roomId === roomA.roomId,
+        15_000,
+      );
+
       // Room snapshots propagate asynchronously after a restarted node
       // reconnects. Wait for both ownership records to converge before
       // asserting the final alternating-owner state.
@@ -357,7 +367,7 @@ suite("RedisCoordinator chaos matrix", () => {
       expect(lab.probe.getRoom(roomB.roomId)?.ownerNodeId).toBe(lab.nodeA.nodeId);
       expectNoUnexpectedMessages(
         roomA.creatorSocket,
-        roomA.joinerSocket,
+        roomAJoinerReconnect,
         roomAOwnerReconnect,
         roomB.creatorSocket,
         roomBJoinerReconnect,
