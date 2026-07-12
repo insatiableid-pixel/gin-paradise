@@ -54,6 +54,8 @@ export interface CoordinatorRoom {
   ownerLeaseExpiresAt?: number;
   timerOwnerNodeId?: string;
   timerLeaseExpiresAt?: number;
+  /** Monotonic Redis room-metadata ordering. */
+  revision?: number;
 }
 
 export interface RoomOwnershipUpdate {
@@ -124,6 +126,8 @@ export interface CoordinatorGameStateSnapshot {
   lastShowdown: unknown | null;
   timer?: CoordinatorTurnTimerSnapshot | null;
   timeoutCounts?: Record<string, number>;
+  /** Monotonic per-room ordering. Legacy snapshots may omit this field. */
+  revision?: number;
   updatedAt: number;
   nodeId: string;
 }

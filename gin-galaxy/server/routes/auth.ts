@@ -1,13 +1,16 @@
-import { Router, Request, Response } from "express";
+import type { Request, Response } from "express";
+import { Router } from "express";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { db, SESSION_TTL_MS } from "../db.js";
 import { validateBody } from "../middleware/validate.js";
 import { rateLimit } from "../middleware/rateLimit.js";
-import { requireAuth, AuthenticatedRequest } from "../middleware/auth.js";
+import type { AuthenticatedRequest } from "../middleware/auth.js";
+import { requireAuth } from "../middleware/auth.js";
 import { creditSignupBonus } from "../ledger.js";
 import { getUserPlan } from "../entitlements.js";
 import { createWebSocketTicket } from "../websocketTickets.js";
+import { clearSessionCookie, setSessionCookie } from "../sessionCookie.js";
 const router = Router();
 
 const BCRYPT_ROUNDS = 12;
@@ -23,7 +26,11 @@ const authLimiter = rateLimit({
 function createSession(userId: string): string {
   const sessionId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
-  db.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)").run(sessionId, userId, expiresAt);
+  db.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)").run(
+    sessionId,
+    userId,
+    expiresAt,
+  );
   return sessionId;
 }
 
@@ -41,9 +48,15 @@ router.post(
     try {
       const id = crypto.randomUUID();
       const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-      db.prepare("INSERT INTO users (id, username, email, password_hash) VALUES (?, ?, ?, ?)").run(id, username, email, hash);
+      db.prepare("INSERT INTO users (id, username, email, password_hash) VALUES (?, ?, ?, ?)").run(
+        id,
+        username,
+        email,
+        hash,
+      );
       creditSignupBonus(id);
       const sessionId = createSession(id);
+      setSessionCookie(res, sessionId);
       res.json({ sessionId, user: { id, username, email, rating: 1200 } });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "";
@@ -54,7 +67,7 @@ router.post(
         res.status(500).json({ error: "Unable to create account" });
       }
     }
-  }
+  },
 );
 
 // ─── POST /api/auth/login ────────────────────────────────────────────
@@ -94,8 +107,19 @@ router.post(
     }
 
     const sessionId = createSession(user.id);
-    res.json({ sessionId, user: { id: user.id, username: user.username, email: user.email, rating: user.rating, is_admin: !!user.is_admin, plan: getUserPlan(user.id) } });
-  }
+    setSessionCookie(res, sessionId);
+    res.json({
+      sessionId,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        rating: user.rating,
+        is_admin: !!user.is_admin,
+        plan: getUserPlan(user.id),
+      },
+    });
+  },
 );
 
 // ─── POST /api/auth/logout ───────────────────────────────────────────
@@ -103,12 +127,15 @@ router.post(
 // the Authorization header, not an arbitrary ID in the request body.
 router.post("/logout", requireAuth, (req: AuthenticatedRequest, res: Response) => {
   db.prepare("DELETE FROM sessions WHERE id = ?").run(req.sessionId);
+  clearSessionCookie(res);
   res.json({ success: true });
 });
 
 // ─── GET /api/auth/me ────────────────────────────────────────────────
 router.get("/me", requireAuth, (req: AuthenticatedRequest, res: Response) => {
-  const user = db.prepare("SELECT id, username, email, rating, is_admin FROM users WHERE id = ?").get(req.userId) as any;
+  const user = db
+    .prepare("SELECT id, username, email, rating, is_admin FROM users WHERE id = ?")
+    .get(req.userId) as any;
   if (!user) {
     res.status(401).json({ error: "Unauthorized" });
     return;
