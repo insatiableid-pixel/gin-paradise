@@ -124,6 +124,8 @@ export interface CoordinatorGameStateSnapshot {
   lastShowdown: unknown | null;
   timer?: CoordinatorTurnTimerSnapshot | null;
   timeoutCounts?: Record<string, number>;
+  /** Monotonic per-room ordering. Legacy snapshots may omit this field. */
+  revision?: number;
   updatedAt: number;
   nodeId: string;
 }

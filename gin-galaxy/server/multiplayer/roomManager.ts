@@ -82,7 +82,7 @@ import {
   type QueueEntry,
 } from "./matchmaking.js";
 import {
-  startTurnTimer,
+  startTurnTimerAuthoritatively,
   cancelTurnTimer,
   resetTimeoutCount,
   getTurnTimerInfo,
@@ -91,8 +91,8 @@ import {
   suspendRoomTimersForShutdown,
   setTurnTimeoutCallback,
   setRoomTimerSpeed,
-  recoverTurnTimerForRoom,
-  recoverTurnTimersFromCoordinator,
+  recoverTurnTimerForRoomAuthoritatively,
+  recoverTurnTimersFromCoordinatorAuthoritatively,
   MAX_CONSECUTIVE_TIMEOUTS,
 } from "./turnTimer.js";
 import {
@@ -127,10 +127,7 @@ import {
   getTournamentForRoom,
   type BracketMatch,
 } from "../tournament.js";
-import {
-  setAvailabilityCallback,
-  type PlayerAvailability,
-} from "../social.js";
+import { setAvailabilityCallback, type PlayerAvailability } from "../social.js";
 import { getCoordinator } from "./coordinatorFactory.js";
 import type {
   RealtimeCoordinator,
@@ -174,6 +171,7 @@ interface RoomState {
 type RoomGameState = {
   match: MatchState | null;
   lastShowdown: ShowdownData | null;
+  revision: number;
   updatedAt: number;
 };
 
@@ -201,7 +199,11 @@ function connectionNodeId(ws: WebSocket | null | undefined): string {
   return (ws as RelayCaptureWebSocket | undefined)?.relayNodeId ?? currentNodeId();
 }
 
-function createPlayerConnection(player: Pick<CoordinatorPlayer, "userId" | "username">, ws: WebSocket | null, connected: boolean): CoordinatorPlayer {
+function createPlayerConnection(
+  player: Pick<CoordinatorPlayer, "userId" | "username">,
+  ws: WebSocket | null,
+  connected: boolean,
+): CoordinatorPlayer {
   return {
     userId: player.userId,
     username: player.username,
@@ -243,46 +245,28 @@ function canServeRoom(room: RoomAffinityRoom): boolean {
     });
   }
 
-  if (!effectiveOwnerNodeId) {
-    return adoptRoomOwnership(room);
-  }
-
-  if (effectiveOwnerNodeId === nodeId) {
-    return true;
-  }
-
-  if (!lease && adoptRoomOwnership(room)) {
-    return true;
-  }
-
-  if (
-    !canServeRoomLocally(
-      {
-        ...room,
-        ownerNodeId: effectiveOwnerNodeId,
-        ownerLeaseExpiresAt: effectiveOwnerLeaseExpiresAt,
-      },
-      nodeId,
-    )
-  ) {
-    return false;
-  }
-
-  return adoptRoomOwnership(room);
+  if (!effectiveOwnerNodeId) return false;
+  return canServeRoomLocally(
+    {
+      ...room,
+      ownerNodeId: effectiveOwnerNodeId,
+      ownerLeaseExpiresAt: effectiveOwnerLeaseExpiresAt,
+    },
+    nodeId,
+  );
 }
 
-function adoptRoomOwnership(room: RoomAffinityRoom): boolean {
+async function adoptRoomOwnership(room: RoomAffinityRoom): Promise<boolean> {
   const coord = _coord();
   const ownerNodeId = coord.getNodeId();
-  if (!claimRoomOwnership(room.id)) {
-    return false;
-  }
+  if (!(await claimRoomOwnership(room.id))) return false;
 
+  const lease = coord.getLease(roomOwnerLeaseName(room.id));
   coord.updateRoomOwnership(room.id, {
     ownerNodeId,
-    ownerLeaseExpiresAt: Date.now() + ROOM_OWNER_LEASE_TTL,
+    ownerLeaseExpiresAt: lease?.expiresAt ?? Date.now() + ROOM_OWNER_LEASE_TTL,
   });
-  recoverTurnTimerForRoom(room.id);
+  await recoverTurnTimerForRoomAuthoritatively(room.id);
 
   const localRoom = rooms.get(room.id);
   if (localRoom?.match) {
@@ -293,7 +277,15 @@ function adoptRoomOwnership(room: RoomAffinityRoom): boolean {
   return true;
 }
 
-function sendRoomHandoffRequired(ws: WebSocket, room: RoomAffinityRoom, action: RoomAffinityAction): void {
+async function ensureRoomOwnership(room: RoomAffinityRoom): Promise<boolean> {
+  return canServeRoom(room) || adoptRoomOwnership(room);
+}
+
+function sendRoomHandoffRequired(
+  ws: WebSocket,
+  room: RoomAffinityRoom,
+  action: RoomAffinityAction,
+): void {
   const hint = buildRoomHandoffHint(room, currentNodeId(), action);
   send(ws, { type: "room_handoff_required", ...hint });
 }
@@ -303,7 +295,11 @@ function routeRelayNodeMessage(delivery: CoordinatorNodeMessageDelivery): void {
     applyRoomGameSnapshot(delivery.roomId, delivery.roomGameSnapshot);
   }
 
-  const room = delivery.roomId ? rooms.get(delivery.roomId) : (delivery.userId ? rooms.get(playerToRoom.get(delivery.userId) || "") : undefined);
+  const room = delivery.roomId
+    ? rooms.get(delivery.roomId)
+    : delivery.userId
+      ? rooms.get(playerToRoom.get(delivery.userId) || "")
+      : undefined;
   const userId = delivery.userId;
   if (room && userId) {
     const player = room.players.get(userId);
@@ -329,7 +325,8 @@ function handleRelayCoordinatorEvent(event: CoordinatorEvent): void {
     const match = /^room:(.+):(owner|timer)$/.exec(event.leaseName);
     if (!match) return;
     const [, roomId, leaseKind] = match;
-    const replacement = event.payload?.replacement as { ownerId: string; expiresAt: number } | null | undefined;
+    const replacement = event.payload?.replacement as
+      { ownerId: string; expiresAt: number } | null | undefined;
     if (leaseKind === "timer") {
       suspendRoomTimersForShutdown(roomId);
       _coord().updateRoomOwnership(roomId, {
@@ -376,7 +373,12 @@ function handleRelayCoordinatorEvent(event: CoordinatorEvent): void {
     },
   } as RelayCaptureWebSocket;
 
-  void handleMessage(relayWs as unknown as WebSocket, request.userId, request.username, request.message as ClientMessage)
+  void handleMessage(
+    relayWs as unknown as WebSocket,
+    request.userId,
+    request.username,
+    request.message as ClientMessage,
+  )
     .then(() => {
       _coord().completeRoomAction({
         requestId: request.requestId,
@@ -447,37 +449,40 @@ function relayRoomAction(
   }, 2000);
   timeout.unref?.();
 
-  void _coord().requestRoomAction(request).then((response) => {
-    if (settled) {
-      return;
-    }
-    settled = true;
-    clearTimeout(timeout);
-
-    if (response.error) {
-      send(ws, { type: "error", message: response.error });
-      return;
-    }
-
-    for (const message of response.messages) {
-      send(ws, message as ServerMessage);
-    }
-
-    if (msg.type === "join_room" || msg.type === "join_challenge_room") {
-      const localRoom = rooms.get(room.id);
-      if (localRoom) {
-        localRoom.players.set(userId, createPlayerConnection({ userId, username }, ws, true));
-        playerToRoom.set(userId, room.id);
+  void _coord()
+    .requestRoomAction(request)
+    .then((response) => {
+      if (settled) {
+        return;
       }
-    }
-  }).catch(() => {
-    if (settled) {
-      return;
-    }
-    settled = true;
-    clearTimeout(timeout);
-    sendRoomHandoffRequired(ws, room, action);
-  });
+      settled = true;
+      clearTimeout(timeout);
+
+      if (response.error) {
+        send(ws, { type: "error", message: response.error });
+        return;
+      }
+
+      for (const message of response.messages) {
+        send(ws, message as ServerMessage);
+      }
+
+      if (msg.type === "join_room" || msg.type === "join_challenge_room") {
+        const localRoom = rooms.get(room.id);
+        if (localRoom) {
+          localRoom.players.set(userId, createPlayerConnection({ userId, username }, ws, true));
+          playerToRoom.set(userId, room.id);
+        }
+      }
+    })
+    .catch(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
+      sendRoomHandoffRequired(ws, room, action);
+    });
 
   return true;
 }
@@ -498,13 +503,22 @@ function refreshRoomGameStateFromCoordinator(roomId: string): void {
 function applyRoomGameSnapshot(roomId: string, snapshot: CoordinatorGameStateSnapshot): void {
   const current = roomGameState.get(roomId);
   const snapshotMatch = snapshot.match ? cloneSerializable(snapshot.match as MatchState) : null;
-  const snapshotShowdown = snapshot.lastShowdown ? cloneSerializable(snapshot.lastShowdown as ShowdownData) : null;
+  const snapshotShowdown = snapshot.lastShowdown
+    ? cloneSerializable(snapshot.lastShowdown as ShowdownData)
+    : null;
+  const snapshotRevision = snapshot.revision ?? 0;
+  const shouldReplace =
+    !current ||
+    snapshotRevision > current.revision ||
+    (snapshotRevision === 0 && current.revision === 0 && snapshot.updatedAt > current.updatedAt);
 
-  // Equal millisecond timestamps are not ordered; retain the applied state.
-  if (!current || snapshot.updatedAt > current.updatedAt) {
+  // Revisions are authoritative. Timestamp comparison is retained only for
+  // legacy revision-less snapshots so equal-millisecond writes cannot race.
+  if (shouldReplace) {
     roomGameState.set(roomId, {
       match: snapshotMatch as MatchState | null,
       lastShowdown: snapshotShowdown as ShowdownData | null,
+      revision: snapshotRevision,
       updatedAt: snapshot.updatedAt,
     });
     return;
@@ -520,10 +534,13 @@ function applyRoomGameSnapshot(roomId: string, snapshot: CoordinatorGameStateSna
 }
 
 function serializeRoomGameState(room: RoomState): CoordinatorGameStateSnapshot {
+  const localRevision = roomGameState.get(room.id)?.revision ?? 0;
+  const coordinatorRevision = _coord().getRoomGameState(room.id)?.revision ?? 0;
   return {
     match: room.match ? cloneSerializable(room.match) : null,
     lastShowdown: room.lastShowdown ? cloneSerializable(room.lastShowdown) : null,
     timer: getTurnTimerSnapshot(room.id),
+    revision: Math.max(localRevision, coordinatorRevision) + 1,
     updatedAt: Date.now(),
     nodeId: _coord().getNodeId(),
   };
@@ -580,28 +597,60 @@ function getRoomState(roomId: string): RoomState | undefined {
     roomGameState.set(roomId, {
       match: null,
       lastShowdown: null,
+      revision: 0,
       updatedAt: 0,
     });
   }
   const gs = roomGameState.get(roomId)!;
 
   // Return a live-linked object so mutations propagate
-    return {
-      get id() { return coordRoom.id; },
-      get hostId() { return coordRoom.hostId; },
-      get players() { return coordRoom.players as Map<string, CoordinatorPlayer>; },
-      get status() { return coordRoom.status; },
-      set status(v) { coordRoom.status = v; _coord().setRoomStatus(coordRoom.id, v); },
-      get createdAt() { return coordRoom.createdAt; },
-      get stakeId() { return coordRoom.stakeId; },
-      get ownerNodeId() { return coordRoom.ownerNodeId; },
-      get ownerLeaseExpiresAt() { return coordRoom.ownerLeaseExpiresAt; },
-      get timerOwnerNodeId() { return coordRoom.timerOwnerNodeId; },
-      get timerLeaseExpiresAt() { return coordRoom.timerLeaseExpiresAt; },
-      get match() { return gs.match; },
-      set match(v) { gs.match = v; },
-      get lastShowdown() { return gs.lastShowdown; },
-    set lastShowdown(v) { gs.lastShowdown = v; },
+  return {
+    get id() {
+      return coordRoom.id;
+    },
+    get hostId() {
+      return coordRoom.hostId;
+    },
+    get players() {
+      return coordRoom.players as Map<string, CoordinatorPlayer>;
+    },
+    get status() {
+      return coordRoom.status;
+    },
+    set status(v) {
+      coordRoom.status = v;
+      _coord().setRoomStatus(coordRoom.id, v);
+    },
+    get createdAt() {
+      return coordRoom.createdAt;
+    },
+    get stakeId() {
+      return coordRoom.stakeId;
+    },
+    get ownerNodeId() {
+      return coordRoom.ownerNodeId;
+    },
+    get ownerLeaseExpiresAt() {
+      return coordRoom.ownerLeaseExpiresAt;
+    },
+    get timerOwnerNodeId() {
+      return coordRoom.timerOwnerNodeId;
+    },
+    get timerLeaseExpiresAt() {
+      return coordRoom.timerLeaseExpiresAt;
+    },
+    get match() {
+      return gs.match;
+    },
+    set match(v) {
+      gs.match = v;
+    },
+    get lastShowdown() {
+      return gs.lastShowdown;
+    },
+    set lastShowdown(v) {
+      gs.lastShowdown = v;
+    },
   };
 }
 
@@ -610,11 +659,6 @@ const rooms = {
   get: (id: string) => getRoomState(id),
   has: (id: string) => _coord().hasRoom(id),
   set: (id: string, room: RoomState) => {
-    const ownerNodeId = room.ownerNodeId ?? _coord().getNodeId();
-    const ownerLeaseExpiresAt = room.ownerLeaseExpiresAt ?? (Date.now() + ROOM_OWNER_LEASE_TTL);
-    if (!claimRoomOwnership(room.id)) {
-      console.warn(`[roomManager] Could not claim ownership lease for room ${room.id}. Using local room state, but ownership may belong to another node.`);
-    }
     _coord().createRoom({
       id: room.id,
       hostId: room.hostId,
@@ -622,16 +666,31 @@ const rooms = {
       status: room.status,
       createdAt: room.createdAt,
       stakeId: room.stakeId,
-      ownerNodeId,
-      ownerLeaseExpiresAt,
+      ownerNodeId: room.ownerNodeId,
+      ownerLeaseExpiresAt: room.ownerLeaseExpiresAt,
       timerOwnerNodeId: room.timerOwnerNodeId,
       timerLeaseExpiresAt: room.timerLeaseExpiresAt,
     });
     syncRoomGameState(room);
   },
-  delete: (id: string) => { _coord().deleteRoom(id); roomGameState.delete(id); },
-  [Symbol.iterator]: function* () { for (const [id] of _coord().getAllRooms()) { const r = getRoomState(id); if (r) yield [id, r] as [string, RoomState]; } },
+  delete: (id: string) => {
+    _coord().deleteRoom(id);
+    roomGameState.delete(id);
+  },
+  [Symbol.iterator]: function* () {
+    for (const [id] of _coord().getAllRooms()) {
+      const r = getRoomState(id);
+      if (r) yield [id, r] as [string, RoomState];
+    }
+  },
 };
+
+async function registerOwnedRoom(room: RoomState): Promise<boolean> {
+  rooms.set(room.id, room);
+  if (await adoptRoomOwnership(room)) return true;
+  rooms.delete(room.id);
+  return false;
+}
 const playerToRoom = {
   get: (userId: string) => _coord().getPlayerRoom(userId),
   has: (userId: string) => _coord().hasPlayerRoom(userId),
@@ -641,7 +700,8 @@ const playerToRoom = {
 const spectatorConnections = {
   get: (userId: string) => _coord().getSpectatorConnection(userId),
   has: (userId: string) => _coord().hasSpectatorConnection(userId),
-  set: (userId: string, conn: CoordinatorSpectatorConnection) => _coord().setSpectatorConnection(userId, conn),
+  set: (userId: string, conn: CoordinatorSpectatorConnection) =>
+    _coord().setSpectatorConnection(userId, conn),
   delete: (userId: string) => _coord().removeSpectatorConnection(userId),
 };
 
@@ -717,12 +777,13 @@ function roomOwnerLeaseName(roomId: string): string {
   return `room:${roomId}:owner`;
 }
 
-function claimRoomOwnership(roomId: string): boolean {
+async function claimRoomOwnership(roomId: string): Promise<boolean> {
   const coord = _coord();
   const ownerId = coord.getNodeId();
+  const leaseName = roomOwnerLeaseName(roomId);
   return (
-    coord.renewLease(roomOwnerLeaseName(roomId), ownerId, ROOM_OWNER_LEASE_TTL) ||
-    coord.claimLease(roomOwnerLeaseName(roomId), ownerId, ROOM_OWNER_LEASE_TTL)
+    (await coord.renewLeaseAuthoritatively(leaseName, ownerId, ROOM_OWNER_LEASE_TTL)) ||
+    (await coord.claimLeaseAuthoritatively(leaseName, ownerId, ROOM_OWNER_LEASE_TTL))
   );
 }
 
@@ -752,7 +813,7 @@ export function prepareRoomsForShutdown(): void {
   }
 }
 
-function renewOwnedRoomLeases(): void {
+async function renewOwnedRoomLeases(): Promise<void> {
   if (shuttingDown) {
     return;
   }
@@ -766,21 +827,27 @@ function renewOwnedRoomLeases(): void {
       continue;
     }
 
-    if (!claimRoomOwnership(roomId)) {
+    if (!(await claimRoomOwnership(roomId))) {
+      const replacement = coord.getLease(roomOwnerLeaseName(roomId));
+      coord.updateRoomOwnership(roomId, {
+        ownerNodeId: replacement?.ownerId,
+        ownerLeaseExpiresAt: replacement?.expiresAt,
+      });
       continue;
     }
 
+    const lease = coord.getLease(roomOwnerLeaseName(roomId));
     coord.updateRoomOwnership(roomId, {
       ownerNodeId: nodeId,
-      ownerLeaseExpiresAt: nextExpiry,
+      ownerLeaseExpiresAt: lease?.expiresAt ?? nextExpiry,
     });
     // Ownership may have been acquired provisionally before the previous
     // timer lease expired. Retry hydration on each successful renewal.
-    recoverTurnTimerForRoom(roomId);
+    await recoverTurnTimerForRoomAuthoritatively(roomId);
   }
 }
 
-function reclaimRecoverableRooms(): void {
+async function reclaimRecoverableRooms(): Promise<void> {
   if (shuttingDown) {
     return;
   }
@@ -809,7 +876,7 @@ function reclaimRecoverableRooms(): void {
       continue;
     }
 
-    adoptRoomOwnership(room);
+    await adoptRoomOwnership(room);
   }
 }
 
@@ -823,11 +890,11 @@ setInterval(() => {
 }, 60_000).unref();
 
 setInterval(() => {
-  renewOwnedRoomLeases();
+  void renewOwnedRoomLeases();
 }, ROOM_OWNER_LEASE_RENEW_INTERVAL_MS).unref();
 
 setInterval(() => {
-  reclaimRecoverableRooms();
+  void reclaimRecoverableRooms();
 }, ROOM_OWNER_LEASE_RENEW_INTERVAL_MS).unref();
 
 // ── Helper: send typed message ───────────────────────────────────────
@@ -874,7 +941,8 @@ function sendSpectatorMessage(roomId: string, userId: string, msg: ServerMessage
       roomId,
       userId,
       message: msg,
-      roomGameSnapshot: room && (room.match || room.lastShowdown) ? serializeRoomGameState(room) : undefined,
+      roomGameSnapshot:
+        room && (room.match || room.lastShowdown) ? serializeRoomGameState(room) : undefined,
     });
     return;
   }
@@ -896,7 +964,7 @@ function generateRoomCode(): string {
 }
 
 function getRoomPlayers(room: RoomState): RoomPlayer[] {
-  return Array.from(room.players.values()).map(p => ({
+  return Array.from(room.players.values()).map((p) => ({
     userId: p.userId,
     username: p.username,
     connected: p.connected,
@@ -967,16 +1035,24 @@ function broadcastGameState(room: RoomState) {
         sendRoomPlayer(room, p.userId, {
           type: "round_over",
           state: view,
-          knockerHand: room.lastShowdown.knocker.melds.flatMap(m => m.cards).concat(room.lastShowdown.knocker.deadwood) as CardView[],
-          opponentHand: room.lastShowdown.opponent.melds.flatMap(m => m.cards).concat(room.lastShowdown.opponent.deadwood) as CardView[],
+          knockerHand: room.lastShowdown.knocker.melds
+            .flatMap((m) => m.cards)
+            .concat(room.lastShowdown.knocker.deadwood) as CardView[],
+          opponentHand: room.lastShowdown.opponent.melds
+            .flatMap((m) => m.cards)
+            .concat(room.lastShowdown.opponent.deadwood) as CardView[],
           showdown: room.lastShowdown,
         });
       } else if (room.match.status === "game_over" && room.lastShowdown) {
         sendRoomPlayer(room, p.userId, {
           type: "game_over",
           state: view,
-          knockerHand: room.lastShowdown.knocker.melds.flatMap(m => m.cards).concat(room.lastShowdown.knocker.deadwood) as CardView[],
-          opponentHand: room.lastShowdown.opponent.melds.flatMap(m => m.cards).concat(room.lastShowdown.opponent.deadwood) as CardView[],
+          knockerHand: room.lastShowdown.knocker.melds
+            .flatMap((m) => m.cards)
+            .concat(room.lastShowdown.knocker.deadwood) as CardView[],
+          opponentHand: room.lastShowdown.opponent.melds
+            .flatMap((m) => m.cards)
+            .concat(room.lastShowdown.opponent.deadwood) as CardView[],
           showdown: room.lastShowdown,
         });
       } else {
@@ -989,11 +1065,16 @@ function broadcastGameState(room: RoomState) {
   broadcastSpectatorView(room);
 }
 
-function broadcastReveal(room: RoomState, knockerHand: Card[], opponentHand: Card[], showdownData: ShowdownData) {
+function broadcastReveal(
+  room: RoomState,
+  knockerHand: Card[],
+  opponentHand: Card[],
+  showdownData: ShowdownData,
+) {
   if (!room.match) return;
   if (!canServeRoom(room)) return;
-  const kh: CardView[] = knockerHand.map(c => ({ suit: c.suit, rank: c.rank }));
-  const oh: CardView[] = opponentHand.map(c => ({ suit: c.suit, rank: c.rank }));
+  const kh: CardView[] = knockerHand.map((c) => ({ suit: c.suit, rank: c.rank }));
+  const oh: CardView[] = opponentHand.map((c) => ({ suit: c.suit, rank: c.rank }));
 
   // Store showdown for reconnection scenarios
   room.lastShowdown = showdownData;
@@ -1003,7 +1084,13 @@ function broadcastReveal(room: RoomState, knockerHand: Card[], opponentHand: Car
     const view = getPlayerView(room.match, p.userId);
     if (!view) continue;
     const msgType = room.match.status === "game_over" ? "game_over" : "round_over";
-    sendRoomPlayer(room, p.userId, { type: msgType, state: view, knockerHand: kh, opponentHand: oh, showdown: showdownData });
+    sendRoomPlayer(room, p.userId, {
+      type: msgType,
+      state: view,
+      knockerHand: kh,
+      opponentHand: oh,
+      showdown: showdownData,
+    });
   }
 
   // Also broadcast to spectators (they'll see the showdown data)
@@ -1018,22 +1105,27 @@ function broadcastTimerUpdate(room: RoomState) {
   if (!timerInfo) return;
 
   for (const p of room.players.values()) {
-      sendRoomPlayer(room, p.userId, {
-        type: "turn_timer" as const,
-        activePlayerId: timerInfo.activePlayerId,
-        remainingSeconds: timerInfo.remainingSeconds,
-        totalSeconds: timerInfo.totalSeconds,
-      });
+    sendRoomPlayer(room, p.userId, {
+      type: "turn_timer" as const,
+      activePlayerId: timerInfo.activePlayerId,
+      remainingSeconds: timerInfo.remainingSeconds,
+      totalSeconds: timerInfo.totalSeconds,
+    });
   }
 }
 
 /**
  * Build a per-player fairness status info object for the current round.
  */
-function buildFairnessStatus(roomId: string, roundNumber: number, playerId: string, room: RoomState): FairnessStatusInfo | null {
+function buildFairnessStatus(
+  roomId: string,
+  roundNumber: number,
+  playerId: string,
+  room: RoomState,
+): FairnessStatusInfo | null {
   const seeds = getClientSeeds(roomId, roundNumber);
   const ps = Array.from(room.players.values());
-  const playerIds = ps.map(p => p.userId);
+  const playerIds = ps.map((p) => p.userId);
   const myIdx = playerIds.indexOf(playerId);
   if (myIdx === -1) return null;
 
@@ -1073,9 +1165,9 @@ function broadcastFairnessStatus(room: RoomState, roundNumber: number) {
 // ── Match start helper (creates match + transcript + timer) ──────────
 
 async function startMatchForRoom(room: RoomState): Promise<void> {
-  if (!canServeRoom(room)) {
+  if (!(await ensureRoomOwnership(room))) {
     console.warn(
-      `[roomManager] Refusing to start room ${room.id} on node ${currentNodeId()} because ownership belongs to ${room.ownerNodeId ?? "unknown"}.`
+      `[roomManager] Refusing to start room ${room.id} on node ${currentNodeId()} because ownership belongs to ${room.ownerNodeId ?? "unknown"}.`,
     );
     return;
   }
@@ -1092,7 +1184,10 @@ async function startMatchForRoom(room: RoomState): Promise<void> {
         // If hold fails (insufficient funds at match start), refund any previous holds and abort
         refundEscrow(room.id);
         for (const pl of ps) {
-          send(pl.ws, { type: "error", message: `Match cancelled: ${p.username} has insufficient funds.` });
+          send(pl.ws, {
+            type: "error",
+            message: `Match cancelled: ${p.username} has insufficient funds.`,
+          });
         }
         room.status = "finished";
         return;
@@ -1112,7 +1207,7 @@ async function startMatchForRoom(room: RoomState): Promise<void> {
     room.id,
     { userId: ps[0].userId, username: ps[0].username },
     { userId: ps[1].userId, username: ps[1].username },
-    deckOrder
+    deckOrder,
   );
   room.status = "playing";
 
@@ -1148,7 +1243,10 @@ async function startMatchForRoom(room: RoomState): Promise<void> {
   recordRoundStart(room.id, 1, room.match.players[0].userId, room.match.players[0].username);
 
   // Start turn timer for first player
-  startTurnTimer(room.id, room.match.players[room.match.currentPlayerIndex].userId);
+  await startTurnTimerAuthoritatively(
+    room.id,
+    room.match.players[room.match.currentPlayerIndex].userId,
+  );
 
   await commitRoomGameStateDurably(room);
   maybeCrashAfterDurableActionCommit("match_start");
@@ -1198,20 +1296,26 @@ async function startMatchForRoom(room: RoomState): Promise<void> {
 // ── Persist match result ─────────────────────────────────────────────
 
 function persistMatchResult(match: MatchState) {
-  const winner = match.players.find(p => p.userId === match.winnerId);
-  const loser = match.players.find(p => p.userId !== match.winnerId);
+  const winner = match.players.find((p) => p.userId === match.winnerId);
+  const loser = match.players.find((p) => p.userId !== match.winnerId);
   if (!winner || !loser) return;
 
   db.transaction(() => {
     const wid = crypto.randomUUID();
-    db.prepare(`INSERT INTO matches (id, user_id, opponent_name, user_score, opponent_score, is_win, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`)
-      .run(wid, winner.userId, loser.username, winner.score, loser.score, 1);
-    db.prepare("UPDATE users SET rating = MAX(100, rating + 15), wins = wins + 1 WHERE id = ?").run(winner.userId);
+    db.prepare(
+      `INSERT INTO matches (id, user_id, opponent_name, user_score, opponent_score, is_win, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+    ).run(wid, winner.userId, loser.username, winner.score, loser.score, 1);
+    db.prepare("UPDATE users SET rating = MAX(100, rating + 15), wins = wins + 1 WHERE id = ?").run(
+      winner.userId,
+    );
 
     const lid = crypto.randomUUID();
-    db.prepare(`INSERT INTO matches (id, user_id, opponent_name, user_score, opponent_score, is_win, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`)
-      .run(lid, loser.userId, winner.username, loser.score, winner.score, 0);
-    db.prepare("UPDATE users SET rating = MAX(100, rating - 10), losses = losses + 1 WHERE id = ?").run(loser.userId);
+    db.prepare(
+      `INSERT INTO matches (id, user_id, opponent_name, user_score, opponent_score, is_win, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+    ).run(lid, loser.userId, winner.username, loser.score, winner.score, 0);
+    db.prepare(
+      "UPDATE users SET rating = MAX(100, rating - 10), losses = losses + 1 WHERE id = ?",
+    ).run(loser.userId);
   })();
 }
 
@@ -1226,21 +1330,27 @@ async function endMatchByForfeit(
   room: RoomState,
   forfeitingUserId: string,
   forfeitingUsername: string,
-  reason: "forfeit" | "timeout" | "disconnect"
+  reason: "forfeit" | "timeout" | "disconnect",
 ): Promise<void> {
   if (!room.match || room.match.status === "game_over") return;
-  if (!canServeRoom(room)) return;
+  if (!(await ensureRoomOwnership(room))) return;
 
-  const remaining = room.match.players.find(p => p.userId !== forfeitingUserId);
+  const remaining = room.match.players.find((p) => p.userId !== forfeitingUserId);
   if (!remaining) return;
 
   // Record in transcript
-  recordForfeit(room.id, forfeitingUserId, forfeitingUsername, reason === "forfeit" ? "leave" : reason);
+  recordForfeit(
+    room.id,
+    forfeitingUserId,
+    forfeitingUsername,
+    reason === "forfeit" ? "leave" : reason,
+  );
 
   // Update match state
   room.match.status = "game_over";
   room.match.winnerId = remaining.userId;
-  const reasonLabel = reason === "timeout" ? "timed out" : reason === "disconnect" ? "disconnected" : "forfeited";
+  const reasonLabel =
+    reason === "timeout" ? "timed out" : reason === "disconnect" ? "disconnected" : "forfeited";
   room.match.message = `${forfeitingUsername} ${reasonLabel}. ${remaining.username} wins!`;
 
   // Settle escrow — winner receives net prize pool (after rake)
@@ -1273,9 +1383,9 @@ async function endMatchByForfeit(
     forfeitingUserId,
     forfeitingUsername,
     remaining.score,
-    room.match.players.find(p => p.userId === forfeitingUserId)?.score ?? 0,
+    room.match.players.find((p) => p.userId === forfeitingUserId)?.score ?? 0,
     reason === "timeout" ? "timeout" : reason === "disconnect" ? "disconnect" : "forfeit",
-    forfeitFairnessData
+    forfeitFairnessData,
   );
 
   // Persist results and update ratings
@@ -1291,15 +1401,19 @@ async function endMatchByForfeit(
   // Notify remaining player
   const rp = room.players.get(remaining.userId);
   if (rp) {
-    sendRoomPlayer(room, remaining.userId, { type: "opponent_forfeited", username: forfeitingUsername });
-    const view = getPlayerView(room.match, remaining.userId);
-    if (view) sendRoomPlayer(room, remaining.userId, {
-      type: "game_over",
-      state: view,
-      knockerHand: [],
-      opponentHand: [],
-      showdown: forfeitShowdown,
+    sendRoomPlayer(room, remaining.userId, {
+      type: "opponent_forfeited",
+      username: forfeitingUsername,
     });
+    const view = getPlayerView(room.match, remaining.userId);
+    if (view)
+      sendRoomPlayer(room, remaining.userId, {
+        type: "game_over",
+        state: view,
+        knockerHand: [],
+        opponentHand: [],
+        showdown: forfeitShowdown,
+      });
   }
 
   // Tournament bracket advancement for forfeit/timeout/disconnect
@@ -1308,12 +1422,16 @@ async function endMatchByForfeit(
 
 // ── Turn timeout handler ─────────────────────────────────────────────
 
-function handleTurnTimeout(roomId: string, timedOutPlayerId: string, consecutiveTimeouts: number) {
+async function handleTurnTimeout(
+  roomId: string,
+  timedOutPlayerId: string,
+  consecutiveTimeouts: number,
+) {
   const room = rooms.get(roomId);
   if (!room || !room.match || room.match.status !== "playing") return;
-  if (!canServeRoom(room)) return;
+  if (!(await ensureRoomOwnership(room))) return;
 
-  const timedOutPlayer = room.match.players.find(p => p.userId === timedOutPlayerId);
+  const timedOutPlayer = room.match.players.find((p) => p.userId === timedOutPlayerId);
   if (!timedOutPlayer) return;
 
   // Record timeout in transcript
@@ -1322,23 +1440,25 @@ function handleTurnTimeout(roomId: string, timedOutPlayerId: string, consecutive
   // Check if we should forfeit
   if (consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS) {
     // Auto-forfeit — too many consecutive timeouts
-    void endMatchByForfeit(room, timedOutPlayerId, timedOutPlayer.username, "timeout").catch((err) => {
-      logAsyncRoomTaskError("Failed to end timed-out match", err, roomId);
-    });
+    void endMatchByForfeit(room, timedOutPlayerId, timedOutPlayer.username, "timeout").catch(
+      (err) => {
+        logAsyncRoomTaskError("Failed to end timed-out match", err, roomId);
+      },
+    );
 
     // Notify the timed-out player too if still connected
     const timedOutPlayerState = room.players.get(timedOutPlayerId);
     if (timedOutPlayerState) {
       sendRoomPlayer(room, timedOutPlayerId, {
         type: "turn_timeout_warning",
-        message: `You were forfeited after ${MAX_CONSECUTIVE_TIMEOUTS} consecutive timeouts.`
+        message: `You were forfeited after ${MAX_CONSECUTIVE_TIMEOUTS} consecutive timeouts.`,
       });
     }
     return;
   }
 
   // Auto-play: draw from stock if haven't drawn, then discard last card
-  const currentPlayerIdx = room.match.players.findIndex(p => p.userId === timedOutPlayerId);
+  const currentPlayerIdx = room.match.players.findIndex((p) => p.userId === timedOutPlayerId);
   if (currentPlayerIdx !== room.match.currentPlayerIndex) return; // Safety check
 
   const player = room.match.players[currentPlayerIdx];
@@ -1367,14 +1487,14 @@ function handleTurnTimeout(roomId: string, timedOutPlayerId: string, consecutive
   if (timedOutPlayerState) {
     sendRoomPlayer(room, timedOutPlayerId, {
       type: "turn_timeout_warning",
-      message: `You timed out. Auto-played your turn. (${consecutiveTimeouts}/${MAX_CONSECUTIVE_TIMEOUTS} warnings)`
+      message: `You timed out. Auto-played your turn. (${consecutiveTimeouts}/${MAX_CONSECUTIVE_TIMEOUTS} warnings)`,
     });
   }
 
   // If the match is still going, start timer for next player and broadcast
   if (room.match.status === "playing") {
     const nextPlayerId = room.match.players[room.match.currentPlayerIndex].userId;
-    startTurnTimer(roomId, nextPlayerId);
+    await startTurnTimerAuthoritatively(roomId, nextPlayerId);
     broadcastGameState(room);
     broadcastTimerUpdate(room);
   }
@@ -1382,7 +1502,12 @@ function handleTurnTimeout(roomId: string, timedOutPlayerId: string, consecutive
 
 // ── Message Handler ──────────────────────────────────────────────────
 
-async function handleMessage(ws: WebSocket, userId: string, username: string, msg: ClientMessage): Promise<void> {
+async function handleMessage(
+  ws: WebSocket,
+  userId: string,
+  username: string,
+  msg: ClientMessage,
+): Promise<void> {
   switch (msg.type) {
     case "ping": {
       send(ws, { type: "pong" });
@@ -1408,7 +1533,10 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
         lastShowdown: null,
       };
       room.players.set(userId, createPlayerConnection({ userId, username }, ws, true));
-      rooms.set(roomId, room);
+      if (!(await registerOwnedRoom(room))) {
+        send(ws, { type: "error", message: "Unable to acquire room ownership. Please retry." });
+        break;
+      }
       playerToRoom.set(userId, roomId);
 
       send(ws, { type: "room_created", roomId });
@@ -1430,7 +1558,7 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
         send(ws, { type: "error", message: "Room not found." });
         break;
       }
-      if (!canServeRoom(room)) {
+      if (!(await ensureRoomOwnership(room))) {
         if (relayRoomAction(ws, room, userId, username, msg, "join_room")) {
           break;
         }
@@ -1442,13 +1570,15 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
       if (existingRoom2 === msg.roomId) {
         const ep = room.players.get(userId);
         if (ep) {
-      room.players.set(userId, createPlayerConnection(ep, ws, true));
+          room.players.set(userId, createPlayerConnection(ep, ws, true));
           // Send current state
           send(ws, {
             type: "room_joined",
             room: {
               id: room.id,
-              hostUsername: Array.from(room.players.values()).find(p => p.userId === room.hostId)?.username || "",
+              hostUsername:
+                Array.from(room.players.values()).find((p) => p.userId === room.hostId)?.username ||
+                "",
               players: getRoomPlayers(room),
               status: room.status,
             },
@@ -1491,7 +1621,8 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
         type: "room_joined",
         room: {
           id: room.id,
-          hostUsername: Array.from(room.players.values()).find(p => p.userId === room.hostId)?.username || "",
+          hostUsername:
+            Array.from(room.players.values()).find((p) => p.userId === room.hostId)?.username || "",
           players: getRoomPlayers(room),
           status: room.status,
         },
@@ -1500,7 +1631,10 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
       // Notify the host that opponent joined
       for (const p of room.players.values()) {
         if (p.userId !== userId) {
-          sendRoomPlayer(room, p.userId, { type: "opponent_joined", opponent: { userId, username, connected: true } });
+          sendRoomPlayer(room, p.userId, {
+            type: "opponent_joined",
+            opponent: { userId, username, connected: true },
+          });
         }
       }
 
@@ -1513,10 +1647,16 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
 
     case "draw": {
       const roomId = playerToRoom.get(userId);
-      if (!roomId) { send(ws, { type: "error", message: "Not in a room." }); break; }
+      if (!roomId) {
+        send(ws, { type: "error", message: "Not in a room." });
+        break;
+      }
       const room = rooms.get(roomId);
-      if (!room || !room.match) { send(ws, { type: "error", message: "No active match." }); break; }
-      if (!canServeRoom(room)) {
+      if (!room || !room.match) {
+        send(ws, { type: "error", message: "No active match." });
+        break;
+      }
+      if (!(await ensureRoomOwnership(room))) {
         if (relayRoomAction(ws, room, userId, username, msg, "reconnect")) {
           break;
         }
@@ -1525,7 +1665,10 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
       }
 
       const result = handleDraw(room.match, userId, msg.source);
-      if (!result.ok) { send(ws, { type: "error", message: (result as { ok: false; error: string }).error }); break; }
+      if (!result.ok) {
+        send(ws, { type: "error", message: (result as { ok: false; error: string }).error });
+        break;
+      }
 
       // Player acted voluntarily — reset their timeout counter
       resetTimeoutCount(roomId, userId);
@@ -1541,10 +1684,16 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
 
     case "discard": {
       const roomId = playerToRoom.get(userId);
-      if (!roomId) { send(ws, { type: "error", message: "Not in a room." }); break; }
+      if (!roomId) {
+        send(ws, { type: "error", message: "Not in a room." });
+        break;
+      }
       const room = rooms.get(roomId);
-      if (!room || !room.match) { send(ws, { type: "error", message: "No active match." }); break; }
-      if (!canServeRoom(room)) {
+      if (!room || !room.match) {
+        send(ws, { type: "error", message: "No active match." });
+        break;
+      }
+      if (!(await ensureRoomOwnership(room))) {
         if (relayRoomAction(ws, room, userId, username, msg, "reconnect")) {
           break;
         }
@@ -1553,7 +1702,10 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
       }
 
       const result = handleDiscard(room.match, userId, msg.cardIndex);
-      if (!result.ok) { send(ws, { type: "error", message: (result as { ok: false; error: string }).error }); break; }
+      if (!result.ok) {
+        send(ws, { type: "error", message: (result as { ok: false; error: string }).error });
+        break;
+      }
 
       // Player acted voluntarily — reset their timeout counter
       resetTimeoutCount(roomId, userId);
@@ -1566,7 +1718,7 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
       // Turn has changed — restart timer for the new active player
       if (room.match.status === "playing") {
         const nextPlayerId = room.match.players[room.match.currentPlayerIndex].userId;
-        startTurnTimer(roomId, nextPlayerId);
+        await startTurnTimerAuthoritatively(roomId, nextPlayerId);
       }
 
       await commitRoomGameStateDurably(room);
@@ -1578,10 +1730,16 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
 
     case "knock": {
       const roomId = playerToRoom.get(userId);
-      if (!roomId) { send(ws, { type: "error", message: "Not in a room." }); break; }
+      if (!roomId) {
+        send(ws, { type: "error", message: "Not in a room." });
+        break;
+      }
       const room = rooms.get(roomId);
-      if (!room || !room.match) { send(ws, { type: "error", message: "No active match." }); break; }
-      if (!canServeRoom(room)) {
+      if (!room || !room.match) {
+        send(ws, { type: "error", message: "No active match." });
+        break;
+      }
+      if (!(await ensureRoomOwnership(room))) {
         if (relayRoomAction(ws, room, userId, username, msg, "reconnect")) {
           break;
         }
@@ -1590,15 +1748,18 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
       }
 
       const result = handleKnock(room.match, userId, msg.cardIndex);
-      if (!result.ok) { send(ws, { type: "error", message: (result as { ok: false; error: string }).error }); break; }
+      if (!result.ok) {
+        send(ws, { type: "error", message: (result as { ok: false; error: string }).error });
+        break;
+      }
 
       // Player acted voluntarily — reset their timeout counter
       resetTimeoutCount(roomId, userId);
 
       // Record knock outcome in transcript
       if (result.knockOutcome && result.discardedCard && room.match.roundWinnerId) {
-        const knocker = room.match.players.find(p => p.userId === userId)!;
-        const winner = room.match.players.find(p => p.userId === room.match!.roundWinnerId)!;
+        const knocker = room.match.players.find((p) => p.userId === userId)!;
+        const winner = room.match.players.find((p) => p.userId === room.match!.roundWinnerId)!;
 
         recordKnockOutcome(
           roomId,
@@ -1610,7 +1771,7 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
           room.match.roundPoints,
           0, // knocker's final deadwood (recorded but approximated)
           0, // opponent's final deadwood
-          result.discardedCard
+          result.discardedCard,
         );
       }
 
@@ -1627,15 +1788,20 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
       maybeCrashAfterDurableActionCommit("knock");
 
       if (result.reveal) {
-        broadcastReveal(room, result.reveal.knockerHand, result.reveal.opponentHand, result.showdownData!);
+        broadcastReveal(
+          room,
+          result.reveal.knockerHand,
+          result.reveal.opponentHand,
+          result.showdownData!,
+        );
       } else {
         broadcastGameState(room);
       }
 
       // If game over, persist results and finalize transcript
       if (room.match.status === "game_over") {
-        const winner = room.match.players.find(p => p.userId === room.match!.winnerId)!;
-        const loser = room.match.players.find(p => p.userId !== room.match!.winnerId)!;
+        const winner = room.match.players.find((p) => p.userId === room.match!.winnerId)!;
+        const loser = room.match.players.find((p) => p.userId !== room.match!.winnerId)!;
 
         // Reveal fairness seed for the final round
         const finalRound = room.match.roundNumber;
@@ -1654,25 +1820,47 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
           winner.score,
           loser.score,
           "completed",
-          completedFairnessData
+          completedFairnessData,
         );
         // Settle escrow — winner receives net prize pool (after rake)
         const settlement = settleMatch(roomId, winner.userId, loser.userId, "completed");
         if (settlement.type === "payout" && settlement.payoutAmount) {
-          room.match.message = (room.match.message || "") + ` (+${settlement.payoutAmount} ${settlement.currency === "sweeps_coins" ? "Sweeps" : "Gold"})`;
+          room.match.message =
+            (room.match.message || "") +
+            ` (+${settlement.payoutAmount} ${settlement.currency === "sweeps_coins" ? "Sweeps" : "Gold"})`;
         }
         persistMatchResult(room.match);
         room.status = "finished";
         cleanupRoomTimers(roomId);
 
         // Persist broadcast metrics
-        const p1r = (db.prepare("SELECT rating FROM users WHERE id = ?").get(winner.userId) as any)?.rating ?? 1200;
-        const p2r = (db.prepare("SELECT rating FROM users WHERE id = ?").get(loser.userId) as any)?.rating ?? 1200;
+        const p1r =
+          (db.prepare("SELECT rating FROM users WHERE id = ?").get(winner.userId) as any)?.rating ??
+          1200;
+        const p2r =
+          (db.prepare("SELECT rating FROM users WHERE id = ?").get(loser.userId) as any)?.rating ??
+          1200;
         const isTournament = !!getTournamentForRoom(roomId);
-        const completedReasons = getFeaturedReasons(roomId, room.stakeId, isTournament, p1r, p2r, winner.userId, loser.userId);
+        const completedReasons = getFeaturedReasons(
+          roomId,
+          room.stakeId,
+          isTournament,
+          p1r,
+          p2r,
+          winner.userId,
+          loser.userId,
+        );
         persistBroadcastMetrics(
-          roomId, winner.userId, winner.username, loser.userId, loser.username,
-          winner.userId, winner.username, room.stakeId, completedReasons, room.createdAt
+          roomId,
+          winner.userId,
+          winner.username,
+          loser.userId,
+          loser.username,
+          winner.userId,
+          winner.username,
+          room.stakeId,
+          completedReasons,
+          room.createdAt,
         );
 
         // Tournament bracket advancement
@@ -1683,10 +1871,16 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
 
     case "next_round": {
       const roomId = playerToRoom.get(userId);
-      if (!roomId) { send(ws, { type: "error", message: "Not in a room." }); break; }
+      if (!roomId) {
+        send(ws, { type: "error", message: "Not in a room." });
+        break;
+      }
       const room = rooms.get(roomId);
-      if (!room || !room.match) { send(ws, { type: "error", message: "No active match." }); break; }
-      if (!canServeRoom(room)) {
+      if (!room || !room.match) {
+        send(ws, { type: "error", message: "No active match." });
+        break;
+      }
+      if (!(await ensureRoomOwnership(room))) {
         if (relayRoomAction(ws, room, userId, username, msg, "reconnect")) {
           break;
         }
@@ -1701,14 +1895,16 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
       const roundStartIndex = actions.findIndex(
         (action) => action.type === "round_start" && action.detail?.roundNumber === prevRound,
       );
-      const nextRoundIndex = roundStartIndex < 0
-        ? -1
-        : actions.findIndex(
-            (action, index) => index > roundStartIndex && action.type === "round_start",
-          );
-      const roundActions = roundStartIndex < 0
-        ? []
-        : actions.slice(roundStartIndex, nextRoundIndex < 0 ? undefined : nextRoundIndex);
+      const nextRoundIndex =
+        roundStartIndex < 0
+          ? -1
+          : actions.findIndex(
+              (action, index) => index > roundStartIndex && action.type === "round_start",
+            );
+      const roundActions =
+        roundStartIndex < 0
+          ? []
+          : actions.slice(roundStartIndex, nextRoundIndex < 0 ? undefined : nextRoundIndex);
       revealRoundSeed(roomId, prevRound, roundActions);
 
       // Create fairness commitment for the new round
@@ -1728,19 +1924,25 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
       }
 
       const result = handleNextRound(room.match, userId, newDeckOrder);
-      if (!result.ok) { send(ws, { type: "error", message: (result as { ok: false; error: string }).error }); break; }
+      if (!result.ok) {
+        send(ws, { type: "error", message: (result as { ok: false; error: string }).error });
+        break;
+      }
 
       // Record round start in transcript
       recordRoundStart(
         roomId,
         room.match.roundNumber,
         room.match.players[0].userId,
-        room.match.players[0].username
+        room.match.players[0].username,
       );
 
       // Start timer for first player of new round
       if (room.match.status === "playing") {
-        startTurnTimer(roomId, room.match.players[room.match.currentPlayerIndex].userId);
+        await startTurnTimerAuthoritatively(
+          roomId,
+          room.match.players[room.match.currentPlayerIndex].userId,
+        );
       }
 
       await commitRoomGameStateDurably(room);
@@ -1785,7 +1987,8 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
       const matchPosture = (msg as any).matchPosture || "like_rated";
 
       // Look up rating from DB for rating-aware pairing
-      const userRow = db.prepare("SELECT rating FROM users WHERE id = ?").get(userId) as { rating: number } | undefined;
+      const userRow = db.prepare("SELECT rating FROM users WHERE id = ?").get(userId) as
+        { rating: number } | undefined;
       const rating = userRow?.rating ?? 1200;
 
       const result = joinQueue(userId, username, rating, ws, stakeId, timerSpeed, matchPosture);
@@ -1836,16 +2039,22 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
         if (existingRoom) {
           const ep = existingRoom.players.get(userId);
           if (ep) {
-      existingRoom.players.set(userId, createPlayerConnection(ep, ws, true));
+            existingRoom.players.set(userId, createPlayerConnection(ep, ws, true));
           } else {
-      existingRoom.players.set(userId, createPlayerConnection({ userId, username }, ws, true));
+            existingRoom.players.set(
+              userId,
+              createPlayerConnection({ userId, username }, ws, true),
+            );
             playerToRoom.set(userId, existingRoom.id);
           }
           send(ws, {
             type: "room_joined",
             room: {
               id: existingRoom.id,
-              hostUsername: Array.from(existingRoom.players.values()).find(p => p.userId === existingRoom.hostId)?.username || "",
+              hostUsername:
+                Array.from(existingRoom.players.values()).find(
+                  (p) => p.userId === existingRoom.hostId,
+                )?.username || "",
               players: getRoomPlayers(existingRoom),
               status: existingRoom.status,
             },
@@ -1865,10 +2074,16 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
 
     case "submit_client_seed": {
       const roomId = playerToRoom.get(userId);
-      if (!roomId) { send(ws, { type: "error", message: "Not in a room." }); break; }
+      if (!roomId) {
+        send(ws, { type: "error", message: "Not in a room." });
+        break;
+      }
       const room = rooms.get(roomId);
-      if (!room || !room.match) { send(ws, { type: "error", message: "No active match." }); break; }
-      if (!canServeRoom(room)) {
+      if (!room || !room.match) {
+        send(ws, { type: "error", message: "No active match." });
+        break;
+      }
+      if (!(await ensureRoomOwnership(room))) {
         if (relayRoomAction(ws, room, userId, username, msg, "reconnect")) {
           break;
         }
@@ -1878,7 +2093,10 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
 
       // Validate the seed (max 64 chars, non-empty)
       const seedStr = (msg.seed || "").slice(0, 64);
-      if (!seedStr) { send(ws, { type: "error", message: "Client seed cannot be empty." }); break; }
+      if (!seedStr) {
+        send(ws, { type: "error", message: "Client seed cannot be empty." });
+        break;
+      }
 
       // Submit for the current round
       const currentRound = room.match.roundNumber;
@@ -1928,9 +2146,9 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
       }
 
       // Check if room exists already
-      let challengeRoom = rooms.get(targetRoomId);
+      const challengeRoom = rooms.get(targetRoomId);
       if (challengeRoom) {
-        if (!canServeRoom(challengeRoom)) {
+        if (!(await ensureRoomOwnership(challengeRoom))) {
           if (relayRoomAction(ws, challengeRoom, userId, username, msg, "join_challenge_room")) {
             break;
           }
@@ -1947,12 +2165,15 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
         const ep = challengeRoom.players.get(userId);
         if (ep) {
           // Reconnecting
-      challengeRoom.players.set(userId, createPlayerConnection(ep, ws, true));
+          challengeRoom.players.set(userId, createPlayerConnection(ep, ws, true));
           send(ws, {
             type: "room_joined",
             room: {
               id: challengeRoom.id,
-              hostUsername: Array.from(challengeRoom.players.values()).find(p => p.userId === challengeRoom!.hostId)?.username || "",
+              hostUsername:
+                Array.from(challengeRoom.players.values()).find(
+                  (p) => p.userId === challengeRoom!.hostId,
+                )?.username || "",
               players: getRoomPlayers(challengeRoom),
               status: challengeRoom.status,
             },
@@ -1968,20 +2189,26 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
           }
         } else if (challengeRoom.status === "waiting" && challengeRoom.players.size < 2) {
           // Join as second player
-      challengeRoom.players.set(userId, createPlayerConnection({ userId, username }, ws, true));
+          challengeRoom.players.set(userId, createPlayerConnection({ userId, username }, ws, true));
           playerToRoom.set(userId, challengeRoom.id);
           send(ws, {
             type: "room_joined",
             room: {
               id: challengeRoom.id,
-              hostUsername: Array.from(challengeRoom.players.values()).find(p => p.userId === challengeRoom!.hostId)?.username || "",
+              hostUsername:
+                Array.from(challengeRoom.players.values()).find(
+                  (p) => p.userId === challengeRoom!.hostId,
+                )?.username || "",
               players: getRoomPlayers(challengeRoom),
               status: challengeRoom.status,
             },
           });
           for (const p of challengeRoom.players.values()) {
             if (p.userId !== userId) {
-              sendRoomPlayer(challengeRoom, p.userId, { type: "opponent_joined", opponent: { userId, username, connected: true } });
+              sendRoomPlayer(challengeRoom, p.userId, {
+                type: "opponent_joined",
+                opponent: { userId, username, connected: true },
+              });
             }
           }
           // Both players present — start the game
@@ -1989,7 +2216,11 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
             await startMatchForRoom(challengeRoom);
           }
         } else {
-          send(ws, { type: "error", message: challengeRoom.status !== "waiting" ? "Game already in progress." : "Room is full." });
+          send(ws, {
+            type: "error",
+            message:
+              challengeRoom.status !== "waiting" ? "Game already in progress." : "Room is full.",
+          });
         }
       } else {
         const existingChallengeRoom = playerToRoom.get(userId);
@@ -2008,8 +2239,11 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
           stakeId: challengeStakeId,
           lastShowdown: null,
         };
-      newRoom.players.set(userId, createPlayerConnection({ userId, username }, ws, true));
-        rooms.set(targetRoomId, newRoom);
+        newRoom.players.set(userId, createPlayerConnection({ userId, username }, ws, true));
+        if (!(await registerOwnedRoom(newRoom))) {
+          send(ws, { type: "error", message: "Unable to acquire challenge room ownership." });
+          break;
+        }
         playerToRoom.set(userId, targetRoomId);
 
         send(ws, { type: "room_created", roomId: targetRoomId });
@@ -2049,7 +2283,10 @@ async function handleLeave(userId: string): Promise<void> {
   const roomId = playerToRoom.get(userId);
   if (!roomId) return;
   const room = rooms.get(roomId);
-  if (!room) { playerToRoom.delete(userId); return; }
+  if (!room) {
+    playerToRoom.delete(userId);
+    return;
+  }
 
   const leavingPlayer = room.players.get(userId);
   room.players.delete(userId);
@@ -2065,7 +2302,10 @@ async function handleLeave(userId: string): Promise<void> {
     // Notify remaining players (for waiting room scenarios)
     if (leavingPlayer) {
       for (const p of room.players.values()) {
-        sendRoomPlayer(room, p.userId, { type: "opponent_forfeited", username: leavingPlayer.username });
+        sendRoomPlayer(room, p.userId, {
+          type: "opponent_forfeited",
+          username: leavingPlayer.username,
+        });
       }
     }
   }
@@ -2085,7 +2325,8 @@ function authenticateUpgrade(req: IncomingMessage): { userId: string; username: 
   const userId = consumeWebSocketTicket(ticket);
   if (!userId) return null;
 
-  const user = db.prepare("SELECT id, username FROM users WHERE id = ?").get(userId) as { id: string; username: string } | undefined;
+  const user = db.prepare("SELECT id, username FROM users WHERE id = ?").get(userId) as
+    { id: string; username: string } | undefined;
   if (!user) return null;
 
   return { userId: user.id, username: user.username };
@@ -2098,12 +2339,14 @@ export function attachWebSocketServer(server: HttpServer) {
 
   // Register turn timeout callback
   setTurnTimeoutCallback(handleTurnTimeout);
-  recoverTurnTimersFromCoordinator();
+  void recoverTurnTimersFromCoordinatorAuthoritatively();
   const recoveredRoomIds = new Set<string>();
   for (const [roomId] of rooms) recoveredRoomIds.add(roomId);
   const refundedOrphans = reconcileOrphanedEscrows(recoveredRoomIds);
   if (refundedOrphans.length > 0) {
-    console.warn(`[escrow] Refunded ${refundedOrphans.length} orphaned room hold(s) after recovery.`);
+    console.warn(
+      `[escrow] Refunded ${refundedOrphans.length} orphaned room hold(s) after recovery.`,
+    );
   }
   ensureRelayBridge();
 
@@ -2129,133 +2372,151 @@ export function attachWebSocketServer(server: HttpServer) {
     });
   });
 
-  wss.on("connection", (ws: WebSocket, _req: IncomingMessage, auth: { userId: string; username: string }) => {
-    const { userId, username } = auth;
+  wss.on(
+    "connection",
+    async (ws: WebSocket, _req: IncomingMessage, auth: { userId: string; username: string }) => {
+      const { userId, username } = auth;
 
-    // Handle reconnection: if user was in a room, reconnect
-    const existingRoomId = playerToRoom.get(userId);
-    if (existingRoomId) {
-      const room = rooms.get(existingRoomId);
-      if (room) {
-        if (!canServeRoom(room)) {
-          if (!relayRoomAction(ws, room, userId, username, { type: "join_room", roomId: existingRoomId } as ClientMessage, "reconnect")) {
-            sendRoomHandoffRequired(ws, room, "reconnect");
+      // Handle reconnection: if user was in a room, reconnect
+      const existingRoomId = playerToRoom.get(userId);
+      if (existingRoomId) {
+        const room = rooms.get(existingRoomId);
+        if (room) {
+          if (!(await ensureRoomOwnership(room))) {
+            if (
+              !relayRoomAction(
+                ws,
+                room,
+                userId,
+                username,
+                { type: "join_room", roomId: existingRoomId } as ClientMessage,
+                "reconnect",
+              )
+            ) {
+              sendRoomHandoffRequired(ws, room, "reconnect");
+            }
+            return;
           }
+
+          const existing = room.players.get(userId);
+          if (existing) {
+            room.players.set(userId, createPlayerConnection(existing, ws, true));
+            // Re-send room and game state
+            send(ws, {
+              type: "room_joined",
+              room: {
+                id: room.id,
+                hostUsername:
+                  Array.from(room.players.values()).find((p) => p.userId === room.hostId)
+                    ?.username || "",
+                players: getRoomPlayers(room),
+                status: room.status,
+              },
+            });
+            if (room.match) {
+              const view = getPlayerView(room.match, userId);
+              if (view) {
+                let timerInfo = getTurnTimerInfo(room.id);
+                if (!timerInfo && (await recoverTurnTimerForRoomAuthoritatively(room.id))) {
+                  timerInfo = getTurnTimerInfo(room.id);
+                }
+                if (timerInfo) {
+                  view.turnTimer = {
+                    remainingSeconds: timerInfo.remainingSeconds,
+                    totalSeconds: timerInfo.totalSeconds,
+                    isMyTimer: timerInfo.activePlayerId === userId,
+                  };
+                }
+                send(ws, { type: "game_update", state: view });
+              }
+            }
+            for (const p of room.players.values()) {
+              if (p.userId !== userId) {
+                sendRoomPlayer(room, p.userId, { type: "opponent_reconnected", username });
+              }
+            }
+          }
+        }
+      }
+
+      ws.on("message", (data) => {
+        let msg: ClientMessage;
+        try {
+          msg = JSON.parse(data.toString()) as ClientMessage;
+        } catch {
+          send(ws, { type: "error", message: "Invalid message format." });
           return;
         }
 
-        const existing = room.players.get(userId);
-        if (existing) {
-      room.players.set(userId, createPlayerConnection(existing, ws, true));
-          // Re-send room and game state
-          send(ws, {
-            type: "room_joined",
-            room: {
-              id: room.id,
-              hostUsername: Array.from(room.players.values()).find(p => p.userId === room.hostId)?.username || "",
-              players: getRoomPlayers(room),
-              status: room.status,
-            },
-          });
-          if (room.match) {
-            const view = getPlayerView(room.match, userId);
-            if (view) {
-              let timerInfo = getTurnTimerInfo(room.id);
-              if (!timerInfo && recoverTurnTimerForRoom(room.id)) {
-                timerInfo = getTurnTimerInfo(room.id);
-              }
-              if (timerInfo) {
-                view.turnTimer = {
-                  remainingSeconds: timerInfo.remainingSeconds,
-                  totalSeconds: timerInfo.totalSeconds,
-                  isMyTimer: timerInfo.activePlayerId === userId,
-                };
-              }
-              send(ws, { type: "game_update", state: view });
-            }
+        void handleMessage(ws, userId, username, msg).catch((err) => {
+          console.error(`[roomManager] Failed to process message ${msg.type} for ${userId}:`, err);
+          send(ws, { type: "error", message: "Unable to process multiplayer action." });
+        });
+      });
+
+      ws.on("close", () => {
+        // Clean up from matchmaking queue if queued
+        handleQueueDisconnect(userId);
+
+        // Clean up spectator connection if spectating
+        handleLeaveSpectate(userId);
+
+        const roomId = playerToRoom.get(userId);
+        if (!roomId) return;
+        const room = rooms.get(roomId);
+        if (!room) return;
+
+        const player = room.players.get(userId);
+        // A reconnect may already have replaced this socket. A stale close must
+        // never disconnect the live replacement.
+        if (player?.ws !== ws) return;
+        if (player) {
+          const disconnectedPlayer = createPlayerConnection(player, null, false);
+          const disconnectMarker = disconnectedPlayer.lastSeenAt;
+          room.players.set(userId, disconnectedPlayer);
+
+          // Record disconnect in transcript
+          if (room.match && room.match.status === "playing") {
+            recordDisconnect(roomId, userId, username);
           }
+
+          // Notify opponent of disconnect
           for (const p of room.players.values()) {
             if (p.userId !== userId) {
-              sendRoomPlayer(room, p.userId, { type: "opponent_reconnected", username });
+              sendRoomPlayer(room, p.userId, { type: "opponent_disconnected", username });
             }
           }
+
+          // Start a 60-second forfeit timer if in a game
+          if (room.match && room.match.status === "playing") {
+            setTimeout(() => {
+              const r = rooms.get(roomId);
+              if (!r) return;
+              const pl = r.players.get(userId);
+              // Match the exact disconnect generation so an older timer cannot
+              // forfeit a later disconnect after an intervening reconnect.
+              if (pl && !pl.connected && pl.ws === null && pl.lastSeenAt === disconnectMarker) {
+                void endMatchByForfeit(r, userId, username, "disconnect").catch((err) => {
+                  logAsyncRoomTaskError("Failed to end disconnected match", err, roomId);
+                });
+              }
+            }, 60_000);
+          }
+
+          // If waiting and they disconnect, clean up room
+          if (!shuttingDown && room.status === "waiting") {
+            void handleLeave(userId).catch((err) => {
+              logAsyncRoomTaskError(
+                "Failed to clean up waiting room after disconnect",
+                err,
+                roomId,
+              );
+            });
+          }
         }
-      }
-    }
-
-    ws.on("message", (data) => {
-      let msg: ClientMessage;
-      try {
-        msg = JSON.parse(data.toString()) as ClientMessage;
-      } catch {
-        send(ws, { type: "error", message: "Invalid message format." });
-        return;
-      }
-
-      void handleMessage(ws, userId, username, msg).catch((err) => {
-        console.error(`[roomManager] Failed to process message ${msg.type} for ${userId}:`, err);
-        send(ws, { type: "error", message: "Unable to process multiplayer action." });
       });
-    });
-
-    ws.on("close", () => {
-      // Clean up from matchmaking queue if queued
-      handleQueueDisconnect(userId);
-
-      // Clean up spectator connection if spectating
-      handleLeaveSpectate(userId);
-
-      const roomId = playerToRoom.get(userId);
-      if (!roomId) return;
-      const room = rooms.get(roomId);
-      if (!room) return;
-
-      const player = room.players.get(userId);
-      // A reconnect may already have replaced this socket. A stale close must
-      // never disconnect the live replacement.
-      if (player?.ws !== ws) return;
-      if (player) {
-        const disconnectedPlayer = createPlayerConnection(player, null, false);
-        const disconnectMarker = disconnectedPlayer.lastSeenAt;
-        room.players.set(userId, disconnectedPlayer);
-
-        // Record disconnect in transcript
-        if (room.match && room.match.status === "playing") {
-          recordDisconnect(roomId, userId, username);
-        }
-
-        // Notify opponent of disconnect
-        for (const p of room.players.values()) {
-          if (p.userId !== userId) {
-            sendRoomPlayer(room, p.userId, { type: "opponent_disconnected", username });
-          }
-        }
-
-        // Start a 60-second forfeit timer if in a game
-        if (room.match && room.match.status === "playing") {
-          setTimeout(() => {
-            const r = rooms.get(roomId);
-            if (!r) return;
-            const pl = r.players.get(userId);
-            // Match the exact disconnect generation so an older timer cannot
-            // forfeit a later disconnect after an intervening reconnect.
-            if (pl && !pl.connected && pl.ws === null && pl.lastSeenAt === disconnectMarker) {
-              void endMatchByForfeit(r, userId, username, "disconnect").catch((err) => {
-                logAsyncRoomTaskError("Failed to end disconnected match", err, roomId);
-              });
-            }
-          }, 60_000);
-        }
-
-        // If waiting and they disconnect, clean up room
-        if (!shuttingDown && room.status === "waiting") {
-          void handleLeave(userId).catch((err) => {
-            logAsyncRoomTaskError("Failed to clean up waiting room after disconnect", err, roomId);
-          });
-        }
-      }
-    });
-  });
+    },
+  );
 
   // ── Register matchmaking callback ───────────────────────────────
   setMatchFoundCallback((p1: QueueEntry, p2: QueueEntry) => {
@@ -2272,21 +2533,27 @@ export function attachWebSocketServer(server: HttpServer) {
       lastShowdown: null,
     };
 
-      room.players.set(p1.userId, createPlayerConnection({ userId: p1.userId, username: p1.username }, p1.ws, true));
-      room.players.set(p2.userId, createPlayerConnection({ userId: p2.userId, username: p2.username }, p2.ws, true));
-    rooms.set(roomId, room);
-    playerToRoom.set(p1.userId, roomId);
-    playerToRoom.set(p2.userId, roomId);
-
-    // Notify both players of the match
-    send(p1.ws, { type: "match_found", roomId, opponent: p2.username });
-    send(p2.ws, { type: "match_found", roomId, opponent: p1.username });
-
-    // Set timer speed from matched player preferences (use p1's preference)
-    const timerSpeed = (p1 as any).timerSpeed || "medium";
-    setRoomTimerSpeed(roomId, timerSpeed);
-
     void (async () => {
+      room.players.set(
+        p1.userId,
+        createPlayerConnection({ userId: p1.userId, username: p1.username }, p1.ws, true),
+      );
+      room.players.set(
+        p2.userId,
+        createPlayerConnection({ userId: p2.userId, username: p2.username }, p2.ws, true),
+      );
+      if (!(await registerOwnedRoom(room))) {
+        send(p1.ws, { type: "error", message: "Unable to acquire match room ownership." });
+        send(p2.ws, { type: "error", message: "Unable to acquire match room ownership." });
+        return;
+      }
+      playerToRoom.set(p1.userId, roomId);
+      playerToRoom.set(p2.userId, roomId);
+
+      send(p1.ws, { type: "match_found", roomId, opponent: p2.username });
+      send(p2.ws, { type: "match_found", roomId, opponent: p1.username });
+      setRoomTimerSpeed(roomId, p1.timerSpeed || "medium");
+
       // Start match with transcript + timer
       await startMatchForRoom(room);
 
@@ -2316,7 +2583,12 @@ export function attachWebSocketServer(server: HttpServer) {
  * After a match ends (normal or forfeit), check if this room was a tournament
  * bracket match and advance the bracket accordingly.
  */
-function _handleTournamentAdvance(roomId: string, winnerId: string, winnerUsername: string, loserId: string): void {
+function _handleTournamentAdvance(
+  roomId: string,
+  winnerId: string,
+  winnerUsername: string,
+  loserId: string,
+): void {
   const mapping = getTournamentForRoom(roomId);
   if (!mapping) return;
 
@@ -2343,9 +2615,10 @@ function _handleTournamentAdvance(roomId: string, winnerId: string, winnerUserna
       if (result.readyMatches) {
         for (const readyMatch of result.readyMatches) {
           if (readyMatch.player1Id === entrant.userId || readyMatch.player2Id === entrant.userId) {
-            const opponentName = readyMatch.player1Id === entrant.userId
-              ? readyMatch.player2Username
-              : readyMatch.player1Username;
+            const opponentName =
+              readyMatch.player1Id === entrant.userId
+                ? readyMatch.player2Username
+                : readyMatch.player1Username;
             sendRoomPlayer(room2, entrant.userId, {
               type: "tournament_advance",
               tournamentId: tournament.id,
@@ -2358,8 +2631,11 @@ function _handleTournamentAdvance(roomId: string, winnerId: string, winnerUserna
 
       // Notify eliminated players
       if (entrant.eliminated && entrant.userId === loserId) {
-        const matchRound = tournament.bracket?.matches.find(m => m.winnerId === winnerId && m.roomId === null)?.round
-          || tournament.bracket?.matches[mapping.matchIndex]?.round || 'unknown';
+        const matchRound =
+          tournament.bracket?.matches.find((m) => m.winnerId === winnerId && m.roomId === null)
+            ?.round ||
+          tournament.bracket?.matches[mapping.matchIndex]?.round ||
+          "unknown";
         sendRoomPlayer(room2, entrant.userId, {
           type: "tournament_eliminated",
           tournamentId: tournament.id,
@@ -2399,7 +2675,7 @@ async function _createTournamentMatchRoom(
   bracketMatch: BracketMatch,
   ws: WebSocket,
   userId: string,
-  username: string
+  username: string,
 ): Promise<void> {
   // Leave any existing room
   const existingRoom = playerToRoom.get(userId);
@@ -2419,8 +2695,11 @@ async function _createTournamentMatchRoom(
     lastShowdown: null,
   };
 
-      room.players.set(userId, createPlayerConnection({ userId, username }, ws, true));
-  rooms.set(roomId, room);
+  room.players.set(userId, createPlayerConnection({ userId, username }, ws, true));
+  if (!(await registerOwnedRoom(room))) {
+    send(ws, { type: "error", message: "Unable to acquire tournament room ownership." });
+    return;
+  }
   playerToRoom.set(userId, roomId);
 
   // Register this room with the tournament
@@ -2431,7 +2710,10 @@ async function _createTournamentMatchRoom(
     type: "tournament_match_starting",
     tournamentId,
     matchIndex: bracketMatch.matchIndex,
-    opponent: bracketMatch.player1Id === userId ? bracketMatch.player2Username! : bracketMatch.player1Username!,
+    opponent:
+      bracketMatch.player1Id === userId
+        ? bracketMatch.player2Username!
+        : bracketMatch.player1Username!,
     round: bracketMatch.round,
   });
 
@@ -2515,10 +2797,20 @@ function handleWatchMatch(ws: WebSocket, userId: string, username: string, roomI
 
   // Check eligibility (with player preference enforcement)
   const ps = Array.from(room.players.values());
-  const p1Rating = (db.prepare("SELECT rating FROM users WHERE id = ?").get(ps[0]?.userId) as any)?.rating ?? 1200;
-  const p2Rating = (db.prepare("SELECT rating FROM users WHERE id = ?").get(ps[1]?.userId) as any)?.rating ?? 1200;
+  const p1Rating =
+    (db.prepare("SELECT rating FROM users WHERE id = ?").get(ps[0]?.userId) as any)?.rating ?? 1200;
+  const p2Rating =
+    (db.prepare("SELECT rating FROM users WHERE id = ?").get(ps[1]?.userId) as any)?.rating ?? 1200;
   const isTournament = !!getTournamentForRoom(roomId);
-  const eligible = isSpectatable(roomId, room.stakeId, isTournament, p1Rating, p2Rating, ps[0]?.userId, ps[1]?.userId);
+  const eligible = isSpectatable(
+    roomId,
+    room.stakeId,
+    isTournament,
+    p1Rating,
+    p2Rating,
+    ps[0]?.userId,
+    ps[1]?.userId,
+  );
 
   if (!eligible) {
     send(ws, { type: "error", message: "This match is not available for spectating." });
@@ -2530,7 +2822,12 @@ function handleWatchMatch(ws: WebSocket, userId: string, username: string, roomI
 
   // Register as spectator
   addSpectator(roomId, userId);
-  spectatorConnections.set(userId, { ws, roomId, nodeId: currentNodeId(), connectedAt: Date.now() });
+  spectatorConnections.set(userId, {
+    ws,
+    roomId,
+    nodeId: currentNodeId(),
+    connectedAt: Date.now(),
+  });
 
   const specCount = getSpectatorCount(roomId);
 
@@ -2590,9 +2887,9 @@ function loadLivePlayerRatings(): Map<string, number> {
   if (userIds.size === 0) return new Map();
   const ids = Array.from(userIds);
   const placeholders = ids.map(() => "?").join(", ");
-  const rows = db.prepare(
-    `SELECT id, rating FROM users WHERE id IN (${placeholders})`,
-  ).all(...ids) as Array<{ id: string; rating: number }>;
+  const rows = db
+    .prepare(`SELECT id, rating FROM users WHERE id IN (${placeholders})`)
+    .all(...ids) as Array<{ id: string; rating: number }>;
   return new Map(rows.map((row) => [row.id, row.rating]));
 }
 
@@ -2610,7 +2907,15 @@ export function getFeaturedMatches(): FeaturedMatch[] {
     const p1Rating = ratings.get(ps[0].userId) ?? 1200;
     const p2Rating = ratings.get(ps[1].userId) ?? 1200;
     const isTournament = !!getTournamentForRoom(roomId);
-    const reasons = getFeaturedReasons(roomId, room.stakeId, isTournament, p1Rating, p2Rating, ps[0].userId, ps[1].userId);
+    const reasons = getFeaturedReasons(
+      roomId,
+      room.stakeId,
+      isTournament,
+      p1Rating,
+      p2Rating,
+      ps[0].userId,
+      ps[1].userId,
+    );
 
     if (reasons.length === 0) continue;
 
@@ -2626,9 +2931,14 @@ export function getFeaturedMatches(): FeaturedMatch[] {
       roundNumber: room.match.roundNumber,
       status: room.match.status,
       reasons,
-      stakeInfo: escrow && escrow.preset.entryFee > 0
-        ? { label: escrow.preset.label, prizePool: escrow.preset.prizePool, currency: escrow.preset.currency }
-        : null,
+      stakeInfo:
+        escrow && escrow.preset.entryFee > 0
+          ? {
+              label: escrow.preset.label,
+              prizePool: escrow.preset.prizePool,
+              currency: escrow.preset.currency,
+            }
+          : null,
       spectatorCount: getSpectatorCount(roomId),
       startedAt: room.createdAt,
       isAdminFeatured: isAdminFeatured(roomId),
@@ -2660,15 +2970,32 @@ export function getLiveMatches(): LiveMatchInfo[] {
     const p1Rating = ratings.get(ps[0].userId) ?? 1200;
     const p2Rating = ratings.get(ps[1].userId) ?? 1200;
     const isTournament = !!getTournamentForRoom(roomId);
-    const reasons = getFeaturedReasons(roomId, room.stakeId, isTournament, p1Rating, p2Rating, ps[0].userId, ps[1].userId);
+    const reasons = getFeaturedReasons(
+      roomId,
+      room.stakeId,
+      isTournament,
+      p1Rating,
+      p2Rating,
+      ps[0].userId,
+      ps[1].userId,
+    );
     const spectatable = reasons.length > 0;
 
     // Determine ineligibility reason if not spectatable
     let ineligibilityReason: string | undefined;
     if (!spectatable) {
-      if (room.stakeId === "free" && !isTournament && p1Rating < 1400 && p2Rating < 1400 && !isAdminFeatured(roomId)) {
+      if (
+        room.stakeId === "free" &&
+        !isTournament &&
+        p1Rating < 1400 &&
+        p2Rating < 1400 &&
+        !isAdminFeatured(roomId)
+      ) {
         ineligibilityReason = "Free casual match — not notable enough";
-      } else if (!getPlayerSpectatePreference(ps[0].userId) || !getPlayerSpectatePreference(ps[1].userId)) {
+      } else if (
+        !getPlayerSpectatePreference(ps[0].userId) ||
+        !getPlayerSpectatePreference(ps[1].userId)
+      ) {
         ineligibilityReason = "One or both players have disabled spectating";
       } else {
         ineligibilityReason = "Does not meet eligibility criteria";
@@ -2681,10 +3008,14 @@ export function getLiveMatches(): LiveMatchInfo[] {
       roomId,
       player1: { userId: ps[0].userId, username: ps[0].username, rating: p1Rating },
       player2: { userId: ps[1].userId, username: ps[1].username, rating: p2Rating },
-      status: room.match?.status === "playing" ? "playing"
-            : room.match?.status === "round_over" ? "round_over"
-            : room.match?.status === "game_over" ? "game_over"
-            : room.status as any,
+      status:
+        room.match?.status === "playing"
+          ? "playing"
+          : room.match?.status === "round_over"
+            ? "round_over"
+            : room.match?.status === "game_over"
+              ? "game_over"
+              : (room.status as any),
       stakeId: room.stakeId,
       isTournament,
       isAdminFeatured: isAdminFeatured(roomId),
@@ -2692,17 +3023,21 @@ export function getLiveMatches(): LiveMatchInfo[] {
       reasons,
       isSpectatable: spectatable,
       ineligibilityReason,
-      scores: room.match ? {
-        player1: room.match.players[0].score,
-        player2: room.match.players[1].score,
-      } : undefined,
+      scores: room.match
+        ? {
+            player1: room.match.players[0].score,
+            player2: room.match.players[1].score,
+          }
+        : undefined,
       roundNumber: room.match?.roundNumber,
       startedAt: room.createdAt,
-      broadcastStats: broadcastStats ? {
-        peakConcurrent: broadcastStats.peakConcurrent,
-        uniqueSpectators: broadcastStats.uniqueSpectators,
-        currentSpectators: broadcastStats.currentSpectators,
-      } : undefined,
+      broadcastStats: broadcastStats
+        ? {
+            peakConcurrent: broadcastStats.peakConcurrent,
+            uniqueSpectators: broadcastStats.uniqueSpectators,
+            currentSpectators: broadcastStats.currentSpectators,
+          }
+        : undefined,
     });
   }
 
@@ -2710,7 +3045,14 @@ export function getLiveMatches(): LiveMatchInfo[] {
 }
 
 // ── Exported for testing ─────────────────────────────────────────────
-export { rooms, playerToRoom, cleanupRoom, spectatorConnections, sendSpectatorMessage, handleWatchMatch };
+export {
+  rooms,
+  playerToRoom,
+  cleanupRoom,
+  spectatorConnections,
+  sendSpectatorMessage,
+  handleWatchMatch,
+};
 
 // ── Player Status (used by social availability) ──────────────────────
 

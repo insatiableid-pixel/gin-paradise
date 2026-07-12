@@ -167,7 +167,10 @@ export class RedisCoordinator implements RealtimeCoordinator {
   private readonly listeners = new Set<CoordinatorEventListener>();
   private readonly pendingRoomActionResolvers = new Map<
     string,
-    { resolve: (response: CoordinatorRoomActionResponse) => void; timer: ReturnType<typeof setTimeout> }
+    {
+      resolve: (response: CoordinatorRoomActionResponse) => void;
+      timer: ReturnType<typeof setTimeout>;
+    }
   >();
 
   private commandClient: RedisClientType | null = null;
@@ -181,7 +184,9 @@ export class RedisCoordinator implements RealtimeCoordinator {
     this.nodeId = config.nodeId || `redis-${crypto.randomUUID()}`;
     this.eventChannel = this.key("coordinator:events");
 
-    console.log(`[RedisCoordinator] Initializing with URL: ${config.url}, prefix: ${config.keyPrefix}`);
+    console.log(
+      `[RedisCoordinator] Initializing with URL: ${config.url}, prefix: ${config.keyPrefix}`,
+    );
     console.log(`[RedisCoordinator] Node ID: ${this.nodeId}`);
   }
 
@@ -277,7 +282,9 @@ export class RedisCoordinator implements RealtimeCoordinator {
 
         this.commandContextVersion += 1;
         await this.subscriberClient.unsubscribe(this.eventChannel).catch(() => undefined);
-        await this.subscriberClient.subscribe(this.eventChannel, (message) => this.handleInboundEvent(message));
+        await this.subscriberClient.subscribe(this.eventChannel, (message) =>
+          this.handleInboundEvent(message),
+        );
 
         await this.loadSnapshotFromRedis();
         this.redisConnected = true;
@@ -376,10 +383,9 @@ export class RedisCoordinator implements RealtimeCoordinator {
   }
 
   getAllRooms(): Iterable<[string, CoordinatorRoom]> {
-    return Array.from(this.rooms.entries()).map(([roomId, record]) => [
-      roomId,
-      this.toRoomView(roomId, record),
-    ] as [string, CoordinatorRoom]);
+    return Array.from(this.rooms.entries()).map(
+      ([roomId, record]) => [roomId, this.toRoomView(roomId, record)] as [string, CoordinatorRoom],
+    );
   }
 
   getRoomCount(): number {
@@ -450,9 +456,11 @@ export class RedisCoordinator implements RealtimeCoordinator {
     if (!record) return;
 
     if ("ownerNodeId" in ownership) record.meta.ownerNodeId = ownership.ownerNodeId;
-    if ("ownerLeaseExpiresAt" in ownership) record.meta.ownerLeaseExpiresAt = ownership.ownerLeaseExpiresAt;
+    if ("ownerLeaseExpiresAt" in ownership)
+      record.meta.ownerLeaseExpiresAt = ownership.ownerLeaseExpiresAt;
     if ("timerOwnerNodeId" in ownership) record.meta.timerOwnerNodeId = ownership.timerOwnerNodeId;
-    if ("timerLeaseExpiresAt" in ownership) record.meta.timerLeaseExpiresAt = ownership.timerLeaseExpiresAt;
+    if ("timerLeaseExpiresAt" in ownership)
+      record.meta.timerLeaseExpiresAt = ownership.timerLeaseExpiresAt;
 
     this.persistRoom(roomId);
     this.emit({ type: "room_updated", roomId, payload: { room: this.serializeRoom(roomId) } });
@@ -513,6 +521,7 @@ export class RedisCoordinator implements RealtimeCoordinator {
 
   setRoomGameState(roomId: string, snapshot: CoordinatorGameStateSnapshot): void {
     const normalized = this.normalizeGameSnapshot(snapshot);
+    if (!this.shouldApplyGameSnapshot(this.roomGameSnapshots.get(roomId), normalized)) return;
     this.roomGameSnapshots.set(roomId, normalized);
     this.persistRoomGameState(roomId, normalized);
     this.emit({
@@ -524,6 +533,7 @@ export class RedisCoordinator implements RealtimeCoordinator {
 
   async commitRoomGameState(roomId: string, snapshot: CoordinatorGameStateSnapshot): Promise<void> {
     const normalized = this.normalizeGameSnapshot(snapshot);
+    if (!this.shouldApplyGameSnapshot(this.roomGameSnapshots.get(roomId), normalized)) return;
     this.roomGameSnapshots.set(roomId, normalized);
 
     const envelope = this.createEventEnvelope({
@@ -551,7 +561,9 @@ export class RedisCoordinator implements RealtimeCoordinator {
         .exec();
     } catch (err) {
       if (!this.shouldSuppressBestEffortError(client, version, err)) {
-        console.error(`[RedisCoordinator] Failed to durably persist room game snapshot for ${roomId}: ${err}`);
+        console.error(
+          `[RedisCoordinator] Failed to durably persist room game snapshot for ${roomId}: ${err}`,
+        );
       }
       this.persistRoomGameState(roomId, normalized);
       this.publishEvent(envelope);
@@ -589,7 +601,11 @@ export class RedisCoordinator implements RealtimeCoordinator {
     return true;
   }
 
-  async claimLeaseAuthoritatively(leaseName: string, ownerId: string, ttlMs: number): Promise<boolean> {
+  async claimLeaseAuthoritatively(
+    leaseName: string,
+    ownerId: string,
+    ttlMs: number,
+  ): Promise<boolean> {
     const client = this.commandClient;
     if (!client) return false;
 
@@ -624,7 +640,11 @@ export class RedisCoordinator implements RealtimeCoordinator {
     return true;
   }
 
-  async renewLeaseAuthoritatively(leaseName: string, ownerId: string, ttlMs: number): Promise<boolean> {
+  async renewLeaseAuthoritatively(
+    leaseName: string,
+    ownerId: string,
+    ttlMs: number,
+  ): Promise<boolean> {
     const client = this.commandClient;
     if (!client) return false;
 
@@ -686,7 +706,12 @@ export class RedisCoordinator implements RealtimeCoordinator {
     };
     this.spectatorConnections.set(userId, normalized);
     this.persistSpectatorConnection(userId, normalized);
-    this.emit({ type: "spectator_set", userId, roomId: normalized.roomId, payload: { connection: normalized } });
+    this.emit({
+      type: "spectator_set",
+      userId,
+      roomId: normalized.roomId,
+      payload: { connection: normalized },
+    });
   }
 
   getSpectatorConnection(userId: string): CoordinatorSpectatorConnection | undefined {
@@ -796,7 +821,9 @@ export class RedisCoordinator implements RealtimeCoordinator {
       const nextNodeId = player.nodeId ?? previousPlayer?.nodeId;
       const preserveSocket =
         !!previousPlayer?.ws &&
-        (!!player.nodeId ? previousPlayer.nodeId === player.nodeId : previousPlayer.nodeId === this.nodeId);
+        (player.nodeId
+          ? previousPlayer.nodeId === player.nodeId
+          : previousPlayer.nodeId === this.nodeId);
       players.set(player.userId, {
         userId: player.userId,
         username: player.username,
@@ -821,15 +848,15 @@ export class RedisCoordinator implements RealtimeCoordinator {
     this.rooms.set(snapshot.id, {
       meta: {
         id: snapshot.id,
-      hostId: snapshot.hostId,
-      status: snapshot.status,
-      createdAt: snapshot.createdAt,
-      stakeId: snapshot.stakeId,
-      timerSpeed: snapshot.timerSpeed,
-      ownerNodeId: snapshot.ownerNodeId,
-      ownerLeaseExpiresAt: snapshot.ownerLeaseExpiresAt,
-      timerOwnerNodeId: snapshot.timerOwnerNodeId,
-      timerLeaseExpiresAt: snapshot.timerLeaseExpiresAt,
+        hostId: snapshot.hostId,
+        status: snapshot.status,
+        createdAt: snapshot.createdAt,
+        stakeId: snapshot.stakeId,
+        timerSpeed: snapshot.timerSpeed,
+        ownerNodeId: snapshot.ownerNodeId,
+        ownerLeaseExpiresAt: snapshot.ownerLeaseExpiresAt,
+        timerOwnerNodeId: snapshot.timerOwnerNodeId,
+        timerLeaseExpiresAt: snapshot.timerLeaseExpiresAt,
       },
       players,
     });
@@ -941,25 +968,34 @@ export class RedisCoordinator implements RealtimeCoordinator {
 
   private persistRoomGameState(roomId: string, snapshot: CoordinatorGameStateSnapshot): void {
     const payload = JSON.stringify(this.normalizeGameSnapshot(snapshot));
-    this.runBestEffortCommand(`Failed to persist room game snapshot for ${roomId}`, async (client) => {
-      await client.set(this.roomGameSnapshotKey(roomId), payload);
-    });
+    this.runBestEffortCommand(
+      `Failed to persist room game snapshot for ${roomId}`,
+      async (client) => {
+        await client.set(this.roomGameSnapshotKey(roomId), payload);
+      },
+    );
   }
 
   private persistRoomGameStateRemoval(roomId: string): void {
-    this.runBestEffortCommand(`Failed to remove room game snapshot for ${roomId}`, async (client) => {
-      await client.del(this.roomGameSnapshotKey(roomId));
-    });
+    this.runBestEffortCommand(
+      `Failed to remove room game snapshot for ${roomId}`,
+      async (client) => {
+        await client.del(this.roomGameSnapshotKey(roomId));
+      },
+    );
   }
 
   private persistPlayerRoom(userId: string, roomId: string | undefined): void {
-    this.runBestEffortCommand(`Failed to persist player room mapping for ${userId}`, async (client) => {
-      if (roomId) {
-        await client.hSet(this.playerRoomKey(), userId, roomId);
-      } else {
-        await client.hDel(this.playerRoomKey(), userId);
-      }
-    });
+    this.runBestEffortCommand(
+      `Failed to persist player room mapping for ${userId}`,
+      async (client) => {
+        if (roomId) {
+          await client.hSet(this.playerRoomKey(), userId, roomId);
+        } else {
+          await client.hDel(this.playerRoomKey(), userId);
+        }
+      },
+    );
   }
 
   private persistQueueEntry(entry: CoordinatorQueueEntry): void {
@@ -996,16 +1032,22 @@ export class RedisCoordinator implements RealtimeCoordinator {
     });
   }
 
-  private persistSpectatorConnection(userId: string, connection: CoordinatorSpectatorConnection): void {
+  private persistSpectatorConnection(
+    userId: string,
+    connection: CoordinatorSpectatorConnection,
+  ): void {
     const payload = JSON.stringify({
       roomId: connection.roomId,
       nodeId: connection.nodeId ?? this.nodeId,
       connectedAt: connection.connectedAt ?? Date.now(),
     });
 
-    this.runBestEffortCommand(`Failed to persist spectator connection ${userId}`, async (client) => {
-      await client.hSet(this.spectatorKey(), userId, payload);
-    });
+    this.runBestEffortCommand(
+      `Failed to persist spectator connection ${userId}`,
+      async (client) => {
+        await client.hSet(this.spectatorKey(), userId, payload);
+      },
+    );
   }
 
   private persistSpectatorRemoval(userId: string): void {
@@ -1014,7 +1056,12 @@ export class RedisCoordinator implements RealtimeCoordinator {
     });
   }
 
-  private persistLease(leaseName: string, record: LeaseRecord, ttlMs: number, mode: "claim" | "renew"): void {
+  private persistLease(
+    leaseName: string,
+    record: LeaseRecord,
+    ttlMs: number,
+    mode: "claim" | "renew",
+  ): void {
     this.runBestEffortCommand(`Failed to persist lease ${leaseName}`, async (client) => {
       const key = this.leaseKey(leaseName);
       const payload = JSON.stringify(record);
@@ -1031,11 +1078,13 @@ export class RedisCoordinator implements RealtimeCoordinator {
           // Synchronous callers make a provisional local decision. Revoke it
           // immediately when Redis rejects the claim so room/timer owners can
           // stop work rather than waiting for the next renewal interval.
-          this.dispatchLocalEvent(this.createEventEnvelope({
-            type: "lease_released",
-            leaseName,
-            payload: { ownerId: record.ownerId, replacement: parsed },
-          }));
+          this.dispatchLocalEvent(
+            this.createEventEnvelope({
+              type: "lease_released",
+              leaseName,
+              payload: { ownerId: record.ownerId, replacement: parsed },
+            }),
+          );
         }
       } else {
         const result = await client.eval(
@@ -1058,11 +1107,13 @@ export class RedisCoordinator implements RealtimeCoordinator {
           } else {
             this.leases.delete(leaseName);
           }
-          this.dispatchLocalEvent(this.createEventEnvelope({
-            type: "lease_released",
-            leaseName,
-            payload: { ownerId: record.ownerId, replacement: parsed },
-          }));
+          this.dispatchLocalEvent(
+            this.createEventEnvelope({
+              type: "lease_released",
+              leaseName,
+              payload: { ownerId: record.ownerId, replacement: parsed },
+            }),
+          );
         }
       }
     });
@@ -1088,7 +1139,9 @@ export class RedisCoordinator implements RealtimeCoordinator {
     const roomIds = await client.sMembers(this.roomIndexKey());
     const [roomRows, gameRows] = await Promise.all([
       roomIds.length > 0 ? client.mGet(roomIds.map((roomId) => this.roomSnapshotKey(roomId))) : [],
-      roomIds.length > 0 ? client.mGet(roomIds.map((roomId) => this.roomGameSnapshotKey(roomId))) : [],
+      roomIds.length > 0
+        ? client.mGet(roomIds.map((roomId) => this.roomGameSnapshotKey(roomId)))
+        : [],
     ]);
     for (let index = 0; index < roomIds.length; index += 1) {
       const roomId = roomIds[index];
@@ -1117,9 +1170,10 @@ export class RedisCoordinator implements RealtimeCoordinator {
     }
 
     const queueIds = await client.zRange(this.queueIndexKey(), 0, -1);
-    const queueRows = queueIds.length > 0
-      ? await client.mGet(queueIds.map((userId) => this.queueEntryKey(userId)))
-      : [];
+    const queueRows =
+      queueIds.length > 0
+        ? await client.mGet(queueIds.map((userId) => this.queueEntryKey(userId)))
+        : [];
     for (let index = 0; index < queueIds.length; index += 1) {
       const userId = queueIds[index];
       const raw = queueRows[index];
@@ -1234,7 +1288,10 @@ export class RedisCoordinator implements RealtimeCoordinator {
       case "room_game_state_set": {
         const snapshot = event.payload?.snapshot as CoordinatorGameStateSnapshot | undefined;
         if (event.roomId && snapshot) {
-          this.roomGameSnapshots.set(event.roomId, this.normalizeGameSnapshot(snapshot));
+          const normalized = this.normalizeGameSnapshot(snapshot);
+          if (this.shouldApplyGameSnapshot(this.roomGameSnapshots.get(event.roomId), normalized)) {
+            this.roomGameSnapshots.set(event.roomId, normalized);
+          }
         }
         break;
       }
@@ -1248,8 +1305,7 @@ export class RedisCoordinator implements RealtimeCoordinator {
 
       case "spectator_set": {
         const connection = event.payload?.connection as
-          | { roomId: string; nodeId?: string; connectedAt?: number }
-          | undefined;
+          { roomId: string; nodeId?: string; connectedAt?: number } | undefined;
         if (event.userId && connection) {
           this.spectatorConnections.set(event.userId, {
             ws: null,
@@ -1322,7 +1378,9 @@ export class RedisCoordinator implements RealtimeCoordinator {
     this.publishEvent(envelope);
   }
 
-  private createEventEnvelope(event: Omit<CoordinatorEvent, "nodeId" | "timestamp">): CoordinatorEvent {
+  private createEventEnvelope(
+    event: Omit<CoordinatorEvent, "nodeId" | "timestamp">,
+  ): CoordinatorEvent {
     return {
       ...event,
       nodeId: this.nodeId,
@@ -1353,7 +1411,11 @@ export class RedisCoordinator implements RealtimeCoordinator {
     return message.includes("The client is closed");
   }
 
-  private shouldSuppressBestEffortError(client: RedisClientType, version: number, err: unknown): boolean {
+  private shouldSuppressBestEffortError(
+    client: RedisClientType,
+    version: number,
+    err: unknown,
+  ): boolean {
     return !this.isCurrentCommandContext(client, version) || this.isClosedClientError(err);
   }
 
@@ -1391,15 +1453,33 @@ export class RedisCoordinator implements RealtimeCoordinator {
     };
   }
 
-  private normalizeGameSnapshot(snapshot: CoordinatorGameStateSnapshot): CoordinatorGameStateSnapshot {
+  private normalizeGameSnapshot(
+    snapshot: CoordinatorGameStateSnapshot,
+  ): CoordinatorGameStateSnapshot {
     return {
       match: snapshot.match == null ? null : JSON.parse(JSON.stringify(snapshot.match)),
-      lastShowdown: snapshot.lastShowdown == null ? null : JSON.parse(JSON.stringify(snapshot.lastShowdown)),
+      lastShowdown:
+        snapshot.lastShowdown == null ? null : JSON.parse(JSON.stringify(snapshot.lastShowdown)),
       timer: snapshot.timer == null ? null : JSON.parse(JSON.stringify(snapshot.timer)),
-      timeoutCounts: snapshot.timeoutCounts == null ? undefined : JSON.parse(JSON.stringify(snapshot.timeoutCounts)),
+      timeoutCounts:
+        snapshot.timeoutCounts == null
+          ? undefined
+          : JSON.parse(JSON.stringify(snapshot.timeoutCounts)),
+      revision: snapshot.revision ?? 0,
       updatedAt: snapshot.updatedAt ?? Date.now(),
       nodeId: snapshot.nodeId || this.nodeId,
     };
+  }
+
+  private shouldApplyGameSnapshot(
+    current: CoordinatorGameStateSnapshot | undefined,
+    incoming: CoordinatorGameStateSnapshot,
+  ): boolean {
+    if (!current) return true;
+    const currentRevision = current.revision ?? 0;
+    const incomingRevision = incoming.revision ?? 0;
+    if (incomingRevision !== currentRevision) return incomingRevision > currentRevision;
+    return incomingRevision === 0 && incoming.updatedAt > current.updatedAt;
   }
 
   private roomSnapshotKey(roomId: string): string {

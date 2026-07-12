@@ -67,21 +67,56 @@ function coordinatorContractTests(name: string, factory: () => RealtimeCoordinat
     });
 
     it("deletes a room", () => {
-      coord.createRoom({ id: "R1", hostId: "u1", players: new Map(), status: "waiting", createdAt: Date.now(), stakeId: "free" });
+      coord.createRoom({
+        id: "R1",
+        hostId: "u1",
+        players: new Map(),
+        status: "waiting",
+        createdAt: Date.now(),
+        stakeId: "free",
+      });
       coord.deleteRoom("R1");
       expect(coord.hasRoom("R1")).toBe(false);
     });
 
     it("counts rooms", () => {
       expect(coord.getRoomCount()).toBe(0);
-      coord.createRoom({ id: "R1", hostId: "u1", players: new Map(), status: "waiting", createdAt: Date.now(), stakeId: "free" });
-      coord.createRoom({ id: "R2", hostId: "u2", players: new Map(), status: "waiting", createdAt: Date.now(), stakeId: "free" });
+      coord.createRoom({
+        id: "R1",
+        hostId: "u1",
+        players: new Map(),
+        status: "waiting",
+        createdAt: Date.now(),
+        stakeId: "free",
+      });
+      coord.createRoom({
+        id: "R2",
+        hostId: "u2",
+        players: new Map(),
+        status: "waiting",
+        createdAt: Date.now(),
+        stakeId: "free",
+      });
       expect(coord.getRoomCount()).toBe(2);
     });
 
     it("iterates over all rooms", () => {
-      coord.createRoom({ id: "R1", hostId: "u1", players: new Map(), status: "waiting", createdAt: Date.now(), stakeId: "free" });
-      coord.createRoom({ id: "R2", hostId: "u2", players: new Map(), status: "waiting", createdAt: Date.now(), stakeId: "free" });
+      coord.createRoom({
+        id: "R1",
+        hostId: "u1",
+        players: new Map(),
+        status: "waiting",
+        createdAt: Date.now(),
+        stakeId: "free",
+      });
+      coord.createRoom({
+        id: "R2",
+        hostId: "u2",
+        players: new Map(),
+        status: "waiting",
+        createdAt: Date.now(),
+        stakeId: "free",
+      });
       const ids: string[] = [];
       for (const [id] of coord.getAllRooms()) {
         ids.push(id);
@@ -108,7 +143,14 @@ function coordinatorContractTests(name: string, factory: () => RealtimeCoordinat
     // ── Room Player Management ───────────────────────────────
 
     it("adds and retrieves players in a room", () => {
-      coord.createRoom({ id: "R1", hostId: "u1", players: new Map(), status: "waiting", createdAt: Date.now(), stakeId: "free" });
+      coord.createRoom({
+        id: "R1",
+        hostId: "u1",
+        players: new Map(),
+        status: "waiting",
+        createdAt: Date.now(),
+        stakeId: "free",
+      });
       coord.setRoomPlayer("R1", { userId: "u1", username: "Alice", ws: null, connected: true });
       coord.setRoomPlayer("R1", { userId: "u2", username: "Bob", ws: null, connected: true });
 
@@ -121,7 +163,14 @@ function coordinatorContractTests(name: string, factory: () => RealtimeCoordinat
     });
 
     it("removes a player from a room", () => {
-      coord.createRoom({ id: "R1", hostId: "u1", players: new Map(), status: "waiting", createdAt: Date.now(), stakeId: "free" });
+      coord.createRoom({
+        id: "R1",
+        hostId: "u1",
+        players: new Map(),
+        status: "waiting",
+        createdAt: Date.now(),
+        stakeId: "free",
+      });
       coord.setRoomPlayer("R1", { userId: "u1", username: "Alice", ws: null, connected: true });
       coord.removeRoomPlayer("R1", "u1");
       expect(coord.isPlayerInRoom("R1", "u1")).toBe(false);
@@ -131,7 +180,14 @@ function coordinatorContractTests(name: string, factory: () => RealtimeCoordinat
     // ── Room Status ──────────────────────────────────────────
 
     it("updates room status via coordinator", () => {
-      coord.createRoom({ id: "R1", hostId: "u1", players: new Map(), status: "waiting", createdAt: Date.now(), stakeId: "free" });
+      coord.createRoom({
+        id: "R1",
+        hostId: "u1",
+        players: new Map(),
+        status: "waiting",
+        createdAt: Date.now(),
+        stakeId: "free",
+      });
       coord.setRoomStatus("R1", "playing");
       expect(coord.getRoom("R1")!.status).toBe("playing");
       coord.setRoomStatus("R1", "finished");
@@ -140,7 +196,14 @@ function coordinatorContractTests(name: string, factory: () => RealtimeCoordinat
 
     it("updates room ownership metadata via coordinator", () => {
       const now = Date.now();
-      coord.createRoom({ id: "R1", hostId: "u1", players: new Map(), status: "waiting", createdAt: now, stakeId: "free" });
+      coord.createRoom({
+        id: "R1",
+        hostId: "u1",
+        players: new Map(),
+        status: "waiting",
+        createdAt: now,
+        stakeId: "free",
+      });
       coord.updateRoomOwnership("R1", {
         ownerNodeId: coord.getNodeId(),
         ownerLeaseExpiresAt: now + 10_000,
@@ -177,15 +240,17 @@ function coordinatorContractTests(name: string, factory: () => RealtimeCoordinat
           return;
         }
 
-        const request = event.payload?.request as {
-          requestId: string;
-          targetNodeId: string;
-          sourceNodeId: string;
-          roomId: string;
-          userId: string;
-          username: string;
-          message: unknown;
-        } | undefined;
+        const request = event.payload?.request as
+          | {
+              requestId: string;
+              targetNodeId: string;
+              sourceNodeId: string;
+              roomId: string;
+              userId: string;
+              username: string;
+              message: unknown;
+            }
+          | undefined;
         if (!request) {
           return;
         }
@@ -300,6 +365,29 @@ function coordinatorContractTests(name: string, factory: () => RealtimeCoordinat
       });
     });
 
+    it("orders equal-millisecond snapshots by monotonic revision", () => {
+      const updatedAt = Date.now();
+      coord.setRoomGameState("R1", {
+        match: { roomId: "R1", marker: "newer" },
+        lastShowdown: null,
+        revision: 2,
+        updatedAt,
+        nodeId: "node-a",
+      });
+      coord.setRoomGameState("R1", {
+        match: { roomId: "R1", marker: "stale" },
+        lastShowdown: null,
+        revision: 1,
+        updatedAt,
+        nodeId: "node-b",
+      });
+
+      expect(coord.getRoomGameState("R1")).toMatchObject({
+        revision: 2,
+        match: { marker: "newer" },
+      });
+    });
+
     it("clears a live match snapshot explicitly", () => {
       coord.setRoomGameState("R1", {
         match: { roomId: "R1", status: "playing" },
@@ -312,7 +400,14 @@ function coordinatorContractTests(name: string, factory: () => RealtimeCoordinat
     });
 
     it("clears live match snapshots when a room is deleted", () => {
-      coord.createRoom({ id: "R1", hostId: "u1", players: new Map(), status: "waiting", createdAt: Date.now(), stakeId: "free" });
+      coord.createRoom({
+        id: "R1",
+        hostId: "u1",
+        players: new Map(),
+        status: "waiting",
+        createdAt: Date.now(),
+        stakeId: "free",
+      });
       coord.setRoomGameState("R1", {
         match: { roomId: "R1", status: "game_over" },
         lastShowdown: { knockOutcome: "gin" },
@@ -348,7 +443,14 @@ function coordinatorContractTests(name: string, factory: () => RealtimeCoordinat
     });
 
     it("returns diagnostic info", () => {
-      coord.createRoom({ id: "R1", hostId: "u1", players: new Map(), status: "waiting", createdAt: Date.now(), stakeId: "free" });
+      coord.createRoom({
+        id: "R1",
+        hostId: "u1",
+        players: new Map(),
+        status: "waiting",
+        createdAt: Date.now(),
+        stakeId: "free",
+      });
       coord.setPlayerRoom("u1", "R1");
 
       const diag = coord.getDiagnostics();
@@ -364,10 +466,14 @@ function coordinatorContractTests(name: string, factory: () => RealtimeCoordinat
 
 coordinatorContractTests("MemoryCoordinator", () => new MemoryCoordinator());
 if (runRedisTests) {
-  coordinatorContractTests("RedisCoordinator", () => new RedisCoordinator({
-    url: redisUrl!,
-    keyPrefix: "test:",
-  }));
+  coordinatorContractTests(
+    "RedisCoordinator",
+    () =>
+      new RedisCoordinator({
+        url: redisUrl!,
+        keyPrefix: "test:",
+      }),
+  );
 }
 
 // ── Factory Tests ────────────────────────────────────────────────────
@@ -438,7 +544,12 @@ describe("CoordinatorFactory", () => {
 
     // Add players
     coord.setRoomPlayer("TEST01", { userId: "host1", username: "Host", ws: null, connected: true });
-    coord.setRoomPlayer("TEST01", { userId: "p2", username: "Challenger", ws: null, connected: true });
+    coord.setRoomPlayer("TEST01", {
+      userId: "p2",
+      username: "Challenger",
+      ws: null,
+      connected: true,
+    });
     coord.setPlayerRoom("host1", "TEST01");
     coord.setPlayerRoom("p2", "TEST01");
 
@@ -462,7 +573,14 @@ describe("CoordinatorFactory", () => {
 
   it("player reconnect updates connection state without losing room membership", async () => {
     const coord = await initCoordinator({ mode: "memory" });
-    coord.createRoom({ id: "R1", hostId: "u1", players: new Map(), status: "playing", createdAt: Date.now(), stakeId: "free" });
+    coord.createRoom({
+      id: "R1",
+      hostId: "u1",
+      players: new Map(),
+      status: "playing",
+      createdAt: Date.now(),
+      stakeId: "free",
+    });
     coord.setRoomPlayer("R1", { userId: "u1", username: "Alice", ws: null, connected: true });
     coord.setPlayerRoom("u1", "R1");
 

@@ -51,6 +51,7 @@ import {
 } from "../server/multiplayer/transcript.js";
 import {
   startTurnTimer,
+  startTurnTimerAuthoritatively,
   cancelTurnTimer,
   resetTimeoutCount,
   getTurnTimeRemaining,
@@ -231,6 +232,26 @@ describe("Timer Recovery", () => {
     _clearAllTimers();
 
     expect(getRoomTimerSpeed(roomId)).toBe("fast");
+  });
+
+  it("starts production timers only after an authoritative lease claim", async () => {
+    const roomId = "AUTHORITATIVE-TIMER";
+    const now = Date.now();
+    coord.createRoom({
+      id: roomId,
+      hostId: "u1",
+      players: new Map(),
+      status: "playing",
+      createdAt: now,
+      stakeId: "free",
+      ownerNodeId: coord.getNodeId(),
+      ownerLeaseExpiresAt: now + 30_000,
+    });
+
+    expect(await startTurnTimerAuthoritatively(roomId, "u1")).toBe(true);
+    expect(getTurnTimerInfo(roomId)).toMatchObject({ activePlayerId: "u1" });
+    expect(coord.getLease(`room:${roomId}:timer`)?.ownerId).toBe(coord.getNodeId());
+    expect(coord.getRoom(roomId)?.timerOwnerNodeId).toBe(coord.getNodeId());
   });
 
   it("restores an active timer from the coordinator snapshot", () => {
@@ -500,9 +521,9 @@ describe("Match Transcript", () => {
     recordDraw("TR2", "u1", "Alice", "discard", { suit: "♠", rank: "K" });
 
     const transcript = getTranscript("TR2")!;
-    expect(transcript.actions.filter(a => a.type === "draw")).toHaveLength(2);
+    expect(transcript.actions.filter((a) => a.type === "draw")).toHaveLength(2);
 
-    const drawActions = transcript.actions.filter(a => a.type === "draw");
+    const drawActions = transcript.actions.filter((a) => a.type === "draw");
     expect(drawActions[0].detail?.source).toBe("stock");
     expect(drawActions[1].detail?.source).toBe("discard");
     expect(drawActions[1].detail?.card).toBe("K♠");
@@ -517,7 +538,7 @@ describe("Match Transcript", () => {
     recordDiscard("TR3", "u1", "Alice", { suit: "♥", rank: "10" });
 
     const transcript = getTranscript("TR3")!;
-    const discardActions = transcript.actions.filter(a => a.type === "discard");
+    const discardActions = transcript.actions.filter((a) => a.type === "discard");
     expect(discardActions).toHaveLength(1);
     expect(discardActions[0].detail?.card).toBe("10♥");
   });
@@ -528,15 +549,18 @@ describe("Match Transcript", () => {
       { userId: "u2", username: "Bob" },
     ]);
 
-    recordKnockOutcome("TR4", "u1", "Alice", "gin", "u1", "Alice", 35, 0, 10, { suit: "♦", rank: "3" });
+    recordKnockOutcome("TR4", "u1", "Alice", "gin", "u1", "Alice", 35, 0, 10, {
+      suit: "♦",
+      rank: "3",
+    });
 
     const transcript = getTranscript("TR4")!;
-    const ginActions = transcript.actions.filter(a => a.type === "gin");
+    const ginActions = transcript.actions.filter((a) => a.type === "gin");
     expect(ginActions).toHaveLength(1);
     expect(ginActions[0].detail?.points).toBe(35);
     expect(ginActions[0].detail?.winnerId).toBe("u1");
 
-    const roundEndActions = transcript.actions.filter(a => a.type === "round_end");
+    const roundEndActions = transcript.actions.filter((a) => a.type === "round_end");
     expect(roundEndActions).toHaveLength(1);
     expect(roundEndActions[0].detail?.outcomeType).toBe("gin");
   });
@@ -551,7 +575,7 @@ describe("Match Transcript", () => {
     recordRoundStart("TR5", 2, "u2", "Bob");
 
     const transcript = getTranscript("TR5")!;
-    const roundStarts = transcript.actions.filter(a => a.type === "round_start");
+    const roundStarts = transcript.actions.filter((a) => a.type === "round_start");
     expect(roundStarts).toHaveLength(2);
     expect(roundStarts[0].detail?.roundNumber).toBe(1);
     expect(roundStarts[1].detail?.roundNumber).toBe(2);
@@ -575,7 +599,7 @@ describe("Match Transcript", () => {
     expect(transcript.outcome!.loserScore).toBe(80);
     expect(transcript.outcome!.endReason).toBe("completed");
 
-    const matchEndActions = transcript.actions.filter(a => a.type === "match_end");
+    const matchEndActions = transcript.actions.filter((a) => a.type === "match_end");
     expect(matchEndActions).toHaveLength(1);
   });
 
@@ -589,11 +613,11 @@ describe("Match Transcript", () => {
     recordForfeit("TR7", "u1", "Alice", "timeout");
 
     const transcript = getTranscript("TR7")!;
-    const timeoutActions = transcript.actions.filter(a => a.type === "timeout");
+    const timeoutActions = transcript.actions.filter((a) => a.type === "timeout");
     expect(timeoutActions).toHaveLength(1);
     expect(timeoutActions[0].playerId).toBe("u1");
 
-    const forfeitActions = transcript.actions.filter(a => a.type === "forfeit");
+    const forfeitActions = transcript.actions.filter((a) => a.type === "forfeit");
     expect(forfeitActions).toHaveLength(1);
     expect(forfeitActions[0].detail?.reason).toBe("timeout");
   });
@@ -607,7 +631,7 @@ describe("Match Transcript", () => {
     recordDisconnect("TR8", "u2", "Bob");
 
     const transcript = getTranscript("TR8")!;
-    const disconnectActions = transcript.actions.filter(a => a.type === "disconnect");
+    const disconnectActions = transcript.actions.filter((a) => a.type === "disconnect");
     expect(disconnectActions).toHaveLength(1);
     expect(disconnectActions[0].playerUsername).toBe("Bob");
   });
@@ -690,19 +714,29 @@ describe("Transcript Integrity - Full Game Simulation", () => {
       const knockResult = handleKnock(match, currentUserId, 10);
       if (knockResult.ok) {
         if (knockResult.knockOutcome && knockResult.discardedCard) {
-          const winner = match.players.find(p => p.userId === match.roundWinnerId)!;
+          const winner = match.players.find((p) => p.userId === match.roundWinnerId)!;
           recordKnockOutcome(
-            "SIM1", currentUserId, currentUsername,
+            "SIM1",
+            currentUserId,
+            currentUsername,
             knockResult.knockOutcome,
-            winner.userId, winner.username,
-            match.roundPoints, 0, 0,
-            knockResult.discardedCard
+            winner.userId,
+            winner.username,
+            match.roundPoints,
+            0,
+            0,
+            knockResult.discardedCard,
           );
         }
 
         if ((match.status as string) === "round_over") {
           handleNextRound(match, currentUserId);
-          recordRoundStart("SIM1", match.roundNumber, match.players[0].userId, match.players[0].username);
+          recordRoundStart(
+            "SIM1",
+            match.roundNumber,
+            match.players[0].userId,
+            match.players[0].username,
+          );
         }
       } else {
         const discardResult = handleDiscard(match, currentUserId, 10);
@@ -721,11 +755,11 @@ describe("Transcript Integrity - Full Game Simulation", () => {
     expect(transcript.actions[0].type).toBe("match_start");
 
     // Must have round_start
-    const roundStarts = transcript.actions.filter(a => a.type === "round_start");
+    const roundStarts = transcript.actions.filter((a) => a.type === "round_start");
     expect(roundStarts.length).toBeGreaterThanOrEqual(1);
 
     // Must have draws
-    const draws = transcript.actions.filter(a => a.type === "draw");
+    const draws = transcript.actions.filter((a) => a.type === "draw");
     expect(draws.length).toBeGreaterThanOrEqual(1);
 
     // All actions must have playerIds (except match_start)
@@ -818,8 +852,22 @@ describe("Rating-Aware Matchmaking", () => {
     // Both waited 60 seconds — bracket should be 50 + 6*50 = 350
     const oldTime = Date.now() - 60_000;
     _getQueue().push(
-      { userId: "user-1", username: "Alice", rating: 1200, ws: ws1, enqueuedAt: oldTime, stakeId: "free" },
-      { userId: "user-2", username: "Bob", rating: 1500, ws: ws2, enqueuedAt: oldTime, stakeId: "free" }
+      {
+        userId: "user-1",
+        username: "Alice",
+        rating: 1200,
+        ws: ws1,
+        enqueuedAt: oldTime,
+        stakeId: "free",
+      },
+      {
+        userId: "user-2",
+        username: "Bob",
+        rating: 1500,
+        ws: ws2,
+        enqueuedAt: oldTime,
+        stakeId: "free",
+      },
     );
 
     // Trigger pairing check by adding a third player (which also triggers tryPair)
@@ -866,8 +914,12 @@ describe("Rating-Aware Matchmaking", () => {
 
     // Manually add disconnected player
     _getQueue().push({
-      userId: "user-1", username: "Alice", rating: 1200,
-      ws: wsDisconnected, enqueuedAt: Date.now(), stakeId: "free"
+      userId: "user-1",
+      username: "Alice",
+      rating: 1200,
+      ws: wsDisconnected,
+      enqueuedAt: Date.now(),
+      stakeId: "free",
     });
 
     joinQueue("user-2", "Bob", 1210, ws2);
@@ -979,7 +1031,7 @@ describe("Quick-Match Multiplayer Regression (Competitive Integrity)", () => {
     const match = createMatch(
       "QM1",
       { userId: matchedPair![0].userId, username: matchedPair![0].username },
-      { userId: matchedPair![1].userId, username: matchedPair![1].username }
+      { userId: matchedPair![1].userId, username: matchedPair![1].username },
     );
 
     // Both players should have valid views
@@ -1006,7 +1058,7 @@ describe("Quick-Match Multiplayer Regression (Competitive Integrity)", () => {
     const match = createMatch(
       "QM2",
       { userId: matchedPair![0].userId, username: matchedPair![0].username },
-      { userId: matchedPair![1].userId, username: matchedPair![1].username }
+      { userId: matchedPair![1].userId, username: matchedPair![1].username },
     );
 
     // Play a few turns

@@ -36,13 +36,13 @@ export interface TimerPreset {
 }
 
 export const TIMER_PRESETS: TimerPreset[] = [
-  { id: "fast",   label: "Fast",   seconds: 20 },
+  { id: "fast", label: "Fast", seconds: 20 },
   { id: "medium", label: "Medium", seconds: 30 },
-  { id: "slow",   label: "Slow",   seconds: 40 },
+  { id: "slow", label: "Slow", seconds: 40 },
 ];
 
 export function getTimerPreset(speed: TimerSpeed): TimerPreset {
-  return TIMER_PRESETS.find(p => p.id === speed) || TIMER_PRESETS[1]; // default to medium
+  return TIMER_PRESETS.find((p) => p.id === speed) || TIMER_PRESETS[1]; // default to medium
 }
 
 /** Default timer speed if not explicitly chosen */
@@ -187,7 +187,7 @@ function getPersistedTimeoutCounts(roomId: string): TimeoutCounter {
 
 function persistTimerSnapshot(
   roomId: string,
-  updates: { timer?: CoordinatorTurnTimerSnapshot | null; timeoutCounts?: TimeoutCounter | null }
+  updates: { timer?: CoordinatorTurnTimerSnapshot | null; timeoutCounts?: TimeoutCounter | null },
 ): void {
   const coord = getSharedCoordinator();
   if (!coord) return;
@@ -238,6 +238,25 @@ function claimTimerLease(roomId: string): boolean {
   return true;
 }
 
+async function claimTimerLeaseAuthoritatively(roomId: string): Promise<boolean> {
+  const coord = getSharedCoordinator();
+  if (!coord) return true;
+
+  const leaseName = timerLeaseName(roomId);
+  const ownerId = coord.getNodeId();
+  const acquired =
+    (await coord.renewLeaseAuthoritatively(leaseName, ownerId, TURN_TIMER_LEASE_TTL_MS)) ||
+    (await coord.claimLeaseAuthoritatively(leaseName, ownerId, TURN_TIMER_LEASE_TTL_MS));
+  if (!acquired) return false;
+
+  const lease = coord.getLease(leaseName);
+  coord.updateRoomOwnership(roomId, {
+    timerOwnerNodeId: ownerId,
+    timerLeaseExpiresAt: lease?.expiresAt ?? Date.now() + TURN_TIMER_LEASE_TTL_MS,
+  });
+  return true;
+}
+
 function clearLocalTimer(roomId: string): void {
   const timer = activeTimers.get(roomId);
   if (!timer) {
@@ -248,17 +267,14 @@ function clearLocalTimer(roomId: string): void {
   activeTimers.delete(roomId);
 }
 
-function scheduleTurnTimer(
+function scheduleClaimedTurnTimer(
   roomId: string,
   activePlayerId: string,
   startedAt: number,
   expiresAt: number,
-  totalSeconds: number
+  totalSeconds: number,
 ): boolean {
   const remainingMs = Math.max(0, expiresAt - Date.now());
-  if (!claimTimerLease(roomId)) {
-    return false;
-  }
 
   const timerId = setTimeout(() => {
     activeTimers.delete(roomId);
@@ -269,7 +285,9 @@ function scheduleTurnTimer(
     persistTimerSnapshot(roomId, { timeoutCounts: counts });
 
     if (onTurnTimeout) {
-      onTurnTimeout(roomId, activePlayerId, counts[activePlayerId]);
+      void Promise.resolve(onTurnTimeout(roomId, activePlayerId, counts[activePlayerId])).catch(
+        (error) => console.error(`[turnTimer] Timeout handler failed for room ${roomId}:`, error),
+      );
     }
 
     const leaseCoord = getSharedCoordinator();
@@ -303,13 +321,35 @@ function scheduleTurnTimer(
   return true;
 }
 
+function scheduleTurnTimer(
+  roomId: string,
+  activePlayerId: string,
+  startedAt: number,
+  expiresAt: number,
+  totalSeconds: number,
+): boolean {
+  if (!claimTimerLease(roomId)) return false;
+  return scheduleClaimedTurnTimer(roomId, activePlayerId, startedAt, expiresAt, totalSeconds);
+}
+
+async function scheduleTurnTimerAuthoritatively(
+  roomId: string,
+  activePlayerId: string,
+  startedAt: number,
+  expiresAt: number,
+  totalSeconds: number,
+): Promise<boolean> {
+  if (!(await claimTimerLeaseAuthoritatively(roomId))) return false;
+  return scheduleClaimedTurnTimer(roomId, activePlayerId, startedAt, expiresAt, totalSeconds);
+}
+
 // ── Timer State ─────────────────────────────────────────────────────
 
 export interface TurnTimerState {
   roomId: string;
   activePlayerId: string;
-  startedAt: number;     // Date.now() when the turn started
-  expiresAt: number;     // Date.now() + timeout
+  startedAt: number; // Date.now() when the turn started
+  expiresAt: number; // Date.now() + timeout
   totalSeconds: number;
   timerId: ReturnType<typeof setTimeout>;
 }
@@ -325,8 +365,8 @@ export interface TimeoutCounter {
 export type TurnTimeoutCallback = (
   roomId: string,
   timedOutPlayerId: string,
-  consecutiveTimeouts: number
-) => void;
+  consecutiveTimeouts: number,
+) => void | Promise<void>;
 
 // ── In-memory state ─────────────────────────────────────────────────
 
@@ -353,6 +393,23 @@ export function startTurnTimer(roomId: string, activePlayerId: string): void {
   const now = Date.now();
   const timeoutSeconds = getRoomTimerSeconds(roomId);
   scheduleTurnTimer(roomId, activePlayerId, now, now + timeoutSeconds * 1000, timeoutSeconds);
+}
+
+/** Production path: schedules only after Redis confirms exclusive ownership. */
+export async function startTurnTimerAuthoritatively(
+  roomId: string,
+  activePlayerId: string,
+): Promise<boolean> {
+  cancelTurnTimer(roomId);
+  const now = Date.now();
+  const timeoutSeconds = getRoomTimerSeconds(roomId);
+  return scheduleTurnTimerAuthoritatively(
+    roomId,
+    activePlayerId,
+    now,
+    now + timeoutSeconds * 1000,
+    timeoutSeconds,
+  );
 }
 
 /**
@@ -422,7 +479,8 @@ export function getTurnTimerInfo(roomId: string): {
  * Get consecutive timeout count for a player in a room.
  */
 export function getTimeoutCount(roomId: string, playerId: string): number {
-  const counts = timeoutCounts.get(roomId) || getSharedCoordinator()?.getRoomGameState(roomId)?.timeoutCounts;
+  const counts =
+    timeoutCounts.get(roomId) || getSharedCoordinator()?.getRoomGameState(roomId)?.timeoutCounts;
   return counts?.[playerId] ?? 0;
 }
 
@@ -453,7 +511,7 @@ export function suspendRoomTimersForShutdown(roomId: string): void {
  */
 export function restoreTurnTimerFromSnapshot(
   roomId: string,
-  snapshot?: CoordinatorGameStateSnapshot | null
+  snapshot?: CoordinatorGameStateSnapshot | null,
 ): boolean {
   if (activeTimers.has(roomId)) {
     return true;
@@ -479,12 +537,52 @@ export function restoreTurnTimerFromSnapshot(
     persistTimerSnapshot(roomId, { timeoutCounts: counts });
 
     if (onTurnTimeout) {
-      onTurnTimeout(roomId, timer.activePlayerId, counts[timer.activePlayerId]);
+      void Promise.resolve(
+        onTurnTimeout(roomId, timer.activePlayerId, counts[timer.activePlayerId]),
+      ).catch((error) =>
+        console.error(`[turnTimer] Recovered timeout handler failed for room ${roomId}:`, error),
+      );
     }
     return true;
   }
 
-  return scheduleTurnTimer(roomId, timer.activePlayerId, timer.startedAt, timer.expiresAt, timer.totalSeconds);
+  return scheduleTurnTimer(
+    roomId,
+    timer.activePlayerId,
+    timer.startedAt,
+    timer.expiresAt,
+    timer.totalSeconds,
+  );
+}
+
+async function restoreTurnTimerFromSnapshotAuthoritatively(
+  roomId: string,
+  snapshot?: CoordinatorGameStateSnapshot | null,
+): Promise<boolean> {
+  if (activeTimers.has(roomId)) return true;
+  const persisted = snapshot ?? getSharedCoordinator()?.getRoomGameState(roomId);
+  const timer = persisted?.timer;
+  if (!timer || !isTimerSnapshot(timer)) return false;
+
+  const counts = cloneTimeoutCounts(persisted.timeoutCounts) || {};
+  timeoutCounts.set(roomId, counts);
+  if (timer.expiresAt <= Date.now()) {
+    counts[timer.activePlayerId] = (counts[timer.activePlayerId] || 0) + 1;
+    timeoutCounts.set(roomId, counts);
+    persistTimerSnapshot(roomId, { timeoutCounts: counts });
+    if (onTurnTimeout) {
+      await onTurnTimeout(roomId, timer.activePlayerId, counts[timer.activePlayerId]);
+    }
+    return true;
+  }
+
+  return scheduleTurnTimerAuthoritatively(
+    roomId,
+    timer.activePlayerId,
+    timer.startedAt,
+    timer.expiresAt,
+    timer.totalSeconds,
+  );
 }
 
 function shouldRecoverTurnTimerForNode(
@@ -516,6 +614,15 @@ export function recoverTurnTimerForRoom(roomId: string): boolean {
   return restoreTurnTimerFromSnapshot(roomId, snapshot);
 }
 
+export async function recoverTurnTimerForRoomAuthoritatively(roomId: string): Promise<boolean> {
+  const coord = getSharedCoordinator();
+  if (!coord) return false;
+  const room = coord.getRoom(roomId);
+  const snapshot = coord.getRoomGameState(roomId);
+  if (!shouldRecoverTurnTimerForNode(room, snapshot, coord.getNodeId())) return false;
+  return restoreTurnTimerFromSnapshotAuthoritatively(roomId, snapshot);
+}
+
 /**
  * Recover any timers owned by this node from the coordinator snapshot store.
  * Used on startup and when a room is reclaimed after reconnect.
@@ -529,9 +636,17 @@ export function recoverTurnTimersFromCoordinator(): void {
   }
 }
 
-function renewActiveTimerLeases(): void {
+export async function recoverTurnTimersFromCoordinatorAuthoritatively(): Promise<void> {
+  const coord = getSharedCoordinator();
+  if (!coord) return;
+  await Promise.all(
+    Array.from(coord.getAllRooms(), ([roomId]) => recoverTurnTimerForRoomAuthoritatively(roomId)),
+  );
+}
+
+async function renewActiveTimerLeases(): Promise<void> {
   for (const [roomId] of activeTimers) {
-    if (claimTimerLease(roomId)) {
+    if (await claimTimerLeaseAuthoritatively(roomId)) {
       continue;
     }
 
@@ -543,7 +658,7 @@ function renewActiveTimerLeases(): void {
 }
 
 setInterval(() => {
-  renewActiveTimerLeases();
+  void renewActiveTimerLeases();
 }, TURN_TIMER_LEASE_RENEW_INTERVAL_MS).unref();
 
 // ── Testing helpers ─────────────────────────────────────────────────
