@@ -540,7 +540,9 @@ function serializeRoomGameState(room: RoomState): CoordinatorGameStateSnapshot {
     match: room.match ? cloneSerializable(room.match) : null,
     lastShowdown: room.lastShowdown ? cloneSerializable(room.lastShowdown) : null,
     timer: getTurnTimerSnapshot(room.id),
-    revision: Math.max(localRevision, coordinatorRevision) + 1,
+    // Relay shadows describe the latest committed state; they must never
+    // reserve the next revision. Only a state mutation commit advances it.
+    revision: Math.max(localRevision, coordinatorRevision),
     updatedAt: Date.now(),
     nodeId: _coord().getNodeId(),
   };
@@ -556,6 +558,7 @@ function buildMergedRoomGameStateSnapshot(room: RoomState): CoordinatorGameState
   return {
     ...existing,
     ...snapshot,
+    revision: (snapshot.revision ?? 0) + 1,
   };
 }
 
