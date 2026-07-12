@@ -45,6 +45,7 @@ interface RoomMeta {
   ownerLeaseExpiresAt?: number;
   timerOwnerNodeId?: string;
   timerLeaseExpiresAt?: number;
+  revision: number;
 }
 
 interface RoomRecord {
@@ -447,6 +448,7 @@ export class RedisCoordinator implements RealtimeCoordinator {
     const record = this.rooms.get(roomId);
     if (!record) return;
     record.meta.status = status;
+    this.advanceRoomRevision(record);
     this.persistRoom(roomId);
     this.emit({ type: "room_updated", roomId, payload: { room: this.serializeRoom(roomId) } });
   }
@@ -461,6 +463,7 @@ export class RedisCoordinator implements RealtimeCoordinator {
     if ("timerOwnerNodeId" in ownership) record.meta.timerOwnerNodeId = ownership.timerOwnerNodeId;
     if ("timerLeaseExpiresAt" in ownership)
       record.meta.timerLeaseExpiresAt = ownership.timerLeaseExpiresAt;
+    this.advanceRoomRevision(record);
 
     this.persistRoom(roomId);
     this.emit({ type: "room_updated", roomId, payload: { room: this.serializeRoom(roomId) } });
@@ -471,6 +474,7 @@ export class RedisCoordinator implements RealtimeCoordinator {
     if (!record) return;
 
     record.meta.timerSpeed = timerSpeed;
+    this.advanceRoomRevision(record);
     this.persistRoom(roomId);
     this.emit({ type: "room_updated", roomId, payload: { room: this.serializeRoom(roomId) } });
   }
@@ -778,6 +782,7 @@ export class RedisCoordinator implements RealtimeCoordinator {
       ownerLeaseExpiresAt: room.ownerLeaseExpiresAt,
       timerOwnerNodeId: room.timerOwnerNodeId,
       timerLeaseExpiresAt: room.timerLeaseExpiresAt,
+      revision: room.revision ?? 1,
     };
 
     const players = new Map<string, CoordinatorPlayer>();
@@ -801,6 +806,7 @@ export class RedisCoordinator implements RealtimeCoordinator {
       ownerLeaseExpiresAt: record.meta.ownerLeaseExpiresAt,
       timerOwnerNodeId: record.meta.timerOwnerNodeId,
       timerLeaseExpiresAt: record.meta.timerLeaseExpiresAt,
+      revision: record.meta.revision,
     };
   }
 
@@ -815,6 +821,9 @@ export class RedisCoordinator implements RealtimeCoordinator {
 
   private replaceRoomFromSnapshot(snapshot: SerializedRoomSnapshot): void {
     const previous = this.rooms.get(snapshot.id);
+    const incomingRevision = snapshot.revision ?? 0;
+    const currentRevision = previous?.meta.revision ?? 0;
+    if (previous && incomingRevision > 0 && incomingRevision <= currentRevision) return;
     const players = new Map<string, CoordinatorPlayer>();
     for (const player of snapshot.players) {
       const previousPlayer = previous?.players.get(player.userId);
@@ -857,6 +866,7 @@ export class RedisCoordinator implements RealtimeCoordinator {
         ownerLeaseExpiresAt: snapshot.ownerLeaseExpiresAt,
         timerOwnerNodeId: snapshot.timerOwnerNodeId,
         timerLeaseExpiresAt: snapshot.timerLeaseExpiresAt,
+        revision: incomingRevision,
       },
       players,
     });
@@ -864,11 +874,16 @@ export class RedisCoordinator implements RealtimeCoordinator {
     this.syncLeaseCacheFromRoomSnapshot(snapshot);
   }
 
+  private advanceRoomRevision(record: RoomRecord): void {
+    record.meta.revision = (record.meta.revision ?? 0) + 1;
+  }
+
   private setRoomPlayerRecord(roomId: string, player: CoordinatorPlayer, emitEvent: boolean): void {
     const record = this.rooms.get(roomId);
     if (!record) return;
 
     record.players.set(player.userId, clonePlayer(player));
+    this.advanceRoomRevision(record);
     this.playerToRoom.set(player.userId, roomId);
     this.persistPlayerRoom(player.userId, roomId);
     this.persistRoom(roomId);
@@ -895,6 +910,7 @@ export class RedisCoordinator implements RealtimeCoordinator {
 
     const removed = record.players.delete(userId);
     if (!removed) return;
+    this.advanceRoomRevision(record);
 
     if (this.playerToRoom.get(userId) === roomId) {
       this.playerToRoom.delete(userId);
@@ -930,6 +946,7 @@ export class RedisCoordinator implements RealtimeCoordinator {
 
     const previousUserIds = new Set(record.players.keys());
     record.players = nextPlayers;
+    this.advanceRoomRevision(record);
     for (const [userId] of nextPlayers.entries()) {
       this.playerToRoom.set(userId, roomId);
       this.persistPlayerRoom(userId, roomId);
@@ -954,7 +971,21 @@ export class RedisCoordinator implements RealtimeCoordinator {
     if (!snapshot) return;
 
     this.runBestEffortCommand(`Failed to persist room ${roomId}`, async (client) => {
-      await client.set(this.roomSnapshotKey(roomId), JSON.stringify(snapshot));
+      const payload = JSON.stringify(snapshot);
+      await client.eval(
+        `local current = redis.call('GET', KEYS[1])
+         if current then
+           local decoded = cjson.decode(current)
+           local currentRevision = decoded.revision or 0
+           if currentRevision >= tonumber(ARGV[1]) then return 0 end
+         end
+         redis.call('SET', KEYS[1], ARGV[2])
+         return 1`,
+        {
+          keys: [this.roomSnapshotKey(roomId)],
+          arguments: [String(snapshot.revision ?? 0), payload],
+        },
+      );
       await client.sAdd(this.roomIndexKey(), roomId);
     });
   }

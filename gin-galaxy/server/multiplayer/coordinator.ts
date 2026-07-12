@@ -54,6 +54,8 @@ export interface CoordinatorRoom {
   ownerLeaseExpiresAt?: number;
   timerOwnerNodeId?: string;
   timerLeaseExpiresAt?: number;
+  /** Monotonic Redis room-metadata ordering. */
+  revision?: number;
 }
 
 export interface RoomOwnershipUpdate {
