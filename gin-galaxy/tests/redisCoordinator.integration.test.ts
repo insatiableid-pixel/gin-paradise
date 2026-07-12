@@ -269,6 +269,23 @@ suite("RedisCoordinator integration", () => {
     expect(coordB.claimLease(leaseName, followerId, 10_000)).toBe(false);
   });
 
+  it("authoritatively allows only one lease claimant and owner renewal", async () => {
+    const leaseName = `room:${crypto.randomUUID()}:timer`;
+    const ownerId = coordA.getNodeId();
+    const followerId = coordB.getNodeId();
+
+    const [ownerClaimed, followerClaimed] = await Promise.all([
+      coordA.claimLeaseAuthoritatively(leaseName, ownerId, 10_000),
+      coordB.claimLeaseAuthoritatively(leaseName, followerId, 10_000),
+    ]);
+
+    expect([ownerClaimed, followerClaimed].filter(Boolean)).toHaveLength(1);
+    const winner = ownerClaimed ? coordA : coordB;
+    const loser = ownerClaimed ? coordB : coordA;
+    expect(await winner.renewLeaseAuthoritatively(leaseName, winner.getNodeId(), 10_000)).toBe(true);
+    expect(await loser.renewLeaseAuthoritatively(leaseName, loser.getNodeId(), 10_000)).toBe(false);
+  });
+
   it("allows a successor node to claim an expired lease", async () => {
     const leaseName = `room:${crypto.randomUUID()}:owner`;
     const ownerId = coordA.getNodeId();

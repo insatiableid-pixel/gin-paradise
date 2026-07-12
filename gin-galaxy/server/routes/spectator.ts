@@ -15,10 +15,8 @@ import {
   getPlayerSpectatePreference,
   setPlayerSpectatePreference,
   getRecentBroadcastMetrics,
-  getBroadcastSummary,
 } from "../multiplayer/spectator.js";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/auth.js";
-import { db } from "../db.js";
 
 const router = Router();
 

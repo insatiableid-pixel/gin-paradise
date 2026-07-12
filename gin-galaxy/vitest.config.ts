@@ -10,10 +10,10 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "html"],
       thresholds: {
-        statements: 1,
-        branches: 1,
-        functions: 1,
-        lines: 1,
+        statements: 35,
+        branches: 25,
+        functions: 30,
+        lines: 35,
       },
     },
     // Each test file gets a fresh server + database

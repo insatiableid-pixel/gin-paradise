@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   History, Clock, Trophy, ArrowLeft, ChevronRight, ChevronDown,
-  ChevronUp, Play, SkipForward, SkipBack, Pause, User, Swords,
-  AlertTriangle, Timer, Wifi, WifiOff, Flag, ArrowRight,
-  Activity, Loader2, Sparkles, Shield, Download, Copy, Check, ExternalLink
+  ChevronUp, Play, SkipForward, SkipBack, Swords,
+  AlertTriangle, Timer, WifiOff, Flag, ArrowRight,
+  Activity, Loader2, Sparkles, Shield, Download, Copy, Check
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
@@ -297,6 +297,7 @@ export function Replays() {
   const [fairnessError, setFairnessError] = useState<string | null>(null);
   const [expandedProofs, setExpandedProofs] = useState<Set<number>>(new Set());
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const fetchFairnessRef = useRef<(replayId: string) => void>(() => {});
 
   // Fetch replay list
   useEffect(() => {
@@ -332,7 +333,7 @@ export function Replays() {
       setFocusedAction(null);
       setExpandedRounds(new Set());
       // Auto-fetch fairness data
-      fetchFairness(id);
+      fetchFairnessRef.current(id);
     } catch {
       setSelectedReplay(null);
     } finally {
@@ -484,6 +485,10 @@ export function Replays() {
       setLoadingFairness(false);
     }
   }, [sessionId]);
+
+  useEffect(() => {
+    fetchFairnessRef.current = fetchFairness;
+  }, [fetchFairness]);
 
   // Copy to clipboard helper
   const copyToClipboard = useCallback(async (text: string, field: string) => {

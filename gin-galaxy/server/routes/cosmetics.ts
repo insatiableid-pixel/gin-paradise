@@ -17,7 +17,6 @@ import {
   COSMETIC_CATALOG,
   COSMETIC_CATALOG_MAP,
   getUserInventory,
-  userOwnsItem,
   getEquippedCosmetics,
   equipCosmetic,
   validateCatalogPurchase,

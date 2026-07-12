@@ -14,6 +14,10 @@ const metrics = {
   durationMsTotal: 0,
   durationMsMax: 0,
   byRoute: new Map<string, number>(),
+  coordinatorCommitsTotal: 0,
+  coordinatorCommitFailuresTotal: 0,
+  coordinatorCommitDurationMsTotal: 0,
+  coordinatorCommitDurationMsMax: 0,
 };
 
 interface TraceContext {
@@ -66,6 +70,16 @@ function observeRequest(method: string, path: string, statusCode: number, durati
   if (statusCode >= 500) metrics.errorsTotal += 1;
 }
 
+export function observeCoordinatorCommit(durationMs: number, succeeded: boolean): void {
+  metrics.coordinatorCommitsTotal += 1;
+  metrics.coordinatorCommitDurationMsTotal += durationMs;
+  metrics.coordinatorCommitDurationMsMax = Math.max(
+    metrics.coordinatorCommitDurationMsMax,
+    durationMs,
+  );
+  if (!succeeded) metrics.coordinatorCommitFailuresTotal += 1;
+}
+
 function prometheusLine(name: string, value: number, help: string, type: "counter" | "gauge") {
   return [`# HELP ${name} ${help}`, `# TYPE ${name} ${type}`, `${name} ${value}`];
 }
@@ -106,6 +120,9 @@ export const metricsHandler: RequestHandler = (_req, res) => {
   const uptimeSeconds = Math.floor((Date.now() - metrics.startedAt) / 1000);
   const averageDurationMs =
     metrics.requestsTotal > 0 ? metrics.durationMsTotal / metrics.requestsTotal : 0;
+  const averageCoordinatorCommitDurationMs = metrics.coordinatorCommitsTotal > 0
+    ? metrics.coordinatorCommitDurationMsTotal / metrics.coordinatorCommitsTotal
+    : 0;
   const lines = [
     ...prometheusLine(
       "gin_paradise_uptime_seconds",
@@ -141,6 +158,30 @@ export const metricsHandler: RequestHandler = (_req, res) => {
       "gin_paradise_request_duration_ms_max",
       metrics.durationMsMax,
       "Maximum HTTP request duration in milliseconds.",
+      "gauge",
+    ),
+    ...prometheusLine(
+      "gin_paradise_coordinator_commits_total",
+      metrics.coordinatorCommitsTotal,
+      "Durable multiplayer coordinator commits.",
+      "counter",
+    ),
+    ...prometheusLine(
+      "gin_paradise_coordinator_commit_failures_total",
+      metrics.coordinatorCommitFailuresTotal,
+      "Failed durable multiplayer coordinator commits.",
+      "counter",
+    ),
+    ...prometheusLine(
+      "gin_paradise_coordinator_commit_duration_ms_avg",
+      averageCoordinatorCommitDurationMs,
+      "Average durable coordinator commit latency in milliseconds.",
+      "gauge",
+    ),
+    ...prometheusLine(
+      "gin_paradise_coordinator_commit_duration_ms_max",
+      metrics.coordinatorCommitDurationMsMax,
+      "Maximum durable coordinator commit latency in milliseconds.",
       "gauge",
     ),
     "# HELP gin_paradise_route_requests_total Total HTTP requests by normalized route.",

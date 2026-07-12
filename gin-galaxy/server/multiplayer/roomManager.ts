@@ -23,8 +23,9 @@ import { WebSocket, WebSocketServer } from "ws";
 import type { Server as HttpServer } from "http";
 import type { IncomingMessage } from "http";
 import { db } from "../db.js";
+import { observeCoordinatorCommit } from "../observability.js";
+import { consumeWebSocketTicket } from "../websocketTickets.js";
 import {
-  createMatch,
   createMatchWithDeck,
   getPlayerView,
   handleDraw,
@@ -59,22 +60,17 @@ import {
   isAdminFeatured,
   getPlayerSpectatePreference,
   type FeaturedMatch,
-  type FeaturedReason,
-  type SpectatorGameView,
   type LiveMatchInfo,
 } from "./spectator.js";
 import {
   initMatchFairness,
   createRoundCommitment,
   revealRoundSeed,
-  getMatchProofs,
   getSerializableFairnessData,
   cleanupFairness,
-  buildProofPackage,
   submitClientSeed,
   getClientSeeds,
   getRoundProof,
-  type FairnessCommitment,
 } from "./fairness.js";
 import {
   joinQueue,
@@ -98,7 +94,6 @@ import {
   recoverTurnTimerForRoom,
   recoverTurnTimersFromCoordinator,
   MAX_CONSECUTIVE_TIMEOUTS,
-  TURN_TIMEOUT_SECONDS,
 } from "./turnTimer.js";
 import {
   createTranscript,
@@ -123,7 +118,7 @@ import {
   cleanupEscrow,
   getStakePreset,
   isFreeStake,
-  STAKE_PRESETS,
+  reconcileOrphanedEscrows,
 } from "../escrow.js";
 import {
   advanceBracket,
@@ -131,7 +126,6 @@ import {
   getTournament,
   getTournamentForRoom,
   type BracketMatch,
-  type AdvanceResult,
 } from "../tournament.js";
 import {
   setAvailabilityCallback,
@@ -328,6 +322,30 @@ function routeRelayNodeMessage(delivery: CoordinatorNodeMessageDelivery): void {
 }
 
 function handleRelayCoordinatorEvent(event: CoordinatorEvent): void {
+  if (event.type === "lease_released" && event.leaseName) {
+    const lostOwnerId = event.payload?.ownerId as string | undefined;
+    if (lostOwnerId !== currentNodeId()) return;
+
+    const match = /^room:(.+):(owner|timer)$/.exec(event.leaseName);
+    if (!match) return;
+    const [, roomId, leaseKind] = match;
+    const replacement = event.payload?.replacement as { ownerId: string; expiresAt: number } | null | undefined;
+    if (leaseKind === "timer") {
+      suspendRoomTimersForShutdown(roomId);
+      _coord().updateRoomOwnership(roomId, {
+        timerOwnerNodeId: replacement?.ownerId,
+        timerLeaseExpiresAt: replacement?.expiresAt,
+      });
+    } else {
+      suspendRoomTimersForShutdown(roomId);
+      _coord().updateRoomOwnership(roomId, {
+        ownerNodeId: replacement?.ownerId,
+        ownerLeaseExpiresAt: replacement?.expiresAt,
+      });
+    }
+    return;
+  }
+
   if (event.type === "relay_node_message") {
     const delivery = event.payload?.delivery as CoordinatorNodeMessageDelivery | undefined;
     if (delivery && delivery.targetNodeId === currentNodeId()) {
@@ -482,7 +500,8 @@ function applyRoomGameSnapshot(roomId: string, snapshot: CoordinatorGameStateSna
   const snapshotMatch = snapshot.match ? cloneSerializable(snapshot.match as MatchState) : null;
   const snapshotShowdown = snapshot.lastShowdown ? cloneSerializable(snapshot.lastShowdown as ShowdownData) : null;
 
-  if (!current || snapshot.updatedAt >= current.updatedAt) {
+  // Equal millisecond timestamps are not ordered; retain the applied state.
+  if (!current || snapshot.updatedAt > current.updatedAt) {
     roomGameState.set(roomId, {
       match: snapshotMatch as MatchState | null,
       lastShowdown: snapshotShowdown as ShowdownData | null,
@@ -540,7 +559,14 @@ async function commitRoomGameStateDurably(room: RoomState): Promise<void> {
   }
 
   applyRoomGameSnapshot(room.id, merged);
-  await _coord().commitRoomGameState(room.id, merged);
+  const startedAt = performance.now();
+  let succeeded = false;
+  try {
+    await _coord().commitRoomGameState(room.id, merged);
+    succeeded = true;
+  } finally {
+    observeCoordinatorCommit(performance.now() - startedAt, succeeded);
+  }
 }
 
 /** Get a full RoomState (coordinator data + local game state) as a proxy.
@@ -748,6 +774,9 @@ function renewOwnedRoomLeases(): void {
       ownerNodeId: nodeId,
       ownerLeaseExpiresAt: nextExpiry,
     });
+    // Ownership may have been acquired provisionally before the previous
+    // timer lease expired. Retry hydration on each successful renewal.
+    recoverTurnTimerForRoom(roomId);
   }
 }
 
@@ -1059,7 +1088,7 @@ async function startMatchForRoom(room: RoomState): Promise<void> {
     for (const p of ps) {
       try {
         holdEntryFee(room.id, p.userId, room.stakeId);
-      } catch (err) {
+      } catch {
         // If hold fails (insufficient funds at match start), refund any previous holds and abort
         refundEscrow(room.id);
         for (const pl of ps) {
@@ -1173,17 +1202,17 @@ function persistMatchResult(match: MatchState) {
   const loser = match.players.find(p => p.userId !== match.winnerId);
   if (!winner || !loser) return;
 
-  // Record for winner
-  const wid = crypto.randomUUID();
-  db.prepare(`INSERT INTO matches (id, user_id, opponent_name, user_score, opponent_score, is_win, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`)
-    .run(wid, winner.userId, loser.username, winner.score, loser.score, 1);
-  db.prepare("UPDATE users SET rating = MAX(100, rating + 15), wins = wins + 1 WHERE id = ?").run(winner.userId);
+  db.transaction(() => {
+    const wid = crypto.randomUUID();
+    db.prepare(`INSERT INTO matches (id, user_id, opponent_name, user_score, opponent_score, is_win, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`)
+      .run(wid, winner.userId, loser.username, winner.score, loser.score, 1);
+    db.prepare("UPDATE users SET rating = MAX(100, rating + 15), wins = wins + 1 WHERE id = ?").run(winner.userId);
 
-  // Record for loser
-  const lid = crypto.randomUUID();
-  db.prepare(`INSERT INTO matches (id, user_id, opponent_name, user_score, opponent_score, is_win, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`)
-    .run(lid, loser.userId, winner.username, loser.score, winner.score, 0);
-  db.prepare("UPDATE users SET rating = MAX(100, rating - 10), losses = losses + 1 WHERE id = ?").run(loser.userId);
+    const lid = crypto.randomUUID();
+    db.prepare(`INSERT INTO matches (id, user_id, opponent_name, user_score, opponent_score, is_win, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`)
+      .run(lid, loser.userId, winner.username, loser.score, winner.score, 0);
+    db.prepare("UPDATE users SET rating = MAX(100, rating - 10), losses = losses + 1 WHERE id = ?").run(loser.userId);
+  })();
 }
 
 // ── Forfeit / End match helper ───────────────────────────────────────
@@ -1569,7 +1598,6 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
       // Record knock outcome in transcript
       if (result.knockOutcome && result.discardedCard && room.match.roundWinnerId) {
         const knocker = room.match.players.find(p => p.userId === userId)!;
-        const opponent = room.match.players.find(p => p.userId !== userId)!;
         const winner = room.match.players.find(p => p.userId === room.match!.roundWinnerId)!;
 
         recordKnockOutcome(
@@ -1669,9 +1697,18 @@ async function handleMessage(ws: WebSocket, userId: string, username: string, ms
       // Reveal the previous round's fairness seed before starting next round
       const prevRound = room.match.roundNumber;
       const transcript = getTranscript(roomId);
-      const roundActions = transcript?.actions.filter(
-        (a: any) => a.detail?.roundNumber === prevRound || true
+      const actions = transcript?.actions ?? [];
+      const roundStartIndex = actions.findIndex(
+        (action) => action.type === "round_start" && action.detail?.roundNumber === prevRound,
       );
+      const nextRoundIndex = roundStartIndex < 0
+        ? -1
+        : actions.findIndex(
+            (action, index) => index > roundStartIndex && action.type === "round_start",
+          );
+      const roundActions = roundStartIndex < 0
+        ? []
+        : actions.slice(roundStartIndex, nextRoundIndex < 0 ? undefined : nextRoundIndex);
       revealRoundSeed(roomId, prevRound, roundActions);
 
       // Create fairness commitment for the new round
@@ -2043,15 +2080,12 @@ async function handleLeave(userId: string): Promise<void> {
 
 function authenticateUpgrade(req: IncomingMessage): { userId: string; username: string } | null {
   const url = new URL(req.url || "/", `http://${req.headers.host}`);
-  const token = url.searchParams.get("token");
-  if (!token || token.length < 10) return null;
+  const ticket = url.searchParams.get("ticket");
+  if (!ticket) return null;
+  const userId = consumeWebSocketTicket(ticket);
+  if (!userId) return null;
 
-  const session = db.prepare(
-    "SELECT user_id FROM sessions WHERE id = ? AND (expires_at IS NULL OR expires_at > datetime('now'))"
-  ).get(token) as { user_id: string } | undefined;
-  if (!session) return null;
-
-  const user = db.prepare("SELECT id, username FROM users WHERE id = ?").get(session.user_id) as { id: string; username: string } | undefined;
+  const user = db.prepare("SELECT id, username FROM users WHERE id = ?").get(userId) as { id: string; username: string } | undefined;
   if (!user) return null;
 
   return { userId: user.id, username: user.username };
@@ -2065,6 +2099,12 @@ export function attachWebSocketServer(server: HttpServer) {
   // Register turn timeout callback
   setTurnTimeoutCallback(handleTurnTimeout);
   recoverTurnTimersFromCoordinator();
+  const recoveredRoomIds = new Set<string>();
+  for (const [roomId] of rooms) recoveredRoomIds.add(roomId);
+  const refundedOrphans = reconcileOrphanedEscrows(recoveredRoomIds);
+  if (refundedOrphans.length > 0) {
+    console.warn(`[escrow] Refunded ${refundedOrphans.length} orphaned room hold(s) after recovery.`);
+  }
   ensureRelayBridge();
 
   // Register availability callback so social.ts can query player status
@@ -2120,7 +2160,10 @@ export function attachWebSocketServer(server: HttpServer) {
           if (room.match) {
             const view = getPlayerView(room.match, userId);
             if (view) {
-              const timerInfo = getTurnTimerInfo(room.id);
+              let timerInfo = getTurnTimerInfo(room.id);
+              if (!timerInfo && recoverTurnTimerForRoom(room.id)) {
+                timerInfo = getTurnTimerInfo(room.id);
+              }
               if (timerInfo) {
                 view.turnTimer = {
                   remainingSeconds: timerInfo.remainingSeconds,
@@ -2168,8 +2211,13 @@ export function attachWebSocketServer(server: HttpServer) {
       if (!room) return;
 
       const player = room.players.get(userId);
+      // A reconnect may already have replaced this socket. A stale close must
+      // never disconnect the live replacement.
+      if (player?.ws !== ws) return;
       if (player) {
-      room.players.set(userId, createPlayerConnection(player, null, false));
+        const disconnectedPlayer = createPlayerConnection(player, null, false);
+        const disconnectMarker = disconnectedPlayer.lastSeenAt;
+        room.players.set(userId, disconnectedPlayer);
 
         // Record disconnect in transcript
         if (room.match && room.match.status === "playing") {
@@ -2189,7 +2237,9 @@ export function attachWebSocketServer(server: HttpServer) {
             const r = rooms.get(roomId);
             if (!r) return;
             const pl = r.players.get(userId);
-            if (pl && !pl.connected) {
+            // Match the exact disconnect generation so an older timer cannot
+            // forfeit a later disconnect after an intervening reconnect.
+            if (pl && !pl.connected && pl.ws === null && pl.lastSeenAt === disconnectMarker) {
               void endMatchByForfeit(r, userId, username, "disconnect").catch((err) => {
                 logAsyncRoomTaskError("Failed to end disconnected match", err, roomId);
               });
@@ -2532,8 +2582,23 @@ function handleLeaveSpectate(userId: string) {
  * Get a list of currently featured/spectatable matches.
  * Called by the REST API to populate the Featured Matches surface.
  */
+function loadLivePlayerRatings(): Map<string, number> {
+  const userIds = new Set<string>();
+  for (const [, room] of rooms) {
+    for (const player of room.players.values()) userIds.add(player.userId);
+  }
+  if (userIds.size === 0) return new Map();
+  const ids = Array.from(userIds);
+  const placeholders = ids.map(() => "?").join(", ");
+  const rows = db.prepare(
+    `SELECT id, rating FROM users WHERE id IN (${placeholders})`,
+  ).all(...ids) as Array<{ id: string; rating: number }>;
+  return new Map(rows.map((row) => [row.id, row.rating]));
+}
+
 export function getFeaturedMatches(): FeaturedMatch[] {
   const featured: FeaturedMatch[] = [];
+  const ratings = loadLivePlayerRatings();
 
   for (const [roomId, room] of rooms) {
     if (!room.match || room.status !== "playing") continue;
@@ -2542,8 +2607,8 @@ export function getFeaturedMatches(): FeaturedMatch[] {
     const ps = Array.from(room.players.values());
     if (ps.length < 2) continue;
 
-    const p1Rating = (db.prepare("SELECT rating FROM users WHERE id = ?").get(ps[0].userId) as any)?.rating ?? 1200;
-    const p2Rating = (db.prepare("SELECT rating FROM users WHERE id = ?").get(ps[1].userId) as any)?.rating ?? 1200;
+    const p1Rating = ratings.get(ps[0].userId) ?? 1200;
+    const p2Rating = ratings.get(ps[1].userId) ?? 1200;
     const isTournament = !!getTournamentForRoom(roomId);
     const reasons = getFeaturedReasons(roomId, room.stakeId, isTournament, p1Rating, p2Rating, ps[0].userId, ps[1].userId);
 
@@ -2585,14 +2650,15 @@ export function getFeaturedMatches(): FeaturedMatch[] {
  */
 export function getLiveMatches(): LiveMatchInfo[] {
   const liveMatches: LiveMatchInfo[] = [];
+  const ratings = loadLivePlayerRatings();
 
   for (const [roomId, room] of rooms) {
     if (room.status === "finished") continue;
     const ps = Array.from(room.players.values());
     if (ps.length < 2) continue;
 
-    const p1Rating = (db.prepare("SELECT rating FROM users WHERE id = ?").get(ps[0].userId) as any)?.rating ?? 1200;
-    const p2Rating = (db.prepare("SELECT rating FROM users WHERE id = ?").get(ps[1].userId) as any)?.rating ?? 1200;
+    const p1Rating = ratings.get(ps[0].userId) ?? 1200;
+    const p2Rating = ratings.get(ps[1].userId) ?? 1200;
     const isTournament = !!getTournamentForRoom(roomId);
     const reasons = getFeaturedReasons(roomId, room.stakeId, isTournament, p1Rating, p2Rating, ps[0].userId, ps[1].userId);
     const spectatable = reasons.length > 0;

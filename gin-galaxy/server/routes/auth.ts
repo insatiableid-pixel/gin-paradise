@@ -7,6 +7,7 @@ import { rateLimit } from "../middleware/rateLimit.js";
 import { requireAuth, AuthenticatedRequest } from "../middleware/auth.js";
 import { creditSignupBonus } from "../ledger.js";
 import { getUserPlan } from "../entitlements.js";
+import { createWebSocketTicket } from "../websocketTickets.js";
 const router = Router();
 
 const BCRYPT_ROUNDS = 12;
@@ -44,11 +45,13 @@ router.post(
       creditSignupBonus(id);
       const sessionId = createSession(id);
       res.json({ sessionId, user: { id, username, email, rating: 1200 } });
-    } catch (e: any) {
-      if (e.message?.includes("UNIQUE constraint")) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "";
+      if (message.includes("UNIQUE constraint")) {
         res.status(400).json({ error: "Username or email already exists" });
       } else {
-        res.status(400).json({ error: e.message });
+        console.error("[auth] Registration failed", e);
+        res.status(500).json({ error: "Unable to create account" });
       }
     }
   }
@@ -111,6 +114,11 @@ router.get("/me", requireAuth, (req: AuthenticatedRequest, res: Response) => {
     return;
   }
   res.json({ user: { ...user, is_admin: !!user.is_admin, plan: getUserPlan(user.id) } });
+});
+
+// Short-lived, single-use auth keeps reusable session IDs out of WebSocket URLs.
+router.post("/ws-ticket", requireAuth, (req: AuthenticatedRequest, res: Response) => {
+  res.json(createWebSocketTicket(req.userId!));
 });
 
 export default router;

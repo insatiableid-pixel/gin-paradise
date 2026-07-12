@@ -238,9 +238,6 @@ export function buildAnalysisInput(
   // Section 3: Round-by-Round Breakdown
   const roundDetails = rounds.map(r => {
     const drawsInRound = r.actions.filter(a => a.type === "draw");
-    const discardsInRound = r.actions.filter(a => a.type === "discard");
-    const turnsInRound = Math.ceil(drawsInRound.length / 1); // Each draw = 1 half-turn
-
     let outcome = "in progress";
     if (r.outcomeType === "gin") {
       outcome = `${r.winner || "?"} achieved GIN for ${r.points ?? "?"} points`;

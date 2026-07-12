@@ -3,7 +3,7 @@ import { useAuthStore } from "@/src/lib/store";
 import { motion } from "motion/react";
 import {
   DollarSign, TrendingUp, Users, Search, Activity, Shield, ChevronRight, RefreshCw,
-  Radio, Star, Eye, Tv, Trophy, Coins, Crown, Zap,
+  Radio, Star, Eye, Tv, Coins, Crown, Zap,
 } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/components/ui/Button";
@@ -110,13 +110,12 @@ export function AdminDashboard() {
   const { sessionId } = useAuthStore();
   const [activeTab, setActiveTab] = useState<"revenue" | "settlements" | "players" | "broadcast" | "billing">("revenue");
   const [revenue, setRevenue] = useState<RevenueSummary | null>(null);
-  const [recentEntries, setRecentEntries] = useState<HouseLedgerEntry[]>([]);
   const [houseLedger, setHouseLedger] = useState<HouseLedgerEntry[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [playerSearch, setPlayerSearch] = useState("");
   const [playerResults, setPlayerResults] = useState<PlayerResult[]>([]);
   const [playerDetail, setPlayerDetail] = useState<PlayerDetail | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
   const [broadcastSummary, setBroadcastSummary] = useState<BroadcastSummary | null>(null);
@@ -126,7 +125,7 @@ export function AdminDashboard() {
   const [billingEvents, setBillingEvents] = useState<any[]>([]);
   const [billingSessions, setBillingSessions] = useState<any[]>([]);
 
-  const headers = { Authorization: `Bearer ${sessionId}` };
+  const headers = React.useMemo(() => ({ Authorization: `Bearer ${sessionId}` }), [sessionId]);
 
   const fetchRevenue = useCallback(async () => {
     setLoading(true);
@@ -136,13 +135,12 @@ export function AdminDashboard() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setRevenue(data.summary);
-      setRecentEntries(data.recentEntries);
     } catch (e: any) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  }, [sessionId]);
+  }, [headers]);
 
   const fetchHouseLedger = useCallback(async () => {
     try {
@@ -153,7 +151,7 @@ export function AdminDashboard() {
     } catch (e: any) {
       setError(e.message);
     }
-  }, [sessionId]);
+  }, [headers]);
 
   const fetchSettlements = useCallback(async () => {
     setLoading(true);
@@ -167,7 +165,7 @@ export function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [sessionId]);
+  }, [headers]);
 
   const searchPlayers = useCallback(
     async (query: string) => {
@@ -184,7 +182,7 @@ export function AdminDashboard() {
         setError(e.message);
       }
     },
-    [sessionId]
+    [headers]
   );
 
   const fetchPlayerDetail = useCallback(
@@ -203,7 +201,7 @@ export function AdminDashboard() {
         setError(e.message);
       }
     },
-    [sessionId]
+    [headers]
   );
 
   const fetchLiveMatches = useCallback(async () => {
@@ -215,7 +213,7 @@ export function AdminDashboard() {
     } catch (e: any) {
       setError(e.message);
     }
-  }, [sessionId]);
+  }, [headers]);
 
   const fetchBroadcastMetrics = useCallback(async () => {
     try {
@@ -227,7 +225,7 @@ export function AdminDashboard() {
     } catch (e: any) {
       setError(e.message);
     }
-  }, [sessionId]);
+  }, [headers]);
 
   const featureMatch = async (roomId: string) => {
     setFeaturingRoom(roomId);
@@ -272,7 +270,7 @@ export function AdminDashboard() {
     } catch (e: any) {
       setError(e.message);
     }
-  }, [sessionId]);
+  }, [headers]);
 
   const fetchBillingEvents = useCallback(async () => {
     try {
@@ -283,7 +281,7 @@ export function AdminDashboard() {
     } catch (e: any) {
       setError(e.message);
     }
-  }, [sessionId]);
+  }, [headers]);
 
   const fetchBillingSessions = useCallback(async () => {
     try {
@@ -294,7 +292,7 @@ export function AdminDashboard() {
     } catch (e: any) {
       setError(e.message);
     }
-  }, [sessionId]);
+  }, [headers]);
 
   useEffect(() => {
     fetchRevenue();
@@ -314,7 +312,16 @@ export function AdminDashboard() {
       fetchBillingEvents();
       fetchBillingSessions();
     }
-  }, [activeTab, fetchSettlements, fetchLiveMatches, fetchBroadcastMetrics]);
+  }, [
+    activeTab,
+    fetchBillingEvents,
+    fetchBillingSessions,
+    fetchBillingSummary,
+    fetchBroadcastMetrics,
+    fetchLiveMatches,
+    fetchSettlements,
+    settlements.length,
+  ]);
 
   const goldRevenue = revenue?.byCurrency.find((r) => r.currency === "gold_coins");
   const sweepsRevenue = revenue?.byCurrency.find((r) => r.currency === "sweeps_coins");

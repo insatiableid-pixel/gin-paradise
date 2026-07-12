@@ -56,6 +56,18 @@ export interface WalletBalances {
   sweeps_coins: number;
 }
 
+/** Persisted money precision: one public coin equals 100 integer units. */
+export const MONEY_SCALE = 100;
+
+export function toMoneyUnits(amount: number): number {
+  if (!Number.isFinite(amount)) throw new Error("Money amount must be finite");
+  return Math.round(amount * MONEY_SCALE);
+}
+
+export function fromMoneyUnits(units: number): number {
+  return units / MONEY_SCALE;
+}
+
 // ─── Configuration ──────────────────────────────────────────────────────
 
 /** Default starting balance for new accounts (single coin economy) */
@@ -77,29 +89,41 @@ let _stmts: {
   insertTxn: Database.Statement;
   getRecent: Database.Statement;
   getLastFaucet: Database.Statement;
+  getFaucetClaim: Database.Statement;
+  upsertFaucetClaim: Database.Statement;
 } | null = null;
 
 function stmts() {
   if (!_stmts) {
     _stmts = {
       getWallet: db.prepare(
-        "SELECT gold_coins, sweeps_coins FROM wallets WHERE user_id = ?"
+        `SELECT
+          COALESCE(gold_coin_units, ROUND(gold_coins * 100)) AS gold_coin_units,
+          COALESCE(sweeps_coin_units, ROUND(sweeps_coins * 100)) AS sweeps_coin_units
+         FROM wallets WHERE user_id = ?`
       ),
       upsertGold: db.prepare(`
-        INSERT INTO wallets (user_id, gold_coins, sweeps_coins)
-        VALUES (?, ?, 0)
+        INSERT INTO wallets (user_id, gold_coins, sweeps_coins, gold_coin_units, sweeps_coin_units)
+        VALUES (?, ?, 0, ?, 0)
         ON CONFLICT(user_id)
-        DO UPDATE SET gold_coins = gold_coins + excluded.gold_coins, updated_at = CURRENT_TIMESTAMP
+        DO UPDATE SET
+          gold_coin_units = COALESCE(gold_coin_units, ROUND(gold_coins * 100)) + excluded.gold_coin_units,
+          gold_coins = (COALESCE(gold_coin_units, ROUND(gold_coins * 100)) + excluded.gold_coin_units) / 100.0,
+          updated_at = CURRENT_TIMESTAMP
       `),
       upsertSweeps: db.prepare(`
-        INSERT INTO wallets (user_id, gold_coins, sweeps_coins)
-        VALUES (?, 0, ?)
+        INSERT INTO wallets (user_id, gold_coins, sweeps_coins, gold_coin_units, sweeps_coin_units)
+        VALUES (?, 0, ?, 0, ?)
         ON CONFLICT(user_id)
-        DO UPDATE SET sweeps_coins = sweeps_coins + excluded.sweeps_coins, updated_at = CURRENT_TIMESTAMP
+        DO UPDATE SET
+          sweeps_coin_units = COALESCE(sweeps_coin_units, ROUND(sweeps_coins * 100)) + excluded.sweeps_coin_units,
+          sweeps_coins = (COALESCE(sweeps_coin_units, ROUND(sweeps_coins * 100)) + excluded.sweeps_coin_units) / 100.0,
+          updated_at = CURRENT_TIMESTAMP
       `),
       insertTxn: db.prepare(`
-        INSERT INTO transactions (id, user_id, currency, amount, type, balance_after, reference, note)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO transactions
+          (id, user_id, currency, amount, amount_units, type, balance_after, balance_after_units, reference, note)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `),
       getRecent: db.prepare(`
         SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT ?
@@ -108,6 +132,11 @@ function stmts() {
         SELECT created_at FROM transactions
         WHERE user_id = ? AND type = 'faucet'
         ORDER BY created_at DESC LIMIT 1
+      `),
+      getFaucetClaim: db.prepare("SELECT claimed_at FROM faucet_claims WHERE user_id = ?"),
+      upsertFaucetClaim: db.prepare(`
+        INSERT INTO faucet_claims (user_id, claimed_at) VALUES (?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET claimed_at = excluded.claimed_at
       `),
     };
   }
@@ -121,8 +150,12 @@ function stmts() {
  * Returns { gold_coins: 0, sweeps_coins: 0 } if no wallet row exists.
  */
 export function getBalances(userId: string): WalletBalances {
-  const row = stmts().getWallet.get(userId) as WalletBalances | undefined;
-  return row ?? { gold_coins: 0, sweeps_coins: 0 };
+  const row = stmts().getWallet.get(userId) as
+    | { gold_coin_units: number; sweeps_coin_units: number }
+    | undefined;
+  return row
+    ? { gold_coins: fromMoneyUnits(row.gold_coin_units), sweeps_coins: fromMoneyUnits(row.sweeps_coin_units) }
+    : { gold_coins: 0, sweeps_coins: 0 };
 }
 
 /**
@@ -145,31 +178,37 @@ export function mutateBalance(
   reference: string | null = null,
   note: string | null = null,
 ): string {
+  const amountUnits = toMoneyUnits(amount);
+  const canonicalAmount = fromMoneyUnits(amountUnits);
   const txnId = crypto.randomUUID();
   const s = stmts();
 
   const run = db.transaction(() => {
     // Read current balance
     const current = getBalances(userId);
-    const currentVal = current[currency];
-    const newVal = currentVal + amount;
+    const currentUnits = toMoneyUnits(current[currency]);
+    const newUnits = currentUnits + amountUnits;
+    const newVal = fromMoneyUnits(newUnits);
 
     // Prevent negative balances
-    if (newVal < 0) {
+    if (newUnits < 0) {
       throw new Error(
-        `Insufficient ${currency} balance: have ${currentVal}, attempted debit of ${Math.abs(amount)}`
+        `Insufficient ${currency} balance: have ${current[currency]}, attempted debit of ${Math.abs(canonicalAmount)}`
       );
     }
 
     // Update (or create) wallet row
     if (currency === "gold_coins") {
-      s.upsertGold.run(userId, amount);
+      s.upsertGold.run(userId, canonicalAmount, amountUnits);
     } else {
-      s.upsertSweeps.run(userId, amount);
+      s.upsertSweeps.run(userId, canonicalAmount, amountUnits);
     }
 
     // Insert append-only ledger entry
-    s.insertTxn.run(txnId, userId, currency, amount, type, newVal, reference, note);
+    s.insertTxn.run(
+      txnId, userId, currency, canonicalAmount, amountUnits,
+      type, newVal, newUnits, reference, note,
+    );
   });
 
   run();
@@ -194,28 +233,66 @@ export function claimFaucet(userId: string): {
   nextClaimAt?: number;
   message?: string;
 } {
-  const lastClaim = stmts().getLastFaucet.get(userId) as { created_at: string } | undefined;
-
-  if (lastClaim) {
-    const lastClaimTime = new Date(lastClaim.created_at).getTime();
+  const run = db.transaction(() => {
+    const s = stmts();
+    // The transaction remains the public audit record and supports databases
+    // whose operators historically adjusted its timestamp during recovery.
+    const legacy = s.getLastFaucet.get(userId) as { created_at: string } | undefined;
+    const durable = s.getFaucetClaim.get(userId) as { claimed_at: number } | undefined;
+    const lastClaimTime = legacy ? new Date(legacy.created_at).getTime() : (durable?.claimed_at ?? 0);
     const nextClaimAt = lastClaimTime + FAUCET_COOLDOWN_MS;
-    if (Date.now() < nextClaimAt) {
-      return {
-        success: false,
-        nextClaimAt,
-        message: "Daily bonus already claimed. Come back later!",
-      };
+    const now = Date.now();
+    if (lastClaimTime && now < nextClaimAt) {
+      return { success: false, nextClaimAt, message: "Daily bonus already claimed. Come back later!" };
     }
-  }
-
-  mutateBalance(userId, "gold_coins", FAUCET_GOLD_AMOUNT, "faucet", null, "Daily check-in");
-
-  return { success: true };
+    s.upsertFaucetClaim.run(userId, now);
+    mutateBalance(userId, "gold_coins", FAUCET_GOLD_AMOUNT, "faucet", null, "Daily check-in");
+    return { success: true };
+  });
+  return run.immediate();
 }
 
 /**
  * Retrieve recent transactions for a user.
  */
 export function getTransactions(userId: string, limit = 20): TransactionRecord[] {
-  return stmts().getRecent.all(userId, limit) as TransactionRecord[];
+  return (stmts().getRecent.all(userId, limit) as Array<TransactionRecord & {
+    amount_units?: number | null;
+    balance_after_units?: number | null;
+  }>).map(row => ({
+    ...row,
+    amount: row.amount_units == null ? row.amount : fromMoneyUnits(row.amount_units),
+    balance_after: row.balance_after_units == null ? row.balance_after : fromMoneyUnits(row.balance_after_units),
+  }));
+}
+
+export interface WalletLedgerDiscrepancy {
+  userId: string;
+  currency: Currency;
+  walletUnits: number;
+  ledgerUnits: number;
+}
+
+/** Read-only invariant check: each wallet balance must equal its ledger sum. */
+export function reconcileWalletLedger(): WalletLedgerDiscrepancy[] {
+  return db.prepare(`
+    WITH currencies(currency) AS (VALUES ('gold_coins'), ('sweeps_coins')),
+    ledger AS (
+      SELECT user_id, currency,
+        SUM(COALESCE(amount_units, ROUND(amount * 100))) AS ledger_units
+      FROM transactions GROUP BY user_id, currency
+    )
+    SELECT w.user_id AS userId, c.currency,
+      CASE c.currency
+        WHEN 'gold_coins' THEN COALESCE(w.gold_coin_units, ROUND(w.gold_coins * 100))
+        ELSE COALESCE(w.sweeps_coin_units, ROUND(w.sweeps_coins * 100))
+      END AS walletUnits,
+      COALESCE(l.ledger_units, 0) AS ledgerUnits
+    FROM wallets w CROSS JOIN currencies c
+    LEFT JOIN ledger l ON l.user_id = w.user_id AND l.currency = c.currency
+    WHERE (CASE c.currency
+      WHEN 'gold_coins' THEN COALESCE(w.gold_coin_units, ROUND(w.gold_coins * 100))
+      ELSE COALESCE(w.sweeps_coin_units, ROUND(w.sweeps_coins * 100))
+    END) != COALESCE(l.ledger_units, 0)
+  `).all() as WalletLedgerDiscrepancy[];
 }

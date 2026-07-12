@@ -121,8 +121,6 @@ function generateFallbackAnalysis(
 ): string {
   const isWinner = replay.outcome.winnerId === input.requestingPlayerId;
   const playerName = input.requestingPlayerUsername;
-  const opponentName = replay.players.find(p => p.userId !== input.requestingPlayerId)?.username || "opponent";
-
   const drawActions = replay.actions.filter(
     a => a.type === "draw" && a.playerId === input.requestingPlayerId
   );

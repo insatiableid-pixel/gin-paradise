@@ -25,7 +25,6 @@ import {
   aggregateCoachingThemes,
   getCoachingHistory,
   getMostRecentCoaching,
-  type CoachingArtifact,
 } from "../analysis/coachingCache.js";
 import type { ReplayData } from "../analysis/transcriptAdapter.js";
 import { isPremium, hasFeatureAccess } from "../entitlements.js";
@@ -129,11 +128,6 @@ function getScore(row: ReplayRow, userId: string): string {
   const myScore = isWinner ? row.winner_score : row.loser_score;
   const opScore = isWinner ? row.loser_score : row.winner_score;
   return `${myScore}-${opScore}`;
-}
-
-function checkAnalysisCached(replayId: string): boolean {
-  const coaching = getCachedCoaching(replayId);
-  return coaching !== null;
 }
 
 function extractPlayerSeverity(
@@ -251,7 +245,6 @@ function buildProgression(
 
   // Streak analysis
   let bestStreak = 0;
-  let currentStreak = 0;
   let currentStreakType: "hot" | "cold" | "neutral" = "neutral";
   let currentStreakLength = 0;
 
@@ -259,15 +252,12 @@ function buildProgression(
     // Count consecutive sessions above/below average (newest first)
     const threshold = averageAccuracy;
     let aboveStreak = 0;
-    let belowStreak = 0;
 
     for (const s of evaluatedSessions) {
       if (s.accuracy >= threshold) {
         aboveStreak++;
-        belowStreak = 0;
         bestStreak = Math.max(bestStreak, aboveStreak);
       } else {
-        belowStreak++;
         aboveStreak = 0;
       }
     }
@@ -535,13 +525,6 @@ router.get("/session/:id", requireAuth, (req: AuthenticatedRequest, res: Respons
   if (row.player1_id !== userId && row.player2_id !== userId) {
     res.status(403).json({ error: "Access denied. You are not a participant in this match." });
     return;
-  }
-
-  let actions: any[] = [];
-  try {
-    actions = JSON.parse(row.transcript_json || "[]");
-  } catch {
-    actions = [];
   }
 
   const cached = getCachedEvaluation(replayId);

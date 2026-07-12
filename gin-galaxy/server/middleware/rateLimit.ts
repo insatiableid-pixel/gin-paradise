@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 
 interface RateLimitEntry {
-  count: number;
-  resetAt: number;
+  timestamps: number[];
 }
 
 /**
@@ -22,7 +21,7 @@ export function resetAllRateLimiters(): void {
 }
 
 /**
- * Simple in-memory sliding-window rate limiter.
+ * In-memory sliding-window rate limiter for the supported single-process mode.
  * Not suitable for multi-process deployments; use Redis-backed limiter
  * if the app is horizontally scaled in the future.
  */
@@ -35,7 +34,9 @@ export function rateLimit(opts: { windowMs: number; max: number; message?: strin
   setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of store) {
-      if (now > entry.resetAt) store.delete(key);
+      if (entry.timestamps.every((timestamp) => now - timestamp >= opts.windowMs)) {
+        store.delete(key);
+      }
     }
   }, CLEANUP_INTERVAL).unref();
 
@@ -43,19 +44,27 @@ export function rateLimit(opts: { windowMs: number; max: number; message?: strin
     const key = req.ip || req.socket.remoteAddress || "unknown";
     const now = Date.now();
 
-    let entry = store.get(key);
-    if (!entry || now > entry.resetAt) {
-      entry = { count: 0, resetAt: now + opts.windowMs };
-      store.set(key, entry);
+    const entry = store.get(key) ?? { timestamps: [] };
+    entry.timestamps = entry.timestamps.filter(
+      (timestamp) => now - timestamp < opts.windowMs,
+    );
+    entry.timestamps.push(now);
+    // Once blocked, only the oldest max+1 samples affect the decision/reset;
+    // bounding the array prevents a single abusive client from growing memory.
+    if (entry.timestamps.length > opts.max + 1) {
+      entry.timestamps.splice(1, entry.timestamps.length - (opts.max + 1));
     }
-
-    entry.count++;
+    store.set(key, entry);
+    const resetAt = entry.timestamps[0] + opts.windowMs;
 
     res.setHeader("X-RateLimit-Limit", String(opts.max));
-    res.setHeader("X-RateLimit-Remaining", String(Math.max(0, opts.max - entry.count)));
-    res.setHeader("X-RateLimit-Reset", String(Math.ceil(entry.resetAt / 1000)));
+    res.setHeader(
+      "X-RateLimit-Remaining",
+      String(Math.max(0, opts.max - entry.timestamps.length)),
+    );
+    res.setHeader("X-RateLimit-Reset", String(Math.ceil(resetAt / 1000)));
 
-    if (entry.count > opts.max) {
+    if (entry.timestamps.length > opts.max) {
       res.status(429).json({
         error: opts.message || "Too many requests, please try again later",
       });

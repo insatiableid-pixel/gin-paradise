@@ -1,10 +1,9 @@
 import React from "react";
 import {
   Shield, Check, Lock, Eye, Server, FileSearch, Hash, RefreshCw,
-  ChevronRight, ExternalLink, ArrowRight, Fingerprint
+  ChevronRight, Fingerprint
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/Card";
-import { cn } from "@/src/lib/utils";
 
 // ── Fairness Explanation Page ────────────────────────────────────────
 

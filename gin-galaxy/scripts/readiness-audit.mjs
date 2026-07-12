@@ -21,20 +21,61 @@ function hasScript(name) {
   return Boolean(packageJson.scripts?.[name]);
 }
 
+function read(relativePath) {
+  const localPath = path.resolve(root, relativePath);
+  const repositoryPath = path.resolve(root, "..", relativePath);
+  const resolved = existsSync(localPath) ? localPath : repositoryPath;
+  return existsSync(resolved) ? readFileSync(resolved, "utf8") : "";
+}
+
+function includesAll(relativePath, needles) {
+  const source = read(relativePath);
+  return needles.every((needle) => source.includes(needle));
+}
+
 const checks = [
   ["README", hasFile("README.md") || hasFile("gin-galaxy/README.md"), 1],
-  ["lint script", hasScript("lint"), 1],
+  [
+    "blocking high-signal lint rules",
+    hasScript("lint") &&
+      includesAll("eslint.config.js", [
+        'files: ["src/**/*.{ts,tsx}", "server/**/*.ts", "server.ts"]',
+        '"@typescript-eslint/no-unused-vars": [',
+        '"react-hooks/exhaustive-deps": "error"',
+      ]),
+    1,
+  ],
   [
     "strict typecheck",
     hasScript("typecheck") &&
       readFileSync(path.join(root, "tsconfig.json"), "utf8").includes('"strict": true'),
     1,
   ],
-  ["unit tests", hasScript("test"), 1],
+  [
+    "coverage-enforced unit tests",
+    hasScript("test:coverage") &&
+      includesAll("vitest.config.ts", [
+        "statements: 35",
+        "branches: 25",
+        "functions: 30",
+        "lines: 35",
+      ]) &&
+      read("package.json").includes("npm run test:coverage"),
+    1,
+  ],
   ["AGENTS.md", hasFile("AGENTS.md"), 2],
   ["pre-commit hook", hasFile(".husky/pre-commit"), 2],
   ["devcontainer", hasFile(".devcontainer/devcontainer.json"), 2],
-  ["CI workflow", hasFile(".github/workflows/ci.yml"), 2],
+  [
+    "CI workflow with coverage and Redis failover",
+    includesAll(".github/workflows/ci.yml", [
+      "npm run test:coverage",
+      "redis:7-alpine",
+      "REDIS_URL: redis://127.0.0.1:6379",
+      "npm run test:redis",
+    ]),
+    2,
+  ],
   ["integration browser smoke", hasScript("test:e2e") && hasFile("e2e/smoke.spec.ts"), 3],
   ["secret scan", hasScript("security:secrets"), 3],
   ["code scanning workflow", hasFile(".github/workflows/codeql.yml"), 3],
@@ -105,5 +146,6 @@ console.log(
 );
 
 if (highestLevel < Math.min(targetLevel, 5)) {
-  console.log("Repo-controlled checks are below target; see reports/readiness-audit.md.");
+  console.error("Repo-controlled checks are below target; see reports/readiness-audit.md.");
+  process.exitCode = 1;
 }

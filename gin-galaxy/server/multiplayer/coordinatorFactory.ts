@@ -15,7 +15,7 @@
 
 import type { RealtimeCoordinator } from "./coordinator.js";
 import { MemoryCoordinator } from "./memoryCoordinator.js";
-import { RedisCoordinator, type RedisCoordinatorConfig } from "./redisCoordinator.js";
+import { RedisCoordinator } from "./redisCoordinator.js";
 
 export type CoordinatorMode = "memory" | "redis";
 

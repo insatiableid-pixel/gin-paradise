@@ -30,7 +30,7 @@ import {
   getRecentAchievementActivity,
 } from "../achievements.js";
 import { getCachedEvaluation } from "../analysis/pythonBridge.js";
-import { getPlayerSeasonStats, getCurrentSeason } from "../seasons.js";
+import { getPlayerSeasonStats } from "../seasons.js";
 import { getFollowerCount, getFollowingCount, isFollowing, getHeadToHead } from "../social.js";
 
 const router = Router();

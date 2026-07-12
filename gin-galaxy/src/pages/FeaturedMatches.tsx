@@ -25,12 +25,8 @@ import {
   Swords,
   Zap,
   Radio,
-  TrendingUp,
   BarChart3,
-  Shield,
   EyeOff,
-  Settings,
-  Check,
 } from "lucide-react";
 import { useAuthStore } from "../lib/store";
 

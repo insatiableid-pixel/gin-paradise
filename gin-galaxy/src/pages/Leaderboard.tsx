@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Trophy, Medal, Crown, TrendingUp, Calendar, Clock, ChevronRight, Flame, Timer } from "lucide-react";
+import { Trophy, Medal, Crown, Calendar, ChevronRight, Flame, Timer } from "lucide-react";
 import { Card } from "@/src/components/ui/Card";
 import { cn } from "@/src/lib/utils";
 
@@ -12,15 +12,6 @@ interface LeaderboardEntry {
   seasonWins?: number;
   seasonLosses?: number;
   ratingTier?: { tier: string; color: string };
-}
-
-interface SeasonInfo {
-  id: string;
-  name: string;
-  number: number;
-  theme: string;
-  endAt: number;
-  status: string;
 }
 
 interface SeasonCurrent {

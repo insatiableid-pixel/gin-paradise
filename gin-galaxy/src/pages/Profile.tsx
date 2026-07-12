@@ -13,10 +13,10 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  User, Settings, Shield, History, Award, BarChart3, Trophy, Crown,
+  Settings, Shield, Award, BarChart3, Trophy, Crown,
   Star, Flame, Target, Zap, Flag, Medal, Search, BookOpen, Calendar,
   DollarSign, ShieldCheck, CheckCircle, TrendingUp, Gem, Swords,
-  Share2, Copy, Check, ChevronDown, ChevronUp, Crosshair, Sparkles,
+  Share2, Check, ChevronDown, ChevronUp, Crosshair, Sparkles,
   Timer,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/Card";
@@ -119,7 +119,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 // ── Component ────────────────────────────────────────────────────────
 
 export function Profile() {
-  const { user, sessionId } = useAuthStore();
+  const { sessionId } = useAuthStore();
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"overview" | "achievements" | "prestige">("overview");
@@ -715,7 +715,7 @@ export function Profile() {
                 </p>
               ) : (
                 <div className="grid gap-3 md:grid-cols-2">
-                  {prestige.map((p, i) => {
+                  {prestige.map((p) => {
                     const isSelected =
                       (p.type === "title" && p.key === profile.selectedTitle) ||
                       (p.type === "badge" && p.key === profile.selectedBadge) ||

@@ -370,6 +370,10 @@ export class MemoryCoordinator implements RealtimeCoordinator {
     return true;
   }
 
+  async claimLeaseAuthoritatively(leaseName: string, ownerId: string, ttlMs: number): Promise<boolean> {
+    return this.claimLease(leaseName, ownerId, ttlMs);
+  }
+
   renewLease(leaseName: string, ownerId: string, ttlMs: number): boolean {
     const existing = this.leases.get(leaseName);
     if (!existing || existing.ownerId !== ownerId) {
@@ -380,6 +384,10 @@ export class MemoryCoordinator implements RealtimeCoordinator {
     this.leases.set(leaseName, { ownerId, expiresAt });
     this.emit({ type: "lease_renewed", leaseName, payload: { ownerId, expiresAt, ttlMs } });
     return true;
+  }
+
+  async renewLeaseAuthoritatively(leaseName: string, ownerId: string, ttlMs: number): Promise<boolean> {
+    return this.renewLease(leaseName, ownerId, ttlMs);
   }
 
   releaseLease(leaseName: string, ownerId: string): void {

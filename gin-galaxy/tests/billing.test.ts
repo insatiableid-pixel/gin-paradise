@@ -15,6 +15,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import crypto from "crypto";
 import {
   startTestServer,
   stopTestServer,
@@ -467,6 +468,39 @@ describe("Webhook Signature Verification", () => {
     // Both should pass when no secret is configured
     expect(verifyWebhookSignature(jsonStr, undefined)).toBe(true);
     expect(verifyWebhookSignature(jsonBuf, undefined)).toBe(true);
+  });
+
+  it("should accept a correctly signed payload when a webhook secret is configured", () => {
+    const original = process.env.STRIPE_WEBHOOK_SECRET;
+    try {
+      process.env.STRIPE_WEBHOOK_SECRET = "whsec_test_signing_secret";
+      const body = '{"id":"evt_signed","type":"checkout.session.completed"}';
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      const signature = crypto.createHmac("sha256", process.env.STRIPE_WEBHOOK_SECRET)
+        .update(`${timestamp}.${body}`)
+        .digest("hex");
+      expect(verifyWebhookSignature(body, `t=${timestamp},v1=${signature}`)).toBe(true);
+    } finally {
+      if (original === undefined) delete process.env.STRIPE_WEBHOOK_SECRET;
+      else process.env.STRIPE_WEBHOOK_SECRET = original;
+    }
+  });
+
+  it("should reject a tampered payload", () => {
+    const original = process.env.STRIPE_WEBHOOK_SECRET;
+    try {
+      process.env.STRIPE_WEBHOOK_SECRET = "whsec_test_signing_secret";
+      const body = '{"id":"evt_signed","type":"checkout.session.completed"}';
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      const signature = crypto.createHmac("sha256", process.env.STRIPE_WEBHOOK_SECRET)
+        .update(`${timestamp}.${body}`)
+        .digest("hex");
+      const tampered = body.replace("evt_signed", "evt_tampered");
+      expect(verifyWebhookSignature(tampered, `t=${timestamp},v1=${signature}`)).toBe(false);
+    } finally {
+      if (original === undefined) delete process.env.STRIPE_WEBHOOK_SECRET;
+      else process.env.STRIPE_WEBHOOK_SECRET = original;
+    }
   });
 });
 

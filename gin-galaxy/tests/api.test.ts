@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { startTestServer, stopTestServer, registerUser, loginUser, makeRequest } from "./helpers.js";
 import { db } from "../server/db.js";
+import { consumeWebSocketTicket } from "../server/websocketTickets.js";
 
 /**
  * Comprehensive cleanup of all test users and their FK-dependent rows.
@@ -152,6 +153,23 @@ describe("Auth API", () => {
       Authorization: "Bearer invalid-session-id-that-does-not-exist",
     });
     expect(res.status).toBe(401);
+  });
+
+  it("should issue a short-lived WebSocket ticket that can only be consumed once", async () => {
+    const suffix = Date.now().toString(36);
+    const loginRes = await registerUser(
+      `test_ws_ticket_${suffix}`,
+      `ws_ticket_${suffix}@test.com`,
+      "password123",
+    );
+    const res = await makeRequest("POST", "/api/auth/ws-ticket", undefined, {
+      Authorization: `Bearer ${loginRes.body.sessionId}`,
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.ticket).toEqual(expect.any(String));
+    expect(res.body.ticket).not.toContain(loginRes.body.sessionId);
+    expect(consumeWebSocketTicket(res.body.ticket)).toBe(loginRes.body.user.id);
+    expect(consumeWebSocketTicket(res.body.ticket)).toBeNull();
   });
 
   // ─── Logout ───────────────────────────────────────────────────────

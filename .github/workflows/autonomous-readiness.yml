@@ -14,19 +14,24 @@ permissions:
   contents: read
   issues: write
 
+concurrency:
+  group: autonomous-readiness
+  cancel-in-progress: false
+
 jobs:
   audit-and-plan:
     name: Audit and Plan
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: gin-galaxy
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -44,7 +49,7 @@ jobs:
         run: npm run agent:decompose
 
       - name: Upload autonomous plan
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: autonomous-readiness
           path: |
@@ -52,7 +57,7 @@ jobs:
             gin-galaxy/reports/agent-plan.*
 
       - name: Upsert readiness issue
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require("node:fs");

@@ -22,3 +22,12 @@ reports/
 .DS_Store
 .tmp-*.png
 .codex-test/
+.codex-test-*/
+.edge-tmp/
+.idea/
+gin-core/target/
+
+# Generated Apex evaluation outputs (regenerate locally as needed)
+data/apex_baseline_report.json
+data/apex_mcts_baseline_sprint2.json
+data/csb_disagreements.json

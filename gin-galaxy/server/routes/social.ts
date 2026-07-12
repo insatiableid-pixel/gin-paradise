@@ -178,7 +178,7 @@ router.delete("/follow-by-username/:username", requireAuth, (req: AuthenticatedR
 
 router.post("/challenge", requireAuth, (req: AuthenticatedRequest, res: Response) => {
   const challengerId = req.userId!;
-  const { targetId, targetUsername, stakeId, message } = req.body || {};
+  const { targetId, stakeId, message } = req.body || {};
 
   if (!targetId) {
     res.status(400).json({ error: "targetId is required" });

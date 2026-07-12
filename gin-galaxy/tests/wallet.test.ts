@@ -12,6 +12,8 @@ import {
   FAUCET_GOLD_AMOUNT,
   FAUCET_SWEEPS_AMOUNT,
   FAUCET_COOLDOWN_MS,
+  reconcileWalletLedger,
+  toMoneyUnits,
 } from "../server/ledger.js";
 
 let baseUrl: string;
@@ -284,6 +286,47 @@ describe("Wallet — Atomic Integrity", () => {
     mutateBalance(userId, "gold_coins", 50, "admin_grant");
     const countAfter = getTransactions(userId, 100).length;
     expect(countAfter).toBe(countBefore + 1);
+  });
+
+  it("stores fractional money canonically as integer units", () => {
+    mutateBalance(userId, "sweeps_coins", 0.1, "admin_grant");
+    mutateBalance(userId, "sweeps_coins", 0.2, "admin_grant");
+    const wallet = db.prepare(`
+      SELECT sweeps_coin_units FROM wallets WHERE user_id = ?
+    `).get(userId) as { sweeps_coin_units: number };
+    const ledger = db.prepare(`
+      SELECT SUM(amount_units) AS units FROM transactions
+      WHERE user_id = ? AND currency = 'sweeps_coins'
+    `).get(userId) as { units: number };
+    expect(wallet.sweeps_coin_units).toBe(toMoneyUnits(0.3));
+    expect(ledger.units).toBe(toMoneyUnits(0.3));
+    expect(getBalances(userId).sweeps_coins).toBe(0.3);
+  });
+
+  it("mirrors legacy REAL-column wallet updates into integer units", () => {
+    const legacyUserId = crypto.randomUUID();
+    db.prepare("INSERT INTO users (id, username, email, password_hash) VALUES (?, ?, ?, ?)").run(
+      legacyUserId, "test_wallet_legacy_writer", "legacy_writer@test.com", "hashed",
+    );
+    db.prepare("INSERT INTO wallets (user_id, gold_coins, sweeps_coins) VALUES (?, ?, ?)")
+      .run(legacyUserId, 12.34, 0);
+    expect(getBalances(legacyUserId).gold_coins).toBe(12.34);
+    db.prepare("UPDATE wallets SET gold_coins = ? WHERE user_id = ?").run(56.78, legacyUserId);
+    expect(getBalances(legacyUserId).gold_coins).toBe(56.78);
+  });
+
+  it("detects ledger-versus-wallet drift", () => {
+    expect(reconcileWalletLedger().filter(row => row.userId === userId)).toEqual([]);
+    db.prepare(`
+      UPDATE wallets SET gold_coin_units = gold_coin_units + 1 WHERE user_id = ?
+    `).run(userId);
+    expect(reconcileWalletLedger()).toContainEqual(expect.objectContaining({
+      userId,
+      currency: "gold_coins",
+    }));
+    db.prepare(`
+      UPDATE wallets SET gold_coin_units = gold_coin_units - 1 WHERE user_id = ?
+    `).run(userId);
   });
 });
 

@@ -6,6 +6,7 @@ import path from "path";
 
 import { loadConfig, validateAndLogConfig, getLiveRoomRoutingMode } from "./server/config.js";
 import { initializeDatabase, purgeExpiredSessions, db } from "./server/db.js";
+import { reconcileWalletLedger } from "./server/ledger.js";
 import authRoutes from "./server/routes/auth.js";
 import matchRoutes, { statsRouter } from "./server/routes/matches.js";
 import leaderboardRoutes from "./server/routes/leaderboard.js";
@@ -28,6 +29,7 @@ import billingRoutes from "./server/routes/billing.js";
 import webhookRoutes from "./server/routes/webhooks.js";
 import dailyRetentionRoutes from "./server/routes/dailyRetention.js";
 import offerRoutes from "./server/routes/offers.js";
+import apexAiRoutes from "./server/routes/apexAi.js";
 import {
   attachWebSocketServer,
   prepareRoomsForShutdown,
@@ -69,6 +71,10 @@ await initCoordinator({
 
 // ─── Initialize database ────────────────────────────────────────────
 initializeDatabase();
+const ledgerDiscrepancies = reconcileWalletLedger();
+if (ledgerDiscrepancies.length > 0) {
+  console.error(`[ledger] Wallet reconciliation found ${ledgerDiscrepancies.length} discrepancy(ies).`);
+}
 initializeAchievementTables();
 initializeCosmeticTables();
 initializeEntitlementTables();
@@ -110,7 +116,6 @@ async function startServer() {
     (req: any, _res: any, next: any) => {
       if (Buffer.isBuffer(req.body)) {
         req.rawBody = req.body;
-        req.body = JSON.parse(req.body.toString("utf8"));
       }
       next();
     },
@@ -207,10 +212,10 @@ async function startServer() {
   app.use("/api/webhooks", webhookRoutes);
   app.use("/api/daily", dailyRetentionRoutes);
   app.use("/api/offers", offerRoutes);
+  app.use("/api/ai", apexAiRoutes);
   app.use("/api/replays", fairnessRoutes);
   app.use("/api/fairness", fairnessVerifyRouter);
   app.use("/api", apiNotFoundHandler);
-  app.use(errorHandler);
 
   // Create the raw HTTP server so WebSocket upgrades are registered
   // BEFORE Vite's HMR handler can intercept them.
@@ -233,6 +238,9 @@ async function startServer() {
       res.sendFile(path.resolve(import.meta.dirname, "dist", "index.html"));
     });
   }
+
+  // Error middleware must be last so it also handles Vite/static failures.
+  app.use(errorHandler);
 
   httpServer.listen(config.port, config.host, () => {
     const host = config.host === "0.0.0.0" ? "localhost" : config.host;

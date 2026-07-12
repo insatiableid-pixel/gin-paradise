@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Coins, Gift, Clock, ArrowUpRight, ArrowDownRight, History, Sparkles, RefreshCw, ShoppingCart, Package, CalendarCheck, ArrowRight, Flame, AlertTriangle, Crown, X } from "lucide-react";
+import { Coins, Gift, Clock, History, Sparkles, RefreshCw, ShoppingCart, Package, CalendarCheck, ArrowRight, Flame, AlertTriangle, Crown, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
 import { cn } from "@/src/lib/utils";
@@ -69,7 +69,7 @@ export function Wallet() {
   const [offerRedeemResult, setOfferRedeemResult] = useState<{ success: boolean; message: string } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const headers = { Authorization: `Bearer ${sessionId}` };
+  const headers = React.useMemo(() => ({ Authorization: `Bearer ${sessionId}` }), [sessionId]);
 
   const fetchData = useCallback(async () => {
     if (!sessionId) return;
@@ -97,7 +97,7 @@ export function Wallet() {
     } finally {
       setLoading(false);
     }
-  }, [sessionId]);
+  }, [headers, sessionId]);
 
   // Handle URL-based purchase/cancel results
   useEffect(() => {
@@ -114,7 +114,7 @@ export function Wallet() {
       searchParams.delete("session");
       setSearchParams(searchParams, { replace: true });
     }
-  }, []);
+  }, [fetchData, searchParams, setSearchParams]);
 
   // Fetch billing status
   useEffect(() => {
@@ -123,7 +123,7 @@ export function Wallet() {
       .then(r => r.json())
       .then(d => setBillingMode(d.billingMode || "unknown"))
       .catch(() => {});
-  }, [sessionId]);
+  }, [headers, sessionId]);
 
   useEffect(() => {
     fetchData();

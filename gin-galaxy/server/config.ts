@@ -30,6 +30,7 @@ export interface AppConfig {
   coordinatorMode: "memory" | "redis";
   redisUrl: string | undefined;
   redisKeyPrefix: string;
+  stripeWebhookSecret: string | undefined;
 }
 
 function parsePort(raw: string | undefined, fallback: number): number {
@@ -68,6 +69,7 @@ export function loadConfig(): AppConfig {
   const redisUrl = process.env.REDIS_URL || undefined;
   const redisKeyPrefix = process.env.REDIS_KEY_PREFIX || "ginparadise:";
   const coordinatorNodeId = process.env.COORDINATOR_NODE_ID || undefined;
+  const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET || undefined;
 
   return {
     port,
@@ -81,6 +83,7 @@ export function loadConfig(): AppConfig {
     coordinatorMode,
     redisUrl,
     redisKeyPrefix,
+    stripeWebhookSecret,
   };
 }
 
@@ -100,6 +103,10 @@ export function validateAndLogConfig(config: AppConfig): void {
     issues.push(
       "COORDINATOR_MODE=redis requires COORDINATOR_NODE_ID so live-room ownership survives restarts"
     );
+  }
+
+  if (config.nodeEnv === "production" && !config.stripeWebhookSecret) {
+    issues.push("STRIPE_WEBHOOK_SECRET is required in production");
   }
 
   if (issues.length > 0) {

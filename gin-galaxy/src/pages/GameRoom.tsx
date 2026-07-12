@@ -11,16 +11,17 @@ import {
   discardCard,
   knock,
   nextRound,
-  Suit,
-  Rank,
-  RANKS,
-  getRankIndex,
-  getCardValue,
   evaluateHand,
   evaluateAndLayOff,
 } from "@/src/lib/engine";
 import { useAuthStore } from "@/src/lib/store";
-import { decideDrawSource, decideDiscard, shouldKnock } from "@/src/lib/ai";
+import { decideDrawSource, decideDiscard, shouldKnock, ApexSession } from "@/src/lib/ai";
+import {
+  expertDecideDraw,
+  expertDecideDiscard,
+  expertDecideKnock,
+  logDrawDisagreement,
+} from "@/src/lib/apexServiceClient";
 import { usePreferences, getSuitColor } from "@/src/lib/preferences";
 import {
   computeMeldHighlights,
@@ -28,7 +29,7 @@ import {
   getCardMeldIndex,
   type MeldHighlightMap,
 } from "@/src/lib/meldHighlight";
-import { useHandDrag, type DragCard } from "@/src/lib/handDrag";
+import { useHandDrag } from "@/src/lib/handDrag";
 import {
   playDrawSound,
   playDiscardSound,
@@ -39,20 +40,13 @@ import {
 } from "@/src/lib/audio";
 import {
   PlayingCard,
-  OverlappingCard,
   CardBack,
   SuitRowCard,
   ShowdownCardMini,
-  TABLE_FELT_GRADIENT,
-  TABLE_NOISE_STYLE,
-  SHOWDOWN_OVERLAY_BG,
-  SHOWDOWN_PANEL_BG,
-  SHOWDOWN_PANEL_BORDER,
 } from "@/src/components/cards";
 import * as MP from "@/src/lib/motionPresets";
 
 // ── Sort helpers ─────────────────────────────────────────────────────
-const SUIT_ORDER: Record<string, number> = { "♣": 0, "♦": 1, "♥": 2, "♠": 3 };
 const RANK_ORDER: Record<string, number> = {
   A: 0,
   "2": 1,
@@ -101,14 +95,18 @@ export function GameRoom() {
     fourColorDeck,
     soundEnabled,
     animationsEnabled,
+    aiTier,
     setShowDeadwoodCount,
     setFourColorDeck,
     setSoundEnabled,
     setAnimationsEnabled,
+    setAiTier,
   } = usePreferences();
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
   const botDrewFromDiscard = useRef(false);
+  /** Sprint-1 Apex brain: opponent model + last-discard cycle prevention. */
+  const apexSession = useRef(new ApexSession());
   const [showdown, setShowdown] = useState<LocalShowdown | null>(null);
   const [showPrefs, setShowPrefs] = useState(false);
 
@@ -117,14 +115,11 @@ export function GameRoom() {
   const [drawAnimating, setDrawAnimating] = useState<"stock" | "discard" | null>(null);
   const [discardAnimating, setDiscardAnimating] = useState(false);
   const [knockAnimating, setKnockAnimating] = useState(false);
-  const [lastDrawSource, setLastDrawSource] = useState<"stock" | "discard" | null>(null);
   const [tablePulseSource, setTablePulseSource] = useState<DrawSource | null>(null);
   const [opponentDrawNotice, setOpponentDrawNotice] = useState<OpponentDrawNotice | null>(null);
-  const [showdownRevealing, setShowdownRevealing] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(() =>
     typeof window !== "undefined" ? window.innerHeight : 1080,
   );
-  const prevIsMyTurn = useRef<boolean | null>(null);
   const opponentDrawNoticeTimer = useRef<number | null>(null);
 
   const reducedMotion = prefersReducedMotion();
@@ -158,7 +153,10 @@ export function GameRoom() {
 
   useEffect(() => {
     if (user) {
-      setGameState(createGame({ id: user.id, name: user.username }, { id: "bot", name: "Nova" }));
+      const fresh = createGame({ id: user.id, name: user.username }, { id: "bot", name: "Apex" });
+      const bot = fresh.players.find((p) => p.id === "bot");
+      if (bot) apexSession.current.beginHand(bot.hand, fresh.discard);
+      setGameState(fresh);
       setShowdown(null);
       // Deal animation
       if (shouldAnimate) {
@@ -167,20 +165,18 @@ export function GameRoom() {
       }
       playSound(playDealSound);
     }
-  }, [user]);
+  }, [playSound, shouldAnimate, user]);
 
   // Drag-and-drop hand management
-  const myHand = gameState
-    ? (gameState.players[gameState.players.findIndex((p) => p.id === user?.id)]?.hand ?? [])
-    : [];
+  const myHand = useMemo(
+    () => gameState
+      ? (gameState.players[gameState.players.findIndex((p) => p.id === user?.id)]?.hand ?? [])
+      : [],
+    [gameState, user?.id],
+  );
   const {
-    displayHand,
     dragState,
-    isCustomOrder,
-    onDragStart,
-    onDragOver,
     onDragEnd,
-    resetToAutoSort,
   } = useHandDrag(myHand);
 
   // Meld highlighting
@@ -211,46 +207,150 @@ export function GameRoom() {
     };
   }, []);
 
-  // Smart AI bot — two-phase turn for natural UX
+  // Apex AI — Club (local TS) or Expert (ApexMCTS service + Club fallback)
   useEffect(() => {
     if (!gameState || gameState.status !== "playing") return;
 
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
     if (currentPlayer.id !== "bot") return;
 
+    // Research Apex uses 0-based turns; engine turnNumber is 1-based.
+    const turn0 = Math.max(0, (gameState.turnNumber ?? 1) - 1);
+    const stockRemaining = gameState.stock.length;
+    let cancelled = false;
+
     if (currentPlayer.hand.length === 10) {
-      // Phase 1: Draw decision (600ms think time)
-      const timer = setTimeout(() => {
+      const timer = setTimeout(async () => {
         const topDiscard = gameState.discard[gameState.discard.length - 1];
-        const source = decideDrawSource(currentPlayer.hand, topDiscard, gameState.discard);
+        const opponent = gameState.players.find((p) => p.id !== "bot");
+        const myScore = currentPlayer.score;
+        const oppScore = opponent?.score ?? 0;
+        const ctx = apexSession.current.context(currentPlayer.hand, gameState.discard, {
+          turn: turn0,
+          stockRemaining,
+          myScore,
+          oppScore,
+          targetScore: 100,
+        });
+
+        let source = decideDrawSource(
+          currentPlayer.hand,
+          topDiscard,
+          gameState.discard,
+          ctx
+        );
+
+        if (aiTier === "expert") {
+          const expert = await expertDecideDraw({
+            hand: currentPlayer.hand,
+            topDiscard,
+            discardPile: gameState.discard,
+            turn: turn0,
+            stockRemaining,
+            myScore,
+            oppScore,
+          });
+          if (!cancelled && expert) {
+            if (expert.disagreement) {
+              logDrawDisagreement({
+                phase: "draw",
+                clubSource: source,
+                expertSource: expert.source,
+                overridden: expert.overridden,
+                takeEv: expert.takeEv,
+                stockEv: expert.stockEv,
+                turn: turn0,
+                stockRemaining,
+              });
+            }
+            source = expert.source;
+          }
+        }
+
+        if (cancelled) return;
         botDrewFromDiscard.current = source === "discard";
         announceOpponentDraw(source, source === "discard" ? topDiscard : null);
         playSound(playDrawSound);
         setGameState((prev) => (prev ? drawCard(prev, "bot", source) : prev));
       }, 600);
-      return () => clearTimeout(timer);
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
     }
 
     if (currentPlayer.hand.length === 11) {
-      // Phase 2: Discard / Knock decision (800ms think time)
-      const timer = setTimeout(() => {
+      const timer = setTimeout(async () => {
+        const opponent = gameState.players.find((p) => p.id !== "bot")!;
+        const myScore = currentPlayer.score;
+        const oppScore = opponent ? opponent.score : 0;
+        const targetScore = 100;
+
         const drawnCard = currentPlayer.hand[currentPlayer.hand.length - 1];
-        const discardIdx = decideDiscard(
+        const ctx = apexSession.current.context(currentPlayer.hand, gameState.discard, {
+          turn: turn0,
+          stockRemaining,
+          myScore,
+          oppScore,
+          targetScore,
+        });
+
+        let discardIdx = decideDiscard(
           currentPlayer.hand,
           botDrewFromDiscard.current,
           drawnCard,
           gameState.discard,
+          myScore,
+          oppScore,
+          targetScore,
+          ctx
         );
+
+        if (aiTier === "expert") {
+          const expertDiscard = await expertDecideDiscard({
+            hand: currentPlayer.hand,
+            drewFromDiscard: botDrewFromDiscard.current,
+            drawnCard,
+            discardPile: gameState.discard,
+            turn: turn0,
+            stockRemaining,
+            myScore,
+            oppScore,
+          });
+          if (!cancelled && expertDiscard) {
+            discardIdx = expertDiscard.discardIndex;
+          }
+        }
+
+        if (cancelled) return;
+
+        const discardedCard = currentPlayer.hand[discardIdx];
+        apexSession.current.noteMyDiscard(discardedCard);
 
         const handAfter = [
           ...currentPlayer.hand.slice(0, discardIdx),
           ...currentPlayer.hand.slice(discardIdx + 1),
         ];
 
-        if (shouldKnock(handAfter)) {
-          // Compute showdown data before knock modifies state
+        let doKnock = shouldKnock(handAfter, myScore, oppScore, targetScore, ctx);
+        if (aiTier === "expert") {
+          const expertKnock = await expertDecideKnock({
+            hand: handAfter,
+            discardPile: gameState.discard,
+            turn: turn0,
+            stockRemaining,
+            myScore,
+            oppScore,
+          });
+          if (!cancelled && expertKnock) {
+            doKnock = expertKnock.knock;
+          }
+        }
+
+        if (cancelled) return;
+
+        if (doKnock) {
           const knockerEval = evaluateHand(handAfter);
-          const opponent = gameState.players.find((p) => p.id !== "bot")!;
           let opponentEval;
           let laidOff: EngineCard[] = [];
           let knockOutcome: "knock" | "gin" | "undercut";
@@ -259,7 +359,6 @@ export function GameRoom() {
             opponentEval = evaluateHand(opponent.hand);
           } else {
             opponentEval = evaluateAndLayOff(opponent.hand, knockerEval.melds);
-            // Compute laid-off cards
             const inMeldsSet = new Set<string>();
             for (const m of opponentEval.melds)
               for (const c of m) inMeldsSet.add(`${c.rank}${c.suit}`);
@@ -306,9 +405,12 @@ export function GameRoom() {
           setGameState((prev) => (prev ? discardCard(prev, "bot", discardIdx) : prev));
         }
       }, 800);
-      return () => clearTimeout(timer);
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
     }
-  }, [gameState]);
+  }, [aiTier, announceOpponentDraw, gameState, playSound, shouldAnimate]);
 
   // Save match result when game is over
   useEffect(() => {
@@ -334,7 +436,7 @@ export function GameRoom() {
         }).catch(console.error);
       }
     }
-  }, [gameState?.status, user]);
+  }, [gameState?.players, gameState?.status, playSound, user]);
 
   // ── 4-row suit grouping (always auto-sorted A→K per suit) ──
   // Must be above early return to maintain React hook call order
@@ -391,17 +493,18 @@ export function GameRoom() {
   const isMyTurn = gameState.currentPlayerIndex === myPlayerIndex;
   const hasDrawn = myPlayer.hand.length > 10;
 
-  const overlapPx = 38;
-  const cardWidth = 72;
-  const handWidth = displayHand.length > 0 ? (displayHand.length - 1) * overlapPx + cardWidth : 0;
-
   const handleDraw = (source: "stock" | "discard") => {
     if (!isMyTurn || myPlayer.hand.length > 10) return;
     playSound(playDrawSound);
-    setLastDrawSource(source);
     if (shouldAnimate) {
       setDrawAnimating(source);
       setTimeout(() => setDrawAnimating(null), 400);
+    }
+    const topDiscard = gameState.discard[gameState.discard.length - 1] ?? null;
+    if (source === "discard" && topDiscard) {
+      apexSession.current.onHumanDrewDiscard(topDiscard);
+    } else {
+      apexSession.current.onHumanDrewStock(topDiscard);
     }
     setGameState(drawCard(gameState, user.id, source));
   };
@@ -409,11 +512,12 @@ export function GameRoom() {
   const handleDiscard = () => {
     if (!isMyTurn || myPlayer.hand.length <= 10 || selectedCardIndex === null) return;
     playSound(playDiscardSound);
-    setLastDrawSource(null);
     if (shouldAnimate) {
       setDiscardAnimating(true);
       setTimeout(() => setDiscardAnimating(false), 400);
     }
+    const discarded = myPlayer.hand[selectedCardIndex];
+    if (discarded) apexSession.current.onHumanDiscard(discarded);
     setGameState(discardCard(gameState, user.id, selectedCardIndex));
     setSelectedCardIndex(null);
   };
@@ -423,7 +527,7 @@ export function GameRoom() {
 
     // Compute showdown before knock
     const handAfter = [...myPlayer.hand];
-    const [discarded] = handAfter.splice(selectedCardIndex, 1);
+    handAfter.splice(selectedCardIndex, 1);
     const knockerEval = evaluateHand(handAfter);
     if (knockerEval.deadwoodValue <= 10) {
       let opponentEval;
@@ -472,23 +576,24 @@ export function GameRoom() {
     }
 
     playSound(playKnockSound);
-    setLastDrawSource(null);
     if (shouldAnimate) {
       setKnockAnimating(true);
-      setShowdownRevealing(true);
       setTimeout(() => setKnockAnimating(false), MP.KNOCK_FLASH_DURATION * 1000);
-      setTimeout(() => setShowdownRevealing(false), 800);
     }
+    const discarded = myPlayer.hand[selectedCardIndex];
+    if (discarded) apexSession.current.onHumanDiscard(discarded);
     setGameState(knock(gameState, user.id, selectedCardIndex));
     setSelectedCardIndex(null);
   };
 
   const handleNextRound = () => {
     setShowdown(null);
-    setLastDrawSource(null);
     setTablePulseSource(null);
     setOpponentDrawNotice(null);
-    setGameState(nextRound(gameState));
+    const next = nextRound(gameState);
+    const bot = next.players.find((p) => p.id === "bot");
+    if (bot) apexSession.current.beginHand(bot.hand, next.discard);
+    setGameState(next);
     playSound(playDealSound);
     if (shouldAnimate) {
       setDealAnimating(true);
@@ -618,6 +723,40 @@ export function GameRoom() {
                         className="accent-amber-500"
                       />
                     </label>
+                    <div className="pt-1 border-t border-emerald-700/40">
+                      <div className="text-[10px] uppercase tracking-wider text-emerald-400/60 mb-1.5">
+                        Apex AI Tier
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setAiTier("club")}
+                          className={cn(
+                            "flex-1 text-[10px] font-semibold rounded-md py-1 border transition-colors",
+                            aiTier === "club"
+                              ? "bg-amber-500/20 border-amber-500/50 text-amber-200"
+                              : "border-emerald-700/40 text-emerald-200/70 hover:border-emerald-500/40"
+                          )}
+                        >
+                          Club
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAiTier("expert")}
+                          className={cn(
+                            "flex-1 text-[10px] font-semibold rounded-md py-1 border transition-colors",
+                            aiTier === "expert"
+                              ? "bg-amber-500/20 border-amber-500/50 text-amber-200"
+                              : "border-emerald-700/40 text-emerald-200/70 hover:border-emerald-500/40"
+                          )}
+                        >
+                          Expert
+                        </button>
+                      </div>
+                      <p className="text-[9px] text-emerald-400/45 mt-1 leading-snug">
+                        Expert uses ApexMCTS draw search when available; otherwise falls back to Club.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

@@ -11,10 +11,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
-  Flame, Target, Puzzle, Gift, ChevronRight, Check, Lock, Star,
-  Coins, Crown, Calendar, Zap, Clock, Trophy, ArrowRight, Sparkles,
+  Flame, Target, Puzzle, Gift, ChevronRight, Check, Star,
+  Coins, Crown, Calendar, Zap, Trophy, ArrowRight, Sparkles,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/Card";
+import { Card, CardContent } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
 import { cn } from "@/src/lib/utils";
 import { useAuthStore } from "@/src/lib/store";
@@ -122,7 +122,7 @@ export function DailyHub() {
   const [puzzleClaiming, setPuzzleClaiming] = useState(false);
   const [rewardFlash, setRewardFlash] = useState<{ coins: number; label: string } | null>(null);
 
-  const headers = { Authorization: `Bearer ${sessionId}` };
+  const headers = React.useMemo(() => ({ Authorization: `Bearer ${sessionId}` }), [sessionId]);
 
   const loadData = useCallback(async () => {
     try {
@@ -134,7 +134,7 @@ export function DailyHub() {
     } finally {
       setLoading(false);
     }
-  }, [sessionId]);
+  }, [headers]);
 
   useEffect(() => {
     loadData();

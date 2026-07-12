@@ -17,9 +17,7 @@ import {
   computeCommitmentHash,
   deterministicShuffle,
   computeDeckHash,
-  combineSeeds,
   cardIndexToCard,
-  FAIRNESS_ALGORITHM_VERSION,
   FAIRNESS_ALGORITHM_VERSION_V1,
   type FairnessProofPackage,
 } from "../multiplayer/fairness.js";

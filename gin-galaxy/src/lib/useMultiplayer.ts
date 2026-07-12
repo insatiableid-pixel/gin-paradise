@@ -5,8 +5,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuthStore } from "./store";
-import type { ClientMessage, ServerMessage, PlayerGameView, RoomView, RoomPlayer, ShowdownData, FairnessStatusInfo } from "../../server/multiplayer/types";
-import type { StakePreset } from "../../server/escrow";
+import { openAuthenticatedWebSocket } from "./websocketTicket";
+import type { ClientMessage, ServerMessage, PlayerGameView, RoomView, ShowdownData, FairnessStatusInfo } from "../../server/multiplayer/types";
 
 export type MultiplayerPhase =
   | "disconnected"
@@ -46,6 +46,8 @@ export function useMultiplayer() {
   const { sessionId } = useAuthStore();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttempts = useRef(0);
+  const connectRef = useRef<() => Promise<void>>(async () => undefined);
   const intentionalClose = useRef(false);
 
   const [state, setState] = useState<MultiplayerState>({
@@ -85,8 +87,10 @@ export function useMultiplayer() {
     }
   }, [generateClientSeed]);
 
+  const handleServerMessageRef = useRef<(msg: ServerMessage) => void>(() => {});
+
   // Connect to WebSocket
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!sessionId) return;
     // Guard against duplicate connections
     if (wsRef.current) {
@@ -97,24 +101,51 @@ export function useMultiplayer() {
     intentionalClose.current = false;
     setState(prev => ({ ...prev, phase: "connecting", error: null }));
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const ws = new WebSocket(`${protocol}//${window.location.host}/ws?token=${sessionId}`);
+    let ws: WebSocket;
+    try {
+      ws = await openAuthenticatedWebSocket(sessionId);
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        phase: "disconnected",
+        error: error instanceof Error ? error.message : "Connection authorization failed",
+      }));
+      if (!intentionalClose.current && reconnectAttempts.current < 5 && !reconnectTimer.current) {
+        const delayMs = Math.min(1_000 * 2 ** reconnectAttempts.current, 8_000);
+        reconnectAttempts.current += 1;
+        reconnectTimer.current = setTimeout(() => {
+          reconnectTimer.current = null;
+          void connectRef.current();
+        }, delayMs);
+      }
+      return;
+    }
+    if (intentionalClose.current) {
+      ws.close();
+      return;
+    }
     wsRef.current = ws;
 
     ws.onopen = () => {
+      reconnectAttempts.current = 0;
+      if (reconnectTimer.current) {
+        clearTimeout(reconnectTimer.current);
+        reconnectTimer.current = null;
+      }
       setState(prev => ({ ...prev, phase: "lobby" }));
     };
 
     ws.onmessage = (event) => {
       try {
         const msg: ServerMessage = JSON.parse(event.data);
-        handleServerMessage(msg);
+        handleServerMessageRef.current(msg);
       } catch {
         console.error("Failed to parse server message");
       }
     };
 
     ws.onclose = () => {
+      if (wsRef.current !== ws) return;
       wsRef.current = null;
       if (!intentionalClose.current) {
         setState(prev => ({
@@ -122,6 +153,14 @@ export function useMultiplayer() {
           phase: "disconnected",
           error: prev.phase === "connecting" ? "Connection failed. Session may be expired — try logging out and back in." : prev.error,
         }));
+        if (reconnectAttempts.current < 5 && !reconnectTimer.current) {
+          const delayMs = Math.min(1_000 * 2 ** reconnectAttempts.current, 8_000);
+          reconnectAttempts.current += 1;
+          reconnectTimer.current = setTimeout(() => {
+            reconnectTimer.current = null;
+            void connectRef.current();
+          }, delayMs);
+        }
       }
     };
 
@@ -130,9 +169,12 @@ export function useMultiplayer() {
     };
   }, [sessionId]);
 
+  connectRef.current = connect;
+
   // Disconnect
   const disconnect = useCallback(() => {
     intentionalClose.current = true;
+    reconnectAttempts.current = 0;
     if (reconnectTimer.current) {
       clearTimeout(reconnectTimer.current);
       reconnectTimer.current = null;
@@ -210,8 +252,6 @@ export function useMultiplayer() {
                  msg.state.status === "round_over" ? "round_over" as const :
                  msg.state.status === "game_over" ? "game_over" as const : null;
         setState(prev => {
-          // Detect new round start (round_over → playing transition)
-          const isNewRound = prev.phase === "round_over" && newPhase === "playing";
           return {
             ...prev,
             phase: newPhase || prev.phase,
@@ -295,7 +335,7 @@ export function useMultiplayer() {
           turnTimer: {
             remainingSeconds: msg.remainingSeconds,
             totalSeconds: msg.totalSeconds,
-            isMyTimer: prev.gameState ? msg.activePlayerId === prev.gameState.myUsername : false,
+            isMyTimer: prev.gameState ? msg.activePlayerId === prev.gameState.myUserId : false,
           },
         }));
         break;
@@ -414,6 +454,8 @@ export function useMultiplayer() {
         break;
     }
   }, [autoSubmitClientSeed]);
+
+  handleServerMessageRef.current = handleServerMessage;
 
   // Clean up on unmount
   useEffect(() => {

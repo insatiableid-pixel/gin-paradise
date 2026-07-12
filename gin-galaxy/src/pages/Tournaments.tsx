@@ -19,13 +19,11 @@ import {
   Coins,
   Swords,
   Crown,
-  Clock,
   Plus,
   LogIn,
   LogOut,
   ChevronRight,
   RefreshCw,
-  Shield,
   Zap,
   X,
   Calendar,
@@ -596,7 +594,6 @@ export function Tournaments() {
               <DynamicBracketView
                 bracket={selectedTournament.bracket}
                 userId={user?.id}
-                totalRounds={selectedTournament.totalRounds || 1}
                 onStartMatch={(matchIndex: number) =>
                   startTournamentMatch(selectedTournament, matchIndex)
                 }
@@ -807,12 +804,10 @@ function TimeUnit({ value, label }: { value: number; label: string }) {
 function DynamicBracketView({
   bracket,
   userId,
-  totalRounds,
   onStartMatch,
 }: {
   bracket: { matches: BracketMatch[] };
   userId?: string;
-  totalRounds: number;
   onStartMatch: (matchIndex: number) => void;
 }) {
   // Group matches by round

@@ -21,6 +21,7 @@ import {
   isFreeStake,
   STAKE_PRESETS,
   _clearEscrows,
+  reconcileOrphanedEscrows,
 } from "../server/escrow.js";
 import {
   joinQueue,
@@ -469,6 +470,56 @@ describe("Escrow Cleanup", () => {
     expect(getRoomEscrow(rid)).toBeTruthy();
     cleanupEscrow(rid);
     expect(getRoomEscrow(rid)).toBeUndefined();
+  });
+});
+
+describe("Escrow Durability & Idempotency", () => {
+  it("reloads an active hold from SQLite after process-local state is absent", () => {
+    const userId = createTestUser("test_escrow_restart");
+    creditSignupBonus(userId);
+    const roomId = "DURABLE_RESTART";
+    _clearEscrows();
+
+    const original = holdEntryFee(roomId, userId, "gold_500");
+    const reloaded = getRoomEscrow(roomId);
+    expect(reloaded?.holds).toEqual([original]);
+    expect(reloaded?.settled).toBe(false);
+  });
+
+  it("makes repeated hold and settlement requests idempotent", () => {
+    const winnerId = createTestUser("test_escrow_idempotent_w");
+    const loserId = createTestUser("test_escrow_idempotent_l");
+    creditSignupBonus(winnerId);
+    creditSignupBonus(loserId);
+    const roomId = "DURABLE_IDEMPOTENT";
+    _clearEscrows();
+
+    const firstHold = holdEntryFee(roomId, winnerId, "gold_500");
+    const duplicateHold = holdEntryFee(roomId, winnerId, "gold_500");
+    holdEntryFee(roomId, loserId, "gold_500");
+    expect(duplicateHold?.transactionId).toBe(firstHold?.transactionId);
+    expect(getBalances(winnerId).gold_coins).toBe(DEFAULT_GOLD_COINS - 500);
+
+    expect(settleMatch(roomId, winnerId, loserId, "completed").type).toBe("payout");
+    expect(settleMatch(roomId, winnerId, loserId, "completed").type).toBe("no_stake");
+    expect(getTransactions(winnerId, 50).filter(
+      txn => txn.type === "prize_payout" && txn.reference === roomId,
+    )).toHaveLength(1);
+  });
+
+  it("refunds orphaned holds but preserves recovered rooms", () => {
+    const orphan = createTestUser("test_escrow_orphan");
+    const recovered = createTestUser("test_escrow_recovered");
+    creditSignupBonus(orphan);
+    creditSignupBonus(recovered);
+    _clearEscrows();
+    holdEntryFee("ORPHAN_ROOM", orphan, "gold_500");
+    holdEntryFee("RECOVERED_ROOM", recovered, "gold_500");
+
+    expect(reconcileOrphanedEscrows(new Set(["RECOVERED_ROOM"]))).toEqual(["ORPHAN_ROOM"]);
+    expect(getBalances(orphan).gold_coins).toBe(DEFAULT_GOLD_COINS);
+    expect(getBalances(recovered).gold_coins).toBe(DEFAULT_GOLD_COINS - 500);
+    expect(getRoomEscrow("RECOVERED_ROOM")?.settled).toBe(false);
   });
 });
 

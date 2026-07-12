@@ -198,6 +198,24 @@ describe("Configuration Module", () => {
       else delete process.env.COORDINATOR_NODE_ID;
     }
   });
+
+  it("should require Stripe webhook verification in production", () => {
+    const originalEnv = process.env.NODE_ENV;
+    const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    try {
+      process.env.NODE_ENV = "production";
+      delete process.env.STRIPE_WEBHOOK_SECRET;
+      expect(() => validateAndLogConfig(loadConfig())).toThrow(/STRIPE_WEBHOOK_SECRET/);
+
+      process.env.STRIPE_WEBHOOK_SECRET = "whsec_production_test";
+      expect(() => validateAndLogConfig(loadConfig())).not.toThrow();
+    } finally {
+      if (originalEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = originalEnv;
+      if (originalSecret === undefined) delete process.env.STRIPE_WEBHOOK_SECRET;
+      else process.env.STRIPE_WEBHOOK_SECRET = originalSecret;
+    }
+  });
 });
 
 // ─── Trust Proxy / IP Handling ──────────────────────────────────────────

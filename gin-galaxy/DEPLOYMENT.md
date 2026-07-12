@@ -50,6 +50,8 @@ DATABASE_PATH=/data/database.sqlite    # Use your persistent disk path
 TRUST_PROXY=true                        # Required behind Render/Railway/Fly/nginx
 COORDINATOR_NODE_ID=gin-paradise-01     # Stable identity for this deployment slot
 GEMINI_API_KEY=your-key-here            # Optional — only affects AI analysis
+STRIPE_SECRET_KEY=your-stripe-key        # Required only when billing is enabled
+STRIPE_WEBHOOK_SECRET=your-webhook-secret # Required in every production deployment
 ```
 
 ### 3. Start the Server
@@ -86,6 +88,8 @@ The server will:
 | `TURN_TIMER_LEASE_RENEW_INTERVAL_MS` | `5000` | No | Optional renewal cadence for active-turn leases. Keep it comfortably below `TURN_TIMER_LEASE_TTL_MS`. |
 | `GEMINI_API_KEY` | _(empty)_ | No | Google Gemini API key for AI match analysis. Without it, analysis returns a structured fallback. All gameplay works without it. |
 | `ALLOWED_ORIGINS` | _(empty)_ | No | Comma-separated CORS origins if serving frontend from a different domain |
+| `STRIPE_SECRET_KEY` | _(empty)_ | No | Stripe API key. Without it, billing stays in dry-run mode. |
+| `STRIPE_WEBHOOK_SECRET` | _(empty)_ | **Yes in production** | Stripe endpoint signing secret. Production startup fails if it is absent; signed payload bytes are verified before JSON parsing. |
 
 ---
 
@@ -187,7 +191,7 @@ pm2 save
 ## WebSocket Notes
 
 - The app uses WebSockets on the `/ws` path for real-time multiplayer
-- All WebSocket connections require a valid session token passed as a query parameter: `ws://host:port/ws?token=SESSION_TOKEN`
+- Clients exchange their authenticated HTTP session for a random, single-use WebSocket ticket. The ticket expires after 30 seconds and only its SHA-256 hash is stored; reusable session IDs never enter proxy URLs or access logs.
 - Common reverse proxy issue: make sure your proxy passes the `Upgrade` and `Connection` headers
 - The app handles WebSocket upgrades manually on the HTTP server, so it works correctly with both Vite HMR (dev) and static serving (prod)
 - `COORDINATOR_MODE=redis` uses the shared coordinator boundary for multi-node live-room relay, spectator updates, recovery metadata, renewable lease heartbeats, restart-soak coverage, bounded chaos coverage, bounded app-soak coverage, bounded endurance-soak coverage, seeded fault-matrix coverage, the two-process app smoke proof, and a bounded two-process abrupt-owner-loss gameplay proof.
@@ -202,6 +206,8 @@ pm2 save
 
 - **Single instance only.** SQLite is not designed for concurrent writes from multiple processes. Run exactly one instance of the server.
 - **WAL mode** is enabled by default for better read performance during concurrent operations.
+- Wallet, transaction, rake, and escrow arithmetic is authoritative in integer hundredths. Legacy `REAL` columns remain mirrored only for schema compatibility.
+- Match escrows and settlement state are durable SQLite records keyed by room. Settlement/refund is transactional and idempotent, and startup reconciliation refunds holds whose room did not survive recovery.
 - **Database file must be on persistent storage.** On platforms like Render or Railway, ephemeral file systems will lose data on restart. Attach a persistent disk or volume.
 - **Backup:** To back up the database, copy the `database.sqlite`, `database.sqlite-wal`, and `database.sqlite-shm` files. Alternatively, use SQLite's `.backup` command.
 
@@ -376,11 +382,19 @@ The following SQLite pragmas are now explicitly set:
 | Limitation | Workaround |
 |---|---|
 | Horizontal scaling (multiple instances) | Redis-backed shared state, live match snapshots, room-owner gating, lease-expiry reclaim, renewable room/timer lease heartbeats, live room-action relay, spectator relay, deterministic failover rehearsal, failover churn proof, restart-soak proof, bounded chaos-matrix proof, quieter disconnect/reconnect handling, representative burst-load proof, bounded app-process failover gameplay proof, bounded app churn soak proof, bounded endurance-soak proof, seeded fault-matrix proof, and durable lifecycle snapshot commits are live, but the deployment still needs truly larger production-scale soak and broader long-running chaos automation. |
+| Cross-node matchmaking | The expanding rating window is re-evaluated every 30 seconds, but pairing remains process-local because live WebSocket handoff is not yet a supported contract. Route queue traffic to one matchmaking node; Redis mirrors queue state for diagnostics/deduplication only. |
+| Distributed HTTP rate limiting | The supported deployment is one SQLite-writing application process. Its limiter is a true in-memory sliding window. A future horizontally scaled HTTP tier must move rate limits and the primary database to shared services first. |
 | Live Redis coordinator | Proven against a live Redis instance in integration tests; use it for bounded multi-node coordination and recovery, not as a finished autoscaling recipe yet. |
 | PostgreSQL | Not needed for a single-node beta. Migrate when real scale demands it. |
 | Automated database migrations | Migrations run on startup automatically. |
 | HTTPS termination | Use your reverse proxy or platform (Render/Railway do this for you). |
 | Automated backups | Copy the SQLite file. Set up a cron job if needed. |
+
+Durable multiplayer commits intentionally remain on the gameplay input path. Monitor
+`gin_paradise_coordinator_commit_duration_ms_avg`,
+`gin_paradise_coordinator_commit_duration_ms_max`, and
+`gin_paradise_coordinator_commit_failures_total` at `/api/metrics` before placing
+Redis in another region.
 
 ---
 

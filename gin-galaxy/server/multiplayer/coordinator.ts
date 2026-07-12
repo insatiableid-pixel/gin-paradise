@@ -287,8 +287,14 @@ export interface RealtimeCoordinator {
   /** Claim a lease for a room, timer, or queue leadership. */
   claimLease(leaseName: string, ownerId: string, ttlMs: number): boolean;
 
+  /** Claim a lease and wait for the authoritative backing store. */
+  claimLeaseAuthoritatively(leaseName: string, ownerId: string, ttlMs: number): Promise<boolean>;
+
   /** Renew an existing lease if the caller still owns it. */
   renewLease(leaseName: string, ownerId: string, ttlMs: number): boolean;
+
+  /** Renew a lease only if the authoritative store still has this owner. */
+  renewLeaseAuthoritatively(leaseName: string, ownerId: string, ttlMs: number): Promise<boolean>;
 
   /** Release a lease if owned by the caller. */
   releaseLease(leaseName: string, ownerId: string): void;

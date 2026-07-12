@@ -140,6 +140,7 @@ export async function startServer(
       ...process.env,
       CI: "1",
       NODE_ENV: "production",
+      STRIPE_WEBHOOK_SECRET: "whsec_redis_integration_test_only",
       HOST: "127.0.0.1",
       PORT: String(port),
       DATABASE_PATH: databasePath,
@@ -280,10 +281,23 @@ export function updateRatings(databasePath: string, userIds: string[], rating: n
   }
 }
 
-export function openSocket(baseUrl: string, sessionId: string): Promise<SocketHarness> {
+export async function openSocket(baseUrl: string, sessionId: string): Promise<SocketHarness> {
+  const ticketResponse = await fetch(`${baseUrl}/api/auth/ws-ticket`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${sessionId}` },
+  });
+  if (!ticketResponse.ok) {
+    throw new Error(`Unable to issue WebSocket ticket: HTTP ${ticketResponse.status}`);
+  }
+  const ticketPayload = await ticketResponse.json() as { ticket?: unknown };
+  if (typeof ticketPayload.ticket !== "string") {
+    throw new Error("WebSocket ticket response did not contain a ticket");
+  }
+  const ticket = ticketPayload.ticket;
+
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(
-      `${baseUrl.replace("http://", "ws://")}/ws?token=${encodeURIComponent(sessionId)}`,
+      `${baseUrl.replace("http://", "ws://")}/ws?ticket=${encodeURIComponent(ticket)}`,
     );
     const messages: Array<Record<string, any>> = [];
     const waiters: Array<{

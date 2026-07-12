@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Play, Activity, Clock, Users, ArrowRight, Zap, Search, Award, Crown, Star, Shield, Flame, CalendarCheck, Target, Coins, AlertTriangle, Wallet, TrendingUp, Gift, X, Sparkles } from "lucide-react";
+import { Play, Activity, Clock, Users, ArrowRight, Zap, Search, Award, Crown, Star, Flame, CalendarCheck, Target, Coins, AlertTriangle, TrendingUp, Gift, X, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
 import { cn } from "@/src/lib/utils";
@@ -173,8 +173,6 @@ export function Dashboard() {
     ? affordableStakes[affordableStakes.length - 1]
     : null;
   const isLowBalance = balances && balances.gold_coins < 100;
-  const hasDailyClaims = dailyData && !dailyData.streak?.todayCheckedIn;
-
   return (
     <div className="space-y-8 pb-20 md:pb-0">
 
