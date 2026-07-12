@@ -22,7 +22,7 @@ jobs:
         working-directory: gin-galaxy
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -60,7 +60,7 @@ jobs:
 
       - name: Upload readiness report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: readiness-report
           path: gin-galaxy/reports/readiness-audit.*
@@ -88,7 +88,7 @@ jobs:
         working-directory: gin-galaxy
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -109,7 +109,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -131,7 +131,7 @@ jobs:
         working-directory: gin-galaxy
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -151,7 +151,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: |
