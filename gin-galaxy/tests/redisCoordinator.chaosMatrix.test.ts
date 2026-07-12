@@ -58,14 +58,14 @@ async function takeRoomOwnership(
   const leaseTtlMs = 15_000;
   const ownerLeaseName = roomOwnerLeaseName(roomId);
   const timerLeaseName = roomTimerLeaseName(roomId);
-  await waitFor(
-    () => {
-      const ownerLease = probe.getLease(ownerLeaseName);
-      const timerLease = probe.getLease(timerLeaseName);
-      return (!ownerLease || ownerLease.ownerId === nodeId) && (!timerLease || timerLease.ownerId === nodeId);
-    },
-    15_000,
-  );
+  await waitFor(() => {
+    const ownerLease = probe.getLease(ownerLeaseName);
+    const timerLease = probe.getLease(timerLeaseName);
+    return (
+      (!ownerLease || ownerLease.ownerId === nodeId) &&
+      (!timerLease || timerLease.ownerId === nodeId)
+    );
+  }, 15_000);
   const currentOwnerLease = probe.getLease(ownerLeaseName);
   const currentTimerLease = probe.getLease(timerLeaseName);
   expect(
@@ -135,11 +135,7 @@ async function setupLab() {
     nodeB,
     probe,
     async cleanup(): Promise<void> {
-      await Promise.allSettled([
-        stopServer(lab.nodeA),
-        stopServer(lab.nodeB),
-        probe.disconnect(),
-      ]);
+      await Promise.allSettled([stopServer(lab.nodeA), stopServer(lab.nodeB), probe.disconnect()]);
       fs.rmSync(tempDir, { recursive: true, force: true });
     },
   };
@@ -181,7 +177,8 @@ async function createLiveRoom(
 
   await waitFor(() => probe.getRoom(created.roomId)?.players.size === 2, 10_000);
   await waitFor(() => {
-    const match = probe.getRoomGameState(created.roomId)?.match as { roomId?: string } | null | undefined;
+    const match = probe.getRoomGameState(created.roomId)?.match as
+      { roomId?: string } | null | undefined;
     return match?.roomId === created.roomId;
   }, 10_000);
 
@@ -200,7 +197,13 @@ suite("RedisCoordinator chaos matrix", () => {
   it("reclaims ownership after an owner restart and live lease expiry", async () => {
     const lab = await setupLab();
     try {
-      const room = await createLiveRoom(lab.nodeA, lab.nodeB, lab.probe, lab.databasePath, "owner-restart");
+      const room = await createLiveRoom(
+        lab.nodeA,
+        lab.nodeB,
+        lab.probe,
+        lab.databasePath,
+        "owner-restart",
+      );
 
       lab.probe.updateRoomOwnership(room.roomId, {
         ownerNodeId: lab.nodeA.nodeId,
@@ -209,7 +212,10 @@ suite("RedisCoordinator chaos matrix", () => {
         timerLeaseExpiresAt: Date.now() - 1_000,
       });
       await stopServer(lab.nodeA);
-      await waitFor(() => lab.probe.getRoom(room.roomId)?.ownerLeaseExpiresAt !== undefined, 10_000);
+      await waitFor(
+        () => lab.probe.getRoom(room.roomId)?.ownerLeaseExpiresAt !== undefined,
+        10_000,
+      );
       await takeRoomOwnership(lab.probe, room.roomId, lab.nodeB.nodeId);
       await waitFor(() => lab.probe.getRoom(room.roomId)?.ownerNodeId === lab.nodeB.nodeId, 15_000);
       expect(lab.probe.getRoom(room.roomId)?.ownerNodeId).toBe(lab.nodeB.nodeId);
@@ -221,9 +227,7 @@ suite("RedisCoordinator chaos matrix", () => {
         15_000,
       );
       await ownerReconnect.waitForMessage(
-        (message) =>
-          message.type === "game_update" &&
-          message.state?.roomId === room.roomId,
+        (message) => message.type === "game_update" && message.state?.roomId === room.roomId,
         15_000,
       );
 
@@ -236,7 +240,13 @@ suite("RedisCoordinator chaos matrix", () => {
   it("relinks a joiner restart and keeps the room recoverable", async () => {
     const lab = await setupLab();
     try {
-      const room = await createLiveRoom(lab.nodeA, lab.nodeB, lab.probe, lab.databasePath, "joiner-rst");
+      const room = await createLiveRoom(
+        lab.nodeA,
+        lab.nodeB,
+        lab.probe,
+        lab.databasePath,
+        "joiner-rst",
+      );
 
       lab.nodeB = await restartServer(lab.nodeB);
       const joinerReconnect = await openSocket(lab.nodeB.baseUrl, room.joiner.sessionId);
@@ -245,9 +255,7 @@ suite("RedisCoordinator chaos matrix", () => {
         15_000,
       );
       await joinerReconnect.waitForMessage(
-        (message) =>
-          message.type === "game_update" &&
-          message.state?.roomId === room.roomId,
+        (message) => message.type === "game_update" && message.state?.roomId === room.roomId,
         15_000,
       );
 
@@ -262,8 +270,20 @@ suite("RedisCoordinator chaos matrix", () => {
   it("keeps alternating ownership across two live rooms", async () => {
     const lab = await setupLab();
     try {
-      const roomA = await createLiveRoom(lab.nodeA, lab.nodeB, lab.probe, lab.databasePath, "matrix-a");
-      const roomB = await createLiveRoom(lab.nodeB, lab.nodeA, lab.probe, lab.databasePath, "matrix-b");
+      const roomA = await createLiveRoom(
+        lab.nodeA,
+        lab.nodeB,
+        lab.probe,
+        lab.databasePath,
+        "matrix-a",
+      );
+      const roomB = await createLiveRoom(
+        lab.nodeB,
+        lab.nodeA,
+        lab.probe,
+        lab.databasePath,
+        "matrix-b",
+      );
 
       lab.probe.updateRoomOwnership(roomA.roomId, {
         ownerNodeId: lab.nodeA.nodeId,
@@ -273,7 +293,10 @@ suite("RedisCoordinator chaos matrix", () => {
       });
       await stopServer(lab.nodeA);
       await takeRoomOwnership(lab.probe, roomA.roomId, lab.nodeB.nodeId);
-      await waitFor(() => lab.probe.getRoom(roomA.roomId)?.ownerNodeId === lab.nodeB.nodeId, 15_000);
+      await waitFor(
+        () => lab.probe.getRoom(roomA.roomId)?.ownerNodeId === lab.nodeB.nodeId,
+        15_000,
+      );
 
       lab.nodeA = await restartServer(lab.nodeA);
       const roomAOwnerReconnect = await openSocket(lab.nodeA.baseUrl, roomA.creator.sessionId);
@@ -282,9 +305,7 @@ suite("RedisCoordinator chaos matrix", () => {
         15_000,
       );
       await roomAOwnerReconnect.waitForMessage(
-        (message) =>
-          message.type === "game_update" &&
-          message.state?.roomId === roomA.roomId,
+        (message) => message.type === "game_update" && message.state?.roomId === roomA.roomId,
         15_000,
       );
 
@@ -294,9 +315,7 @@ suite("RedisCoordinator chaos matrix", () => {
         15_000,
       );
       await roomBJoinerReconnect.waitForMessage(
-        (message) =>
-          message.type === "game_update" &&
-          message.state?.roomId === roomB.roomId,
+        (message) => message.type === "game_update" && message.state?.roomId === roomB.roomId,
         15_000,
       );
 
@@ -308,7 +327,10 @@ suite("RedisCoordinator chaos matrix", () => {
       });
       await stopServer(lab.nodeB);
       await takeRoomOwnership(lab.probe, roomB.roomId, lab.nodeA.nodeId);
-      await waitFor(() => lab.probe.getRoom(roomB.roomId)?.ownerNodeId === lab.nodeA.nodeId, 15_000);
+      await waitFor(
+        () => lab.probe.getRoom(roomB.roomId)?.ownerNodeId === lab.nodeA.nodeId,
+        15_000,
+      );
 
       lab.nodeB = await restartServer(lab.nodeB);
       const roomBOwnerReconnect = await openSocket(lab.nodeB.baseUrl, roomB.creator.sessionId);
@@ -317,9 +339,17 @@ suite("RedisCoordinator chaos matrix", () => {
         15_000,
       );
       await roomBOwnerReconnect.waitForMessage(
-        (message) =>
-          message.type === "game_update" &&
-          message.state?.roomId === roomB.roomId,
+        (message) => message.type === "game_update" && message.state?.roomId === roomB.roomId,
+        15_000,
+      );
+
+      // Room snapshots propagate asynchronously after a restarted node
+      // reconnects. Wait for both ownership records to converge before
+      // asserting the final alternating-owner state.
+      await waitFor(
+        () =>
+          lab.probe.getRoom(roomA.roomId)?.ownerNodeId === lab.nodeB.nodeId &&
+          lab.probe.getRoom(roomB.roomId)?.ownerNodeId === lab.nodeA.nodeId,
         15_000,
       );
 
