@@ -353,7 +353,7 @@ export const knock = (state: GameState, playerId: string, cardIndex: number): Ga
 
   // Discard the card
   const newHand = [...player.hand];
-  const [discardedCard] = newHand.splice(cardIndex, 1);
+  newHand.splice(cardIndex, 1);
   
   const knockerEval = evaluateHand(newHand);
   const knockerDeadwood = knockerEval.deadwoodValue;

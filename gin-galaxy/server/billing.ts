@@ -28,6 +28,7 @@ import { db } from "./db.js";
 import Database from "better-sqlite3";
 import { mutateBalance } from "./ledger.js";
 import { grantPremium, revokePremium } from "./entitlements.js";
+import crypto from "crypto";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -236,7 +237,6 @@ function stmts(): BillingStmts {
 // ─── Stripe Integration ─────────────────────────────────────────────────
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const isDryRun = !STRIPE_SECRET_KEY;
 
 // Lazy-load Stripe only if key is available
@@ -350,7 +350,7 @@ export function createCoinPurchaseSession(
   // Attempt real Stripe Checkout Session creation (async, but we handle sync)
   // For synchronous API, we create the session and return the URL
   const baseUrl = process.env.BASE_URL || "http://localhost:3000";
-  const stripePromise = createStripeCheckoutSession({
+  void createStripeCheckoutSession({
     userId,
     billingSessionId: sessionId,
     purchaseKind: "coin_purchase",
@@ -385,7 +385,7 @@ export function createOfferPurchaseSession(
   priceUsd: number,
   coinsAmount: number,
   successUrl: string = "/wallet?purchase=success",
-  cancelUrl: string = "/wallet?purchase=cancelled",
+  _cancelUrl: string = "/wallet?purchase=cancelled",
 ): CheckoutResult {
   const sessionId = crypto.randomUUID();
 
@@ -453,7 +453,7 @@ export function fulfillCoinPurchase(
  */
 export function fulfillOfferPurchase(
   billingSessionId: string,
-  userId: string,
+  _userId: string,
 ): FulfillmentResult {
   const session = stmts().getSession.get(billingSessionId) as any;
   if (!session) {
@@ -482,7 +482,7 @@ export function createSubscriptionSession(
   userId: string,
   planId: string,
   successUrl: string = "/premium?subscription=success",
-  cancelUrl: string = "/premium?subscription=cancelled",
+  _cancelUrl: string = "/premium?subscription=cancelled",
 ): CheckoutResult {
   const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
   if (!plan) {
@@ -708,7 +708,8 @@ export function verifyWebhookSignature(
   rawBody: string | Buffer,
   signatureHeader: string | undefined,
 ): boolean {
-  if (!STRIPE_WEBHOOK_SECRET) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
     // No webhook secret configured — accept all in dev mode
     return true;
   }
@@ -739,11 +740,10 @@ export function verifyWebhookSignature(
     }
 
     // Compute expected signature using the raw body bytes
-    const crypto = require("crypto");
     const bodyStr = typeof rawBody === "string" ? rawBody : rawBody.toString("utf8");
     const signedPayload = `${timestamp}.${bodyStr}`;
     const expectedSignature = crypto
-      .createHmac("sha256", STRIPE_WEBHOOK_SECRET)
+      .createHmac("sha256", webhookSecret)
       .update(signedPayload)
       .digest("hex");
 
@@ -819,5 +819,5 @@ export function isBillingDryRun(): boolean {
  * Check if webhook signature verification is available.
  */
 export function isWebhookSignatureEnabled(): boolean {
-  return !!STRIPE_WEBHOOK_SECRET;
+  return !!process.env.STRIPE_WEBHOOK_SECRET;
 }

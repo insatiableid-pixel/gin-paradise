@@ -8,19 +8,24 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   gin-galaxy:
     name: Gin Galaxy
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: gin-galaxy
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -42,7 +47,7 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm test
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build
@@ -54,23 +59,82 @@ jobs:
         run: npm run quality:readiness
 
       - name: Upload readiness report
-        uses: actions/upload-artifact@v4
+        if: always()
+        uses: actions/upload-artifact@v6
         with:
           name: readiness-report
           path: gin-galaxy/reports/readiness-audit.*
+          if-no-files-found: warn
 
-  browser-smoke:
-    name: Browser Smoke
+  redis-integration:
+    name: Redis Integration and Failover
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      REDIS_URL: redis://127.0.0.1:6379
+      STRIPE_WEBHOOK_SECRET: whsec_ci_redis_integration_only
     defaults:
       run:
         working-directory: gin-galaxy
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: gin-galaxy/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Redis coordinator suite
+        run: npm run test:redis
+
+  apex-research:
+    name: Apex Research Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Compile research and service modules
+        run: python -m compileall -q scripts docs/archive/research/gin_rummy
+
+      - name: Verify Apex service health
+        run: printf '%s\n' '{"action":"health"}' | python scripts/apex_ai_service.py
+
+  browser-smoke:
+    name: Browser Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: gin-galaxy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -87,9 +151,10 @@ jobs:
 
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report
           path: |
             gin-galaxy/playwright-report
             gin-galaxy/test-results
+          if-no-files-found: warn

@@ -9,7 +9,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuthStore } from "@/src/lib/store";
 import { cn } from "@/src/lib/utils";
-import { Crown, Check, X, Lock, Sparkles, Shield, Zap, Star, ChevronRight, RefreshCw } from "lucide-react";
+import { Crown, Check, X, Sparkles, Shield, Zap, Star, RefreshCw } from "lucide-react";
 
 interface PlanData {
   plan: string;
@@ -42,7 +42,7 @@ interface FeatureData {
 export function Premium() {
   const { user, sessionId } = useAuthStore();
   const [planData, setPlanData] = useState<PlanData | null>(null);
-  const [featureData, setFeatureData] = useState<FeatureData | null>(null);
+  const [, setFeatureData] = useState<FeatureData | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Admin grant state

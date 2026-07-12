@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Trophy, User, Settings, Play, Activity, LogOut, History, Coins, Shield, GraduationCap, ShieldCheck, Package, Crown, Swords, Tv, CalendarCheck } from "lucide-react";
+import { Trophy, User, Play, Activity, LogOut, History, Coins, Shield, GraduationCap, ShieldCheck, Package, Crown, Swords, Tv, CalendarCheck } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { useAuthStore } from "@/src/lib/store";
 import { AchievementToast } from "./AchievementToast";

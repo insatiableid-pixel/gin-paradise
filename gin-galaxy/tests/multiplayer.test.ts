@@ -154,8 +154,10 @@ describe("Multiplayer Engine", () => {
       expect(view2.isMyTurn).toBe(false);
 
       // Views should show different hands
+      expect(view1.myUserId).toBe("user-1");
       expect(view1.myUsername).toBe("Alice");
       expect(view1.opponentUsername).toBe("Bob");
+      expect(view2.myUserId).toBe("user-2");
       expect(view2.myUsername).toBe("Bob");
       expect(view2.opponentUsername).toBe("Alice");
     }

@@ -84,6 +84,8 @@ export function initializeDatabase(): void {
       user_id TEXT PRIMARY KEY,
       gold_coins REAL NOT NULL DEFAULT 0,
       sweeps_coins REAL NOT NULL DEFAULT 0,
+      gold_coin_units INTEGER,
+      sweeps_coin_units INTEGER,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(user_id) REFERENCES users(id)
     );
@@ -93,8 +95,10 @@ export function initializeDatabase(): void {
       user_id TEXT NOT NULL,
       currency TEXT NOT NULL CHECK(currency IN ('gold_coins', 'sweeps_coins')),
       amount REAL NOT NULL,
+      amount_units INTEGER,
       type TEXT NOT NULL,
       balance_after REAL NOT NULL,
+      balance_after_units INTEGER,
       reference TEXT,
       note TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -108,6 +112,7 @@ export function initializeDatabase(): void {
       id TEXT PRIMARY KEY,
       currency TEXT NOT NULL CHECK(currency IN ('gold_coins', 'sweeps_coins')),
       amount REAL NOT NULL,
+      amount_units INTEGER,
       type TEXT NOT NULL DEFAULT 'rake',
       room_id TEXT,
       stake_id TEXT,
@@ -119,6 +124,35 @@ export function initializeDatabase(): void {
 
     CREATE INDEX IF NOT EXISTS idx_house_ledger_currency ON house_ledger(currency);
     CREATE INDEX IF NOT EXISTS idx_house_ledger_created ON house_ledger(created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS room_escrows (
+      room_id TEXT PRIMARY KEY,
+      stake_id TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'settled', 'refunded')),
+      winner_id TEXT,
+      loser_id TEXT,
+      end_reason TEXT,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      resolved_at DATETIME
+    );
+
+    CREATE TABLE IF NOT EXISTS escrow_holds (
+      room_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      transaction_id TEXT NOT NULL UNIQUE,
+      amount_units INTEGER NOT NULL CHECK(amount_units >= 0),
+      currency TEXT NOT NULL CHECK(currency IN ('gold_coins', 'sweeps_coins')),
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(room_id, user_id),
+      FOREIGN KEY(room_id) REFERENCES room_escrows(room_id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS faucet_claims (
+      user_id TEXT PRIMARY KEY,
+      claimed_at INTEGER NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
 
     CREATE TABLE IF NOT EXISTS tournaments (
       id TEXT PRIMARY KEY,
@@ -194,6 +228,144 @@ export function initializeDatabase(): void {
   try { db.exec("ALTER TABLE replays ADD COLUMN fairness_json TEXT"); } catch {}
   try { db.exec("ALTER TABLE replays ADD COLUMN match_format TEXT DEFAULT 'heads_up'"); } catch {}
   try { db.exec("ALTER TABLE replays ADD COLUMN tournament_id TEXT"); } catch {}
+  try { db.exec("ALTER TABLE wallets ADD COLUMN gold_coin_units INTEGER"); } catch {}
+  try { db.exec("ALTER TABLE wallets ADD COLUMN sweeps_coin_units INTEGER"); } catch {}
+  try { db.exec("ALTER TABLE transactions ADD COLUMN amount_units INTEGER"); } catch {}
+  try { db.exec("ALTER TABLE transactions ADD COLUMN balance_after_units INTEGER"); } catch {}
+  try { db.exec("ALTER TABLE house_ledger ADD COLUMN amount_units INTEGER"); } catch {}
+
+  // Integer hundredths are authoritative. Legacy REAL columns stay mirrored
+  // during the compatibility window so existing databases/readers still work.
+  db.exec(`
+    UPDATE wallets SET gold_coin_units = ROUND(gold_coins * 100)
+      WHERE gold_coin_units IS NULL;
+    UPDATE wallets SET sweeps_coin_units = ROUND(sweeps_coins * 100)
+      WHERE sweeps_coin_units IS NULL;
+    UPDATE transactions SET amount_units = ROUND(amount * 100)
+      WHERE amount_units IS NULL;
+    UPDATE transactions SET balance_after_units = ROUND(balance_after * 100)
+      WHERE balance_after_units IS NULL;
+    UPDATE house_ledger SET amount_units = ROUND(amount * 100)
+      WHERE amount_units IS NULL;
+
+    CREATE TRIGGER IF NOT EXISTS wallets_legacy_gold_insert
+    AFTER INSERT ON wallets
+    BEGIN
+      UPDATE wallets SET gold_coin_units = ROUND(NEW.gold_coins * 100)
+      WHERE user_id = NEW.user_id;
+    END;
+    CREATE TRIGGER IF NOT EXISTS wallets_legacy_sweeps_insert
+    AFTER INSERT ON wallets
+    BEGIN
+      UPDATE wallets SET sweeps_coin_units = ROUND(NEW.sweeps_coins * 100)
+      WHERE user_id = NEW.user_id;
+    END;
+    CREATE TRIGGER IF NOT EXISTS wallets_legacy_gold_update
+    AFTER UPDATE OF gold_coins ON wallets
+    WHEN NEW.gold_coins IS NOT OLD.gold_coins
+    BEGIN
+      UPDATE wallets SET gold_coin_units = ROUND(NEW.gold_coins * 100)
+      WHERE user_id = NEW.user_id;
+    END;
+    CREATE TRIGGER IF NOT EXISTS wallets_legacy_sweeps_update
+    AFTER UPDATE OF sweeps_coins ON wallets
+    WHEN NEW.sweeps_coins IS NOT OLD.sweeps_coins
+    BEGIN
+      UPDATE wallets SET sweeps_coin_units = ROUND(NEW.sweeps_coins * 100)
+      WHERE user_id = NEW.user_id;
+    END;
+    CREATE TRIGGER IF NOT EXISTS transactions_legacy_money_insert
+    AFTER INSERT ON transactions
+    BEGIN
+      UPDATE transactions SET
+        amount_units = ROUND(NEW.amount * 100),
+        balance_after_units = ROUND(NEW.balance_after * 100)
+      WHERE id = NEW.id;
+    END;
+    CREATE TRIGGER IF NOT EXISTS transactions_legacy_money_update
+    AFTER UPDATE OF amount, balance_after ON transactions
+    BEGIN
+      UPDATE transactions SET
+        amount_units = ROUND(NEW.amount * 100),
+        balance_after_units = ROUND(NEW.balance_after * 100)
+      WHERE id = NEW.id;
+    END;
+    CREATE TRIGGER IF NOT EXISTS house_ledger_legacy_money_insert
+    AFTER INSERT ON house_ledger
+    BEGIN
+      UPDATE house_ledger SET amount_units = ROUND(NEW.amount * 100)
+      WHERE id = NEW.id;
+    END;
+    CREATE TRIGGER IF NOT EXISTS house_ledger_legacy_money_update
+    AFTER UPDATE OF amount ON house_ledger
+    BEGIN
+      UPDATE house_ledger SET amount_units = ROUND(NEW.amount * 100)
+      WHERE id = NEW.id;
+    END;
+  `);
+
+  // Early prerelease escrow tables used restrictive FKs. Rebuild once with
+  // cascade semantics so account/test cleanup cannot strand financial rows.
+  const escrowFks = db.prepare("PRAGMA foreign_key_list(escrow_holds)").all() as Array<{
+    table: string;
+    on_delete: string;
+  }>;
+  if (escrowFks.some(fk => fk.on_delete.toUpperCase() !== "CASCADE")) {
+    db.pragma("foreign_keys = OFF");
+    try {
+      db.exec(`
+        BEGIN;
+        CREATE TABLE escrow_holds_migrated (
+          room_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          transaction_id TEXT NOT NULL UNIQUE,
+          amount_units INTEGER NOT NULL CHECK(amount_units >= 0),
+          currency TEXT NOT NULL CHECK(currency IN ('gold_coins', 'sweeps_coins')),
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY(room_id, user_id),
+          FOREIGN KEY(room_id) REFERENCES room_escrows(room_id) ON DELETE CASCADE,
+          FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+        INSERT INTO escrow_holds_migrated
+          SELECT room_id, user_id, transaction_id, amount_units, currency, created_at
+          FROM escrow_holds;
+        DROP TABLE escrow_holds;
+        ALTER TABLE escrow_holds_migrated RENAME TO escrow_holds;
+        COMMIT;
+      `);
+    } catch (error) {
+      try { db.exec("ROLLBACK"); } catch {}
+      throw error;
+    } finally {
+      db.pragma("foreign_keys = ON");
+    }
+  }
+
+  const faucetFks = db.prepare("PRAGMA foreign_key_list(faucet_claims)").all() as Array<{
+    on_delete: string;
+  }>;
+  if (faucetFks.some(fk => fk.on_delete.toUpperCase() !== "CASCADE")) {
+    db.pragma("foreign_keys = OFF");
+    try {
+      db.exec(`
+        BEGIN;
+        CREATE TABLE faucet_claims_migrated (
+          user_id TEXT PRIMARY KEY,
+          claimed_at INTEGER NOT NULL,
+          FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+        INSERT INTO faucet_claims_migrated SELECT user_id, claimed_at FROM faucet_claims;
+        DROP TABLE faucet_claims;
+        ALTER TABLE faucet_claims_migrated RENAME TO faucet_claims;
+        COMMIT;
+      `);
+    } catch (error) {
+      try { db.exec("ROLLBACK"); } catch {}
+      throw error;
+    } finally {
+      db.pragma("foreign_keys = ON");
+    }
+  }
 }
 
 /** Session TTL in milliseconds (24 hours) */

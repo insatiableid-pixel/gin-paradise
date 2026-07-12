@@ -22,7 +22,7 @@
  */
 
 import { db } from "./db.js";
-import { mutateBalance, getBalances, type TransactionType } from "./ledger.js";
+import { mutateBalance } from "./ledger.js";
 import { isPremium } from "./entitlements.js";
 import crypto from "crypto";
 

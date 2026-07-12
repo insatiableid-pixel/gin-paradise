@@ -13,6 +13,7 @@
 
 import Database from "better-sqlite3";
 import { db } from "./db.js";
+import { fromMoneyUnits, toMoneyUnits } from "./ledger.js";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -49,14 +50,17 @@ function stmts() {
   if (!_stmts) {
     _stmts = {
       insertEntry: db.prepare(`
-        INSERT INTO house_ledger (id, currency, amount, type, room_id, stake_id, winner_id, loser_id, note)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO house_ledger
+          (id, currency, amount, amount_units, type, room_id, stake_id, winner_id, loser_id, note)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `),
       getRecent: db.prepare(`
         SELECT * FROM house_ledger ORDER BY created_at DESC LIMIT ?
       `),
       getRevenueByCurrency: db.prepare(`
-        SELECT currency, SUM(amount) as total_revenue, COUNT(*) as transaction_count
+        SELECT currency,
+          SUM(COALESCE(amount_units, ROUND(amount * 100))) as total_revenue_units,
+          COUNT(*) as transaction_count
         FROM house_ledger
         WHERE type = 'rake'
         GROUP BY currency
@@ -90,7 +94,11 @@ export function recordRake(
   note: string | null = null,
 ): string {
   const id = crypto.randomUUID();
-  stmts().insertEntry.run(id, currency, amount, "rake", roomId, stakeId, winnerId, loserId, note);
+  const units = toMoneyUnits(amount);
+  stmts().insertEntry.run(
+    id, currency, fromMoneyUnits(units), units, "rake",
+    roomId, stakeId, winnerId, loserId, note,
+  );
   return id;
 }
 
@@ -100,7 +108,9 @@ export function recordRake(
  * Get recent house ledger entries.
  */
 export function getHouseLedger(limit = 50): HouseLedgerEntry[] {
-  return stmts().getRecent.all(limit) as HouseLedgerEntry[];
+  return (stmts().getRecent.all(limit) as Array<HouseLedgerEntry & { amount_units?: number | null }>).map(
+    row => ({ ...row, amount: row.amount_units == null ? row.amount : fromMoneyUnits(row.amount_units) }),
+  );
 }
 
 /**
@@ -108,7 +118,15 @@ export function getHouseLedger(limit = 50): HouseLedgerEntry[] {
  * Returns an array with one entry per currency that has recorded revenue.
  */
 export function getHouseRevenue(): HouseRevenueSummary[] {
-  return stmts().getRevenueByCurrency.all() as HouseRevenueSummary[];
+  return (stmts().getRevenueByCurrency.all() as Array<{
+    currency: Currency;
+    total_revenue_units: number;
+    transaction_count: number;
+  }>).map(row => ({
+    currency: row.currency,
+    total_revenue: fromMoneyUnits(row.total_revenue_units),
+    transaction_count: row.transaction_count,
+  }));
 }
 
 /**

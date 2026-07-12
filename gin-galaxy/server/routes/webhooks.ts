@@ -36,10 +36,7 @@ import {
   isWebhookSignatureEnabled,
   getBillingSession,
 } from "../billing.js";
-import {
-  fulfillPaidOffer,
-  OFFER_CATALOG,
-} from "../offers.js";
+import { fulfillPaidOffer } from "../offers.js";
 
 const router = Router();
 
@@ -70,8 +67,8 @@ router.post("/stripe", (req: Request, res: Response) => {
       event = req.body;
     }
   } catch {
-    // Fall back to already-parsed body
-    event = req.body;
+    res.status(400).json({ error: "Malformed JSON payload" });
+    return;
   }
 
   if (!event || !event.id || !event.type) {

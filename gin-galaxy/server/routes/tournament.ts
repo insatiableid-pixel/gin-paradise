@@ -29,7 +29,6 @@ import {
   listUpcomingTournaments,
   getPlayerTournaments,
   TOURNAMENT_PRESETS,
-  type TournamentConfig,
   type ScheduledTournamentConfig,
 } from "../tournament.js";
 

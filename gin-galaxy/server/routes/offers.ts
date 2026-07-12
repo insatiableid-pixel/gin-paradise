@@ -27,7 +27,6 @@ import {
   redeemOffer,
   getUserOfferState,
   isBillingDryRun,
-  isPaidOffer,
 } from "../offers.js";
 import { getBalances } from "../ledger.js";
 import { getUserEntitlement } from "../entitlements.js";

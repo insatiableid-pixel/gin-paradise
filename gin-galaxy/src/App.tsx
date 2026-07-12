@@ -82,12 +82,20 @@ export default function App() {
       fetch("/api/auth/me", {
         headers: { Authorization: `Bearer ${sessionId}` },
       })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.user) setUser(data.user);
-          else logout();
+        .then(async (res) => {
+          if (res.status === 401 || res.status === 403) {
+            logout();
+            return null;
+          }
+          if (!res.ok) return null;
+          return res.json();
         })
-        .catch(() => logout());
+        .then((data) => {
+          if (data?.user) setUser(data.user);
+        })
+        .catch(() => {
+          // Preserve local auth state on transient network or server failures.
+        });
     }
   }, [sessionId, setUser, logout]);
 
@@ -137,6 +145,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

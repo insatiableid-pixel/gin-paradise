@@ -30,9 +30,12 @@
 import {
   mutateBalance,
   getBalances,
+  fromMoneyUnits,
+  toMoneyUnits,
   type Currency,
 } from "./ledger.js";
 import { recordRake } from "./houseAccounting.js";
+import { db } from "./db.js";
 
 // ─── Stake Presets ─────────────────────────────────────────────────────
 
@@ -91,7 +94,7 @@ export function isFreeStake(stakeId: string): boolean {
   return stakeId === "free";
 }
 
-// ─── Escrow State (in-memory, per room) ─────────────────────────────────
+// ─── Durable Escrow State (SQLite, keyed by room) ───────────────────────
 
 export interface EscrowHold {
   userId: string;
@@ -107,7 +110,42 @@ export interface RoomEscrow {
   settled: boolean;
 }
 
-const escrows = new Map<string, RoomEscrow>();
+interface EscrowRow {
+  room_id: string;
+  stake_id: string;
+  status: "active" | "settled" | "refunded";
+}
+
+interface HoldRow {
+  user_id: string;
+  transaction_id: string;
+  amount_units: number;
+  currency: Currency;
+}
+
+function loadEscrow(roomId: string): RoomEscrow | undefined {
+  const row = db.prepare(
+    "SELECT room_id, stake_id, status FROM room_escrows WHERE room_id = ?",
+  ).get(roomId) as EscrowRow | undefined;
+  if (!row) return undefined;
+  const preset = getStakePreset(row.stake_id);
+  if (!preset) return undefined;
+  const holds = db.prepare(`
+    SELECT user_id, transaction_id, amount_units, currency
+    FROM escrow_holds WHERE room_id = ? ORDER BY created_at, user_id
+  `).all(roomId) as HoldRow[];
+  return {
+    stakeId: row.stake_id,
+    preset,
+    settled: row.status !== "active",
+    holds: holds.map(hold => ({
+      userId: hold.user_id,
+      transactionId: hold.transaction_id,
+      amount: fromMoneyUnits(hold.amount_units),
+      currency: hold.currency,
+    })),
+  };
+}
 
 // ─── Balance Check ──────────────────────────────────────────────────────
 
@@ -152,32 +190,42 @@ export function holdEntryFee(
   const preset = getStakePreset(stakeId);
   if (!preset || preset.entryFee === 0) return null;
 
-  // Debit the entry fee from the player's wallet
-  const txnId = mutateBalance(
-    userId,
-    preset.currency,
-    -preset.entryFee,
-    "escrow_hold",
-    roomId,
-    `Match entry fee: ${preset.label}`
-  );
+  const run = db.transaction(() => {
+    db.prepare(`
+      INSERT INTO room_escrows (room_id, stake_id) VALUES (?, ?)
+      ON CONFLICT(room_id) DO NOTHING
+    `).run(roomId, stakeId);
+    const escrow = db.prepare(
+      "SELECT stake_id, status FROM room_escrows WHERE room_id = ?",
+    ).get(roomId) as { stake_id: string; status: string };
+    if (escrow.stake_id !== stakeId || escrow.status !== "active") {
+      throw new Error(`Escrow room ${roomId} is not active for stake ${stakeId}`);
+    }
 
-  const hold: EscrowHold = {
-    userId,
-    transactionId: txnId,
-    amount: preset.entryFee,
-    currency: preset.currency,
-  };
+    const existing = db.prepare(`
+      SELECT transaction_id, amount_units, currency FROM escrow_holds
+      WHERE room_id = ? AND user_id = ?
+    `).get(roomId, userId) as Omit<HoldRow, "user_id"> | undefined;
+    if (existing) {
+      return {
+        userId,
+        transactionId: existing.transaction_id,
+        amount: fromMoneyUnits(existing.amount_units),
+        currency: existing.currency,
+      };
+    }
 
-  // Track in room escrow state
-  let escrow = escrows.get(roomId);
-  if (!escrow) {
-    escrow = { stakeId, preset, holds: [], settled: false };
-    escrows.set(roomId, escrow);
-  }
-  escrow.holds.push(hold);
-
-  return hold;
+    const txnId = mutateBalance(
+      userId, preset.currency, -preset.entryFee, "escrow_hold", roomId,
+      `Match entry fee: ${preset.label}`,
+    );
+    db.prepare(`
+      INSERT INTO escrow_holds (room_id, user_id, transaction_id, amount_units, currency)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(roomId, userId, txnId, toMoneyUnits(preset.entryFee), preset.currency);
+    return { userId, transactionId: txnId, amount: preset.entryFee, currency: preset.currency };
+  });
+  return run.immediate();
 }
 
 /**
@@ -186,9 +234,10 @@ export function holdEntryFee(
 export function initRoomEscrow(roomId: string, stakeId: string): void {
   const preset = getStakePreset(stakeId);
   if (!preset) return;
-  if (!escrows.has(roomId)) {
-    escrows.set(roomId, { stakeId, preset, holds: [], settled: false });
-  }
+  db.prepare(`
+    INSERT INTO room_escrows (room_id, stake_id) VALUES (?, ?)
+    ON CONFLICT(room_id) DO NOTHING
+  `).run(roomId, stakeId);
 }
 
 // ─── Settlement ─────────────────────────────────────────────────────────
@@ -215,58 +264,48 @@ export function settleMatch(
   loserId: string,
   endReason: "completed" | "forfeit" | "timeout" | "disconnect"
 ): SettlementResult {
-  const escrow = escrows.get(roomId);
-  if (!escrow || escrow.settled) {
-    return { type: "no_stake", details: "No active escrow for this room." };
-  }
+  const run = db.transaction((): SettlementResult => {
+    const escrow = loadEscrow(roomId);
+    if (!escrow || escrow.settled) {
+      return { type: "no_stake", details: "No active escrow for this room." };
+    }
+    const changed = db.prepare(`
+      UPDATE room_escrows SET status = 'settled', winner_id = ?, loser_id = ?,
+        end_reason = ?, resolved_at = CURRENT_TIMESTAMP
+      WHERE room_id = ? AND status = 'active'
+    `).run(winnerId, loserId, endReason, roomId);
+    if (changed.changes !== 1) {
+      return { type: "no_stake", details: "No active escrow for this room." };
+    }
+    if (escrow.preset.entryFee === 0) {
+      return { type: "no_stake", details: "Free play match — no funds to settle." };
+    }
 
-  // Free play — nothing to settle
-  if (escrow.preset.entryFee === 0) {
-    escrow.settled = true;
-    return { type: "no_stake", details: "Free play match — no funds to settle." };
-  }
-
-  escrow.settled = true;
-
-  const reasonLabel = endReason === "completed" ? "Match win" :
-    endReason === "forfeit" ? "Opponent forfeited" :
-    endReason === "timeout" ? "Opponent timed out" : "Opponent disconnected";
-
-  const { prizePool, rakeAmount, currency } = escrow.preset;
-
-  // Pay out the net prize pool to the winner
-  mutateBalance(
-    winnerId,
-    currency,
-    prizePool,
-    "prize_payout",
-    roomId,
-    `${reasonLabel}: ${escrow.preset.label} (net of ${rakeAmount} rake)`
-  );
-
-  // Record rake in player ledger as an explicit "rake" transaction
-  // This is a virtual deduction from the held pool, not from any player's wallet directly.
-  // The rake flows from the escrow pool to the house — we record it in the house ledger.
-  if (rakeAmount > 0) {
-    recordRake(
-      currency,
-      rakeAmount,
-      roomId,
-      escrow.stakeId,
-      winnerId,
-      loserId,
-      `${reasonLabel}: ${escrow.preset.label} (${(escrow.preset.rakePercent * 100).toFixed(0)}% rake)`
+    const reasonLabel = endReason === "completed" ? "Match win" :
+      endReason === "forfeit" ? "Opponent forfeited" :
+      endReason === "timeout" ? "Opponent timed out" : "Opponent disconnected";
+    const totalHeldUnits = escrow.holds.reduce((sum, hold) => sum + toMoneyUnits(hold.amount), 0);
+    const rakeUnits = Math.round(totalHeldUnits * escrow.preset.rakePercent);
+    const payoutUnits = totalHeldUnits - rakeUnits;
+    const payoutAmount = fromMoneyUnits(payoutUnits);
+    const rakeAmount = fromMoneyUnits(rakeUnits);
+    const { currency } = escrow.preset;
+    mutateBalance(
+      winnerId, currency, payoutAmount, "prize_payout", roomId,
+      `${reasonLabel}: ${escrow.preset.label} (net of ${rakeAmount} rake)`,
     );
-  }
-
-  return {
-    type: "payout",
-    winnerId,
-    payoutAmount: prizePool,
-    rakeAmount,
-    currency,
-    details: `${reasonLabel}. Winner receives ${prizePool} ${currency}. Platform rake: ${rakeAmount} ${currency}.`,
-  };
+    if (rakeUnits > 0) {
+      recordRake(
+        currency, rakeAmount, roomId, escrow.stakeId, winnerId, loserId,
+        `${reasonLabel}: ${escrow.preset.label} (${(escrow.preset.rakePercent * 100).toFixed(0)}% rake)`,
+      );
+    }
+    return {
+      type: "payout", winnerId, payoutAmount, rakeAmount, currency,
+      details: `${reasonLabel}. Winner receives ${payoutAmount} ${currency}. Platform rake: ${rakeAmount} ${currency}.`,
+    };
+  });
+  return run.immediate();
 }
 
 /**
@@ -275,34 +314,33 @@ export function settleMatch(
  * No rake is taken on refunds.
  */
 export function refundEscrow(roomId: string): SettlementResult {
-  const escrow = escrows.get(roomId);
-  if (!escrow || escrow.settled) {
-    return { type: "no_stake", details: "No active escrow for this room." };
-  }
-
-  if (escrow.preset.entryFee === 0) {
-    escrow.settled = true;
-    return { type: "no_stake", details: "Free play — nothing to refund." };
-  }
-
-  escrow.settled = true;
-
-  // Refund each player's hold — full amount, no rake deducted
-  for (const hold of escrow.holds) {
-    mutateBalance(
-      hold.userId,
-      hold.currency,
-      hold.amount,
-      "refund",
-      roomId,
-      `Match refund: ${escrow.preset.label}`
-    );
-  }
-
-  return {
-    type: "refund",
-    details: `Refunded ${escrow.holds.length} player(s) their ${escrow.preset.label} entry fee.`,
-  };
+  const run = db.transaction((): SettlementResult => {
+    const escrow = loadEscrow(roomId);
+    if (!escrow || escrow.settled) {
+      return { type: "no_stake", details: "No active escrow for this room." };
+    }
+    const changed = db.prepare(`
+      UPDATE room_escrows SET status = 'refunded', resolved_at = CURRENT_TIMESTAMP
+      WHERE room_id = ? AND status = 'active'
+    `).run(roomId);
+    if (changed.changes !== 1) {
+      return { type: "no_stake", details: "No active escrow for this room." };
+    }
+    if (escrow.preset.entryFee === 0) {
+      return { type: "no_stake", details: "Free play — nothing to refund." };
+    }
+    for (const hold of escrow.holds) {
+      mutateBalance(
+        hold.userId, hold.currency, hold.amount, "refund", roomId,
+        `Match refund: ${escrow.preset.label}`,
+      );
+    }
+    return {
+      type: "refund",
+      details: `Refunded ${escrow.holds.length} player(s) their ${escrow.preset.label} entry fee.`,
+    };
+  });
+  return run.immediate();
 }
 
 // ─── Query / Cleanup ────────────────────────────────────────────────────
@@ -311,22 +349,50 @@ export function refundEscrow(roomId: string): SettlementResult {
  * Get escrow info for a room (for UI display, transcript metadata, etc.).
  */
 export function getRoomEscrow(roomId: string): RoomEscrow | undefined {
-  return escrows.get(roomId);
+  return loadEscrow(roomId);
 }
 
 /**
  * Clean up escrow state for a room (called after room cleanup).
  */
 export function cleanupEscrow(roomId: string): void {
-  escrows.delete(roomId);
+  // Resolved rows are intentionally retained as the durable idempotency key.
+  // Empty active rows (room abandoned before a hold) carry no money and may go.
+  db.prepare(`
+    DELETE FROM room_escrows WHERE room_id = ? AND status = 'active'
+      AND NOT EXISTS (SELECT 1 FROM escrow_holds WHERE room_id = ?)
+  `).run(roomId, roomId);
 }
 
 // ─── Test Utilities ─────────────────────────────────────────────────────
 
 export function _clearEscrows(): void {
-  escrows.clear();
+  db.transaction(() => {
+    db.prepare("DELETE FROM escrow_holds").run();
+    db.prepare("DELETE FROM room_escrows").run();
+  })();
 }
 
 export function _getEscrows(): Map<string, RoomEscrow> {
-  return escrows;
+  const result = new Map<string, RoomEscrow>();
+  const rows = db.prepare("SELECT room_id FROM room_escrows").all() as { room_id: string }[];
+  for (const row of rows) {
+    const escrow = loadEscrow(row.room_id);
+    if (escrow) result.set(row.room_id, escrow);
+  }
+  return result;
+}
+
+/** Refund active holds whose rooms did not survive restart/failover recovery. */
+export function reconcileOrphanedEscrows(activeRoomIds: ReadonlySet<string>): string[] {
+  const active = db.prepare(
+    "SELECT room_id FROM room_escrows WHERE status = 'active'",
+  ).all() as { room_id: string }[];
+  const refunded: string[] = [];
+  for (const { room_id: roomId } of active) {
+    if (activeRoomIds.has(roomId)) continue;
+    const result = refundEscrow(roomId);
+    if (result.type === "refund") refunded.push(roomId);
+  }
+  return refunded;
 }

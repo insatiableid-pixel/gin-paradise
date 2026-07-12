@@ -36,15 +36,20 @@ function migrateStorageKey(): void {
 // Run migration once on module load
 migrateStorageKey();
 
+export type AiTierPref = "club" | "expert";
+
 interface PreferencesState {
   showDeadwoodCount: boolean;
   fourColorDeck: boolean;
   soundEnabled: boolean;
   animationsEnabled: boolean;
+  /** Club = local TS Apex; Expert = ApexMCTS draw-search service with Club fallback */
+  aiTier: AiTierPref;
   setShowDeadwoodCount: (show: boolean) => void;
   setFourColorDeck: (enabled: boolean) => void;
   setSoundEnabled: (enabled: boolean) => void;
   setAnimationsEnabled: (enabled: boolean) => void;
+  setAiTier: (tier: AiTierPref) => void;
 }
 
 interface StoredPrefs {
@@ -52,6 +57,7 @@ interface StoredPrefs {
   fourColorDeck: boolean;
   soundEnabled: boolean;
   animationsEnabled: boolean;
+  aiTier: AiTierPref;
 }
 
 function loadPrefs(): StoredPrefs {
@@ -59,11 +65,14 @@ function loadPrefs(): StoredPrefs {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
+      const tier = parsed.aiTier === "expert" ? "expert" : "club";
       return {
         showDeadwoodCount: parsed.showDeadwoodCount ?? true,
         fourColorDeck: parsed.fourColorDeck ?? false,
         soundEnabled: parsed.soundEnabled ?? true,
         animationsEnabled: parsed.animationsEnabled ?? true,
+        // Sprint 2 default: Expert (falls back to Club if service down)
+        aiTier: parsed.aiTier != null ? tier : "expert",
       };
     }
   } catch {}
@@ -72,6 +81,7 @@ function loadPrefs(): StoredPrefs {
     fourColorDeck: false,
     soundEnabled: true,
     animationsEnabled: true,
+    aiTier: "expert",
   };
 }
 
@@ -81,29 +91,40 @@ function savePrefs(prefs: StoredPrefs): void {
   } catch {}
 }
 
+function persistFrom(get: () => PreferencesState): void {
+  const {
+    showDeadwoodCount,
+    fourColorDeck,
+    soundEnabled,
+    animationsEnabled,
+    aiTier,
+  } = get();
+  savePrefs({ showDeadwoodCount, fourColorDeck, soundEnabled, animationsEnabled, aiTier });
+}
+
 export const usePreferences = create<PreferencesState>((set, get) => {
   const initial = loadPrefs();
   return {
     ...initial,
     setShowDeadwoodCount: (show) => {
       set({ showDeadwoodCount: show });
-      const { fourColorDeck, soundEnabled, animationsEnabled } = get();
-      savePrefs({ showDeadwoodCount: show, fourColorDeck, soundEnabled, animationsEnabled });
+      persistFrom(get);
     },
     setFourColorDeck: (enabled) => {
       set({ fourColorDeck: enabled });
-      const { showDeadwoodCount, soundEnabled, animationsEnabled } = get();
-      savePrefs({ showDeadwoodCount, fourColorDeck: enabled, soundEnabled, animationsEnabled });
+      persistFrom(get);
     },
     setSoundEnabled: (enabled) => {
       set({ soundEnabled: enabled });
-      const { showDeadwoodCount, fourColorDeck, animationsEnabled } = get();
-      savePrefs({ showDeadwoodCount, fourColorDeck, soundEnabled: enabled, animationsEnabled });
+      persistFrom(get);
     },
     setAnimationsEnabled: (enabled) => {
       set({ animationsEnabled: enabled });
-      const { showDeadwoodCount, fourColorDeck, soundEnabled } = get();
-      savePrefs({ showDeadwoodCount, fourColorDeck, soundEnabled, animationsEnabled: enabled });
+      persistFrom(get);
+    },
+    setAiTier: (tier) => {
+      set({ aiTier: tier });
+      persistFrom(get);
     },
   };
 });

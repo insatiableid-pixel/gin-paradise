@@ -13,12 +13,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Package, Crown, Award, Shield, Palette, MessageCircle, CheckCircle,
-  Lock, ShoppingCart, Star, Gem, Sparkles, ChevronDown, Zap, Trophy,
+  Lock, Star, Gem, Sparkles, Zap, Trophy,
   Target, Swords, Flame, Calendar, DollarSign, ShieldCheck, TrendingUp,
   BookOpen, Flag, Medal, Search, Crosshair, Check, ArrowRight, Coins,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/Card";
-import { Button } from "@/src/components/ui/Button";
 import { cn } from "@/src/lib/utils";
 import { useAuthStore } from "@/src/lib/store";
 

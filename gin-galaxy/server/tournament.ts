@@ -537,8 +537,6 @@ function _startScheduledTournament(tournament: Tournament): void {
   // Build variable-size bracket
   const bracketSize = nextPowerOfTwo(entrantCount);
   const totalRounds = Math.log2(bracketSize);
-  const byeCount = bracketSize - entrantCount;
-
   // Generate bracket matches
   const matches: BracketMatch[] = [];
   let matchIndex = 0;
@@ -584,7 +582,6 @@ function _startScheduledTournament(tournament: Tournament): void {
   }
 
   // Create placeholder matches for subsequent rounds
-  let prevRoundStart = 0;
   let prevRoundCount = firstRoundMatchCount;
 
   for (let r = 2; r <= totalRounds; r++) {
@@ -610,7 +607,6 @@ function _startScheduledTournament(tournament: Tournament): void {
       matchIndex++;
     }
 
-    prevRoundStart += prevRoundCount;
     prevRoundCount = thisRoundCount;
   }
 

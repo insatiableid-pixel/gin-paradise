@@ -13,7 +13,7 @@
 
 import crypto from "crypto";
 import { db } from "./db.js";
-import { ACHIEVEMENT_MAP, getUserPrestige } from "./achievements.js";
+import { getUserPrestige } from "./achievements.js";
 
 // ── Cosmetic Type Definitions ────────────────────────────────────────
 

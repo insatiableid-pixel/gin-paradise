@@ -318,6 +318,8 @@ setInterval(() => {
       queue.splice(i, 1);
     }
   }
+  // Eligibility changes as rating brackets expand, even without new joins.
+  tryPair();
 }, 30_000).unref();
 
 // ── Exported for testing ─────────────────────────────────────────────

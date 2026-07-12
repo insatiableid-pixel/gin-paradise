@@ -12,7 +12,7 @@
  */
 
 import crypto from "crypto";
-import type { CardView, PlayerGameView, ShowdownData, ShowdownMeld, ShowdownPlayerData } from "./types.js";
+import type { CardView, PlayerGameView, ShowdownData, ShowdownMeld } from "./types.js";
 
 // ── Card Constants ───────────────────────────────────────────────────
 
@@ -399,7 +399,6 @@ export function handleKnock(state: MatchState, userId: string, cardIndex: number
     opponentEval = evaluateHand(opponent.hand);
   } else {
     // Normal knock — opponent can lay off on knocker's melds
-    const opponentOwnMelds = evaluateHand(opponent.hand);
     opponentEval = evaluateAndLayOff(opponent.hand, knockerEval.melds);
     // Compute which cards were laid off: cards in opponent's hand that are NOT in opponentEval.deadwood AND NOT in opponentEval.melds
     const inMeldsSet = new Set<string>();
@@ -545,6 +544,7 @@ export function getPlayerView(state: MatchState, userId: string): PlayerGameView
 
   return {
     roomId: state.roomId,
+    myUserId: me.userId,
     myHand: me.hand.map(cardToView),
     opponentCardCount: op.hand.length,
     myScore: me.score,

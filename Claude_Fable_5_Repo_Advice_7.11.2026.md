@@ -1,0 +1,92 @@
+Gin Paradise — Comprehensive Code Review & Readiness Audit
+Repository: insatiableid-pixel/gin-paradise (app under gin-galaxy/) Commit reviewed: 66d4969 — "Add Claude Fable 5 codebase audit prompt to repository root" Review date: July 11, 2026 Method: Full clone; every automated gate executed locally (TypeScript, ESLint, Vitest, production build, bundle budget, npm audit, secret scan); manual review of the multiplayer, database, escrow, billing, routing, and state-management code; suspected bugs confirmed by direct execution where possible.
+
+TL;DR
+Every automated quality gate passes: zero TypeScript errors, zero ESLint errors, 1,079 tests passing with zero failures, a clean production build inside its bundle budgets, zero npm audit vulnerabilities, and a clean secret scan. Behind those green dashboards, however, the review found one critical, execution-verified bug and several real architectural gaps:
+
+Stripe webhook signature verification is broken whenever a webhook secret is configured. A stray require("crypto") inside an ES module throws, the exception is swallowed, and every correctly signed webhook is rejected with HTTP 400. I confirmed this by running the actual function: a validly signed event returns false. In production this means paid purchases and subscriptions can never fulfill in the secure configuration — and the only configuration that works (no secret set) accepts forged webhook events, letting anyone credit themselves coins. The test suite misses this because it only tests the no-secret path.
+Escrow (held entry fees) lives only in process memory. Rooms and game state survive node failover via Redis, but the money held for a staked match does not. After a crash or failover mid-match, winners are never paid and holds are never refunded.
+Matchmaking stalls silently. Pairing is only attempted when someone joins the queue, so two waiting players whose expanding rating brackets come to overlap are never matched unless a third player happens to join. Cross-node pairing does not exist at all despite the Redis-mirrored queue.
+A stale-socket race can forfeit a live player. The WebSocket close handler does not check socket identity, so a quick reconnect (or second tab) lets the old socket's close event clobber the new connection and trigger a 60-second disconnect forfeit against an actively connected player.
+The "Level 5 readiness" automation is checkbox theater. The readiness audit only verifies that files and script entries exist, and it can never fail the build. Coverage thresholds are set to 1%. The entire Redis failover/chaos test battery (11 files, 24 tests) silently skips in CI because no Redis service is ever provisioned.
+Verdict: solid single-node hobby/beta deployment; not ready for production real-stakes multiplayer until the webhook bug (item 1) and the escrow durability gap (item 2) are fixed.
+
+Readiness Status
+#	Gate	Status	Evidence (executed in this review)
+1	TypeScript (tsc --noEmit)	✅ PASS	Exit 0, zero errors (TypeScript 5.8.3)
+2	ESLint (eslint .)	⚠️ PASS with 439 warnings	Exit 0; 0 errors, 439 warnings across 107 files: no-unused-vars 275, consistent-type-imports 52, complexity 40, react-hooks/exhaustive-deps 36, prefer-const 19, no-useless-assignment 14, other 3
+3	Unit / integration tests (Vitest)	✅ PASS	37 files executed, 1,079 passed, 0 failed; 11 files / 24 tests skipped (entire Redis coordinator suite — skips without REDIS_URL, in CI too)
+4	Production build (vite build)	✅ PASS	Built in 6.8 s, 78 JS assets
+5	Bundle budget (quality/bundle-budget.json)	⚠️ PASS, thin margins	Total JS 1,015,966 B of 1,100,000 B budget (92.4% used); largest chunk 244,140 B of 270,000 B (90.4%); CSS 183,593 B of 220,000 B (83.5%)
+6	npm audit --audit-level=low	✅ PASS	0 vulnerabilities
+7	Secret scan (scripts/scan-secrets.mjs)	✅ PASS	Clean across 879 files; independent regex sweep also clean; .env.example contains no real values
+8	Key component stability (manual review)	❌ ISSUES FOUND	1 critical, 4 high, several medium findings — detailed below
+Caveats on the green rows: the lint gate is soft (every rule downgraded to warning, so eslint . cannot fail on these classes of problems); the test gate never exercises the Redis failover paths or the signed-webhook path; and the readiness audit script (scripts/readiness-audit.mjs) checks only file existence and always exits 0, so it cannot gate anything.
+
+Detailed Findings
+CRITICAL
+C1. Stripe webhook signature verification always fails when STRIPE_WEBHOOK_SECRET is set — and billing only "works" unsigned. server/billing.ts (~line 746, inside verifyWebhookSignature) calls const crypto = require("crypto") in the middle of the function. The project is an ES module package ("type": "module") executed with tsx, where require is undefined. The resulting ReferenceError is swallowed by the surrounding try/catch, which returns false.
+
+Verified by execution in this review: a webhook body signed with the exact HMAC-SHA256 scheme the code expects returns verified? false; a control probe confirms require is not defined in this runtime. Consequences: with the secret configured (the secure setup), every Stripe event — purchases, subscription renewals, cancellations — is rejected with HTTP 400 and never fulfilled. Without the secret, verifyWebhookSignature returns true for everything, so any unauthenticated caller can POST a fabricated checkout.session.completed and credit coins (POST /api/webhooks/stripe requires no session). server/config.ts has no production guard requiring the secret. The billing tests only cover the undefined-signature path (tests/billing.test.ts lines 448–469), which is why 1,079 green tests never caught it.
+
+Fix: import crypto at the top of server/billing.ts and delete the inline require; refuse to start in production without STRIPE_WEBHOOK_SECRET; add a test that verifies a correctly signed and a tampered payload.
+
+HIGH
+H1. Escrow does not survive restarts or failover — held stakes can vanish. server/escrow.ts keeps all escrow state in a module-level Map. Wallet debits (holds) are durable in SQLite, but the record that a room holds money is memory-only. The Redis coordinator carefully makes rooms, game snapshots, and timers recoverable across nodes — but a recovered room's settleMatch() finds no escrow (escrows.get(roomId) is undefined), returns no_stake, and finishes the match without paying the winner or refunding either player. The same applies to a plain process restart mid-staked-match. The settled idempotency flag is also memory-only, so the double-settlement guard is equally non-durable. Given the write-path policy in server/writePathPolicy.ts explicitly classifies escrow settlement as "authoritative, never eventually consistent," this is a design-contract violation, not just an edge case. Fix: persist escrow (SQLite table keyed by room, or the coordinator snapshot) and make settlement idempotent against the ledger (e.g., unique reference per room settlement).
+
+H2. Matchmaking never re-evaluates waiting players; cross-node pairing does not exist. server/multiplayer/matchmaking.ts: tryPair() is invoked only from joinQueue(). The rating bracket expands with wait time (±50 per 10 s), but nothing re-runs pairing as brackets grow — two players whose gap exceeds the initial bracket will sit until the 5-minute stale timeout unless a third player joins and triggers tryPair(). Additionally, pairing iterates only the process-local queue array and requires locally attached WebSockets; the Redis queue mirror is used solely for dedup/diagnostics. Two players queueing on different nodes can never be matched, despite the multi-node architecture everywhere else. Fix: run tryPair() on an interval (the 30 s cleanup timer is a natural place), and either implement cross-node pairing through the coordinator queue or document single-node matchmaking as a known limitation.
+
+H3. Stale WebSocket close handler can forfeit a connected player. server/multiplayer/roomManager.ts (ws.on("close"), ~line 2158): the handler marks the player disconnected without checking whether the closing socket is still the player's current socket. Sequence: player reconnects (new socket replaces old in the player record, connected: true) → the old socket's close event fires afterward → player record is overwritten with ws: null, connected: false. From then on the player receives no broadcasts (sends go to a null socket), and the 60-second disconnect-forfeit timer sees !pl.connected and ends the match by forfeit while the player is actively connected. Fast reconnects on flaky mobile networks and duplicate tabs both trigger this. Fix: in the close handler, bail out unless room.players.get(userId)?.ws === ws (same identity check in the disconnect-forfeit callback).
+
+H4. Distributed leases are claimed locally first, so two nodes can both "own" a room or timer. server/multiplayer/redisCoordinator.ts: claimLease() decides success against the local lease mirror and returns true immediately; the authoritative Redis SET NX PX happens later in a fire-and-forget task (persistLease), and a lost race only silently updates the local cache after the fact. During the pub/sub propagation window, two nodes can both believe they hold room:<id>:owner or room:<id>:timer, run duplicate turn timers, and process duplicate timeout auto-plays. Engine turn validation absorbs most duplicates, but the single-owner invariant that canServeRoom, timer recovery, and relay routing all assume is not actually guaranteed. The same write-behind pattern means any "best-effort" Redis failure (all logged-and-continue) lets local and Redis state drift. Fix: make lease claim/renew await the Redis SET NX/XX result (the coordinator interface allows async), or have callers tolerate late revocation explicitly.
+
+MEDIUM
+M1. Client timer ownership comparison is userId-vs-username. src/lib/useMultiplayer.ts (~line 298): isMyTimer: msg.activePlayerId === prev.gameState.myUsername. The server sends activePlayerId as a user ID; PlayerGameView.myUsername is a display name (server/multiplayer/engine.ts, getPlayerView). The comparison is always false, so standalone turn_timer messages mis-attribute the countdown; the UI is only corrected when a full game_update (with server-computed turnTimer.isMyTimer) arrives.
+
+M2. Fairness per-round transcript hash covers the wrong actions. server/multiplayer/roomManager.ts (~line 1672, next_round handler): the filter (a) => a.detail?.roundNumber === prevRound || true is always true (|| true defeats the predicate), so revealRoundSeed computes each round's transcriptHash over the entire match transcript so far. Anyone independently verifying a round proof against that round's actions will get a mismatch, undermining the "Trust Shield" verification story the feature exists for.
+
+M3. The validation infrastructure cannot fail. scripts/readiness-audit.mjs checks only that files/scripts exist (a "unit tests" check passes if package.json has a test entry) and never exits non-zero, even below target level. Vitest coverage thresholds are 1% across the board (vitest.config.ts), and coverage isn't run in CI anyway. The 11-file Redis failover/soak/chaos suite skips silently everywhere: no workflow in .github/workflows/ sets REDIS_URL or provisions a Redis service (verified by grep and by running the suite: 24/24 skipped). The heavily advertised resilience testing has effectively never run in CI.
+
+M4. Money is floating-point. wallets.gold_coins, transactions.amount, and house_ledger.amount are SQLite REAL, and all arithmetic is JS number (e.g., rake Math.round(totalHeld * rakePercent * 100) / 100 in server/escrow.ts). Current presets stay integral, but the schema invites drift the moment a non-5% rake, bonus multiplier, or fractional price appears. Integer cents (or integer coins) is the standard fix.
+
+M5. Non-atomic multi-step money/stat writes. persistMatchResult (roomManager.ts) runs four separate statements (two inserts, two rating updates) with no wrapping transaction — a crash between them leaves half-recorded results. claimFaucet (server/ledger.ts) is check-then-credit without a transaction spanning the cooldown check, so concurrent multi-process requests can double-claim. (mutateBalance itself is properly transactional.)
+
+M6. Repository hygiene: committed browser crash dumps and 250+ AI work logs. Commit d3d0af7 committed .edge-tmp/Crashpad/ (Edge crash-reporter artifacts including a .dmp minidump and metrics files) to the repo root — crash dumps can contain memory contents and do not belong in version control. The root also carries 253 CLAUDE_DIRECTIVE_*/EXECUTION_REPORT_* markdown files plus unrelated Python/Rust research trees (gin_rummy/, gin-core/, oracle_autoresearch/, tools/), which drown the actual product (gin-galaxy/) and enlarge every clone.
+
+M7. Session token exposure surfaces. The WebSocket authenticates via ?token=<sessionId> in the URL (authenticateUpgrade), so bearer-equivalent tokens land in proxy/access logs. Tokens are also stored in localStorage (src/lib/store.ts), reachable by any XSS. POST /api/auth/register returns raw internal error messages (res.status(400).json({ error: e.message })). None are exploitable on their own; together they lower the bar.
+
+LOW
+L1. app.use(errorHandler) in server.ts is registered before the Vite/static middleware, so errors thrown by later middleware bypass the JSON error handler. The webhook raw-body middleware JSON.parses without a try/catch (malformed JSON → generic 500 before signature check). No path="*" catch-all in src/App.tsx, so unknown client routes render a blank page. A transient network failure of /api/auth/me logs the user out (.catch(() => logout())).
+
+L2. persistQueueClear uses Redis KEYS (O(N), blocking) instead of SCAN; loadSnapshotFromRedis does sequential per-room round trips (slow cold start with many rooms); getFeaturedMatches/getLiveMatches run two rating queries per live room per HTTP request (N+1 — cache ratings or join once).
+
+L3. Every gameplay action awaits a Redis MULTI commit before broadcasting (commitRoomGameStateDurably) — correct for durability, but it puts a Redis round trip on the input-latency path; worth measuring with a remote Redis. applyRoomGameSnapshot uses >= on millisecond timestamps, so equal-timestamp snapshots can overwrite newer local state (mostly masked by single-owner leases — see H4).
+
+L4. Dead/misleading scaffolding: reconnectTimer/auto-reconnect in useMultiplayer.ts is declared but never scheduled (no client auto-reconnect actually exists); the rate limiter comment says "sliding-window" but implements a fixed window; sweeps_coins currency remains throughout schema and types although the economy is single-coin ("kept for DB compat").
+
+L5. In-memory rate limiting and the SQLite single-file database both contradict the multi-node ambitions of the Redis coordinator: cross-host scale-out would need a Redis-backed limiter and a client/server database. The rate-limit file documents this; the deployment docs should, too.
+
+Prioritized Recommendations
+Fix the webhook signature bug now (server/billing.ts): top-level import crypto from "crypto", delete the inline require, make STRIPE_WEBHOOK_SECRET mandatory when NODE_ENV=production, and add signed + tampered webhook tests. One-line fix, revenue-critical. (C1)
+Make escrow durable and idempotent: persist holds/settlement state to SQLite (or the coordinator snapshot) keyed by room, settle through a unique ledger reference, and add a startup/failover reconciliation pass that refunds or settles orphaned holds. (H1)
+Add socket-identity guards in the WebSocket close handler and the 60-second disconnect-forfeit callback so a stale socket can never clobber or forfeit a live connection. (H3)
+Run tryPair() on the existing 30-second queue timer and decide explicitly whether cross-node matchmaking is in scope; if it is, pair from the coordinator queue with a claim step, and if not, document the single-node constraint. (H2)
+Make lease acquisition atomic: await the Redis SET NX result inside claimLease/renewLease (or add a post-claim confirmation callback) so two nodes cannot simultaneously believe they own a room or timer. (H4)
+Repair the fairness round filter (drop the || true, filter actions by round) and fix the client isMyTimer comparison to use user IDs on both sides (add myUserId to PlayerGameView or send activePlayerUsername). (M1, M2)
+Give the quality gates teeth: make readiness-audit.mjs exit non-zero below target; raise coverage thresholds to a number that means something (and run coverage in CI); add a Redis service container to the CI workflow so the 24 skipped failover/chaos tests actually execute; promote high-signal ESLint rules (react-hooks/exhaustive-deps, no-unused-vars on src/ and server/) from warning to error. (M3)
+Move money to integer units (cents/coins as INTEGER), wrap persistMatchResult and claimFaucet in transactions, and add a ledger-vs-wallet reconciliation check. (M4, M5)
+Clean the repository: delete .edge-tmp/ (and git-filter it if the history ever becomes public-sensitive), move the 253 directive/report files and the research trees out of the root or into docs/archive, and add .edge-tmp/ to .gitignore. (M6)
+Reduce token exposure: move WebSocket auth from query-string to a short-lived one-time ticket (or Sec-WebSocket-Protocol header), stop echoing raw error messages from register, and consider httpOnly cookie sessions if XSS risk grows. (M7)
+Appendix: What Was Executed
+All commands run from gin-galaxy/ at commit 66d4969 on Node v22.22.3 (npm registry reachable; native better-sqlite3 binding compiled from source in the review sandbox).
+
+Command	Result
+tsc --noEmit	Exit 0, no output
+eslint .	Exit 0 — 0 errors, 439 warnings
+vitest run (all 48 test files, batched)	1,079 passed, 0 failed, 24 skipped (11 Redis files)
+vite build	Success, 6.8 s
+node scripts/check-bundle-budget.mjs	"Bundle budget passed: 78 JS assets, total JS 1015966 bytes."
+npm audit --audit-level=low	"found 0 vulnerabilities"
+node scripts/scan-secrets.mjs	"Secret scan passed across 879 files."
+Webhook probe (tsx, secret set, valid HMAC signature)	verified? false → confirms C1; control probe: require is not defined
+Not executed in this review: the Redis-dependent test suites (no Redis server available here — the same condition under which they skip in CI), Playwright e2e (test:e2e), and the auxiliary knip/jscpd/todo quality loops. Nothing in this report depends on those.

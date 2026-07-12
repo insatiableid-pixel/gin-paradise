@@ -13,7 +13,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
-  User, Trophy, Crown, Star, Award, BarChart3, Calendar, Timer,
+  Trophy, Crown, Star, Award, BarChart3, Calendar, Timer,
   Flame, Medal, Target, Zap, Flag, Search, BookOpen, Crosshair,
   CheckCircle, DollarSign, ShieldCheck, Shield, Gem, TrendingUp, Swords,
   ArrowLeft, UserPlus, UserMinus, Users,
@@ -87,8 +87,11 @@ export function PublicPlayerProfile() {
   const [actionLoading, setActionLoading] = useState(false);
   const [challengeSent, setChallengeSent] = useState(false);
 
-  const headers: Record<string, string> = {};
-  if (sessionId) headers.Authorization = `Bearer ${sessionId}`;
+  const headers = React.useMemo<Record<string, string>>(() => {
+    const value: Record<string, string> = {};
+    if (sessionId) value.Authorization = `Bearer ${sessionId}`;
+    return value;
+  }, [sessionId]);
 
   useEffect(() => {
     if (!username) return;
@@ -107,7 +110,7 @@ export function PublicPlayerProfile() {
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, [username]);
+  }, [headers, username]);
 
   const toggleFollow = async () => {
     if (!data || !sessionId) return;

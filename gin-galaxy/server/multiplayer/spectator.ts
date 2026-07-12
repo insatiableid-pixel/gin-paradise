@@ -37,7 +37,7 @@
  */
 
 import crypto from "crypto";
-import type { MatchState, Card } from "./engine.js";
+import type { MatchState } from "./engine.js";
 import type { CardView, ShowdownData } from "./types.js";
 import { db } from "../db.js";
 

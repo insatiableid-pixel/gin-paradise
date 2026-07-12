@@ -20,14 +20,13 @@
 
 import { db } from "./db.js";
 import Database from "better-sqlite3";
-import { mutateBalance, getBalances } from "./ledger.js";
+import { mutateBalance } from "./ledger.js";
 import { grantPremium, getUserPlan } from "./entitlements.js";
 import {
   getUserPurchaseHistory,
   isBillingDryRun,
   createOfferPurchaseSession,
   fulfillOfferPurchase,
-  getBillingSession,
 } from "./billing.js";
 
 export { isBillingDryRun };
@@ -355,7 +354,6 @@ export function getEligibleOffers(userId: string): Array<OfferDefinition & { eli
     }
 
     // Check max impressions per day (10 per day to avoid spam)
-    const today = new Date().toISOString().split("T")[0];
     const impressionCount = (stmts().getUserImpressionCount.get(userId, offer.id) as { count: number })?.count || 0;
     if (impressionCount > 50) {
       suppressed = true;

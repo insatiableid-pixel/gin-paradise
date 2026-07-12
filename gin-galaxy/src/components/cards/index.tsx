@@ -91,7 +91,7 @@ export const OverlappingCard: React.FC<{
   onPointerDown?: (e: React.PointerEvent) => void;
   onPointerEnter?: () => void;
   animationsEnabled?: boolean;
-}> = ({ suit, rank, selected, onClick, index, isMyTurn, hasDrawn, fourColor = false, meldColorCls, isDragging, isDragOver, onPointerDown, onPointerEnter, animationsEnabled = true }) => {
+}> = ({ suit, rank, selected, onClick, index, isMyTurn, hasDrawn, fourColor = false, isDragging, isDragOver, onPointerDown, onPointerEnter, animationsEnabled = true }) => {
   const colorCls = getSuitColor(suit, fourColor);
   const accentColor = getSuitAccentColor(suit, fourColor);
   const overlapPx = 38;
@@ -151,7 +151,7 @@ export const OverlappingCard: React.FC<{
 };
 
 // ── Card Back — Burgundy & Gold with Gin Paradise branding ──────────
-export const CardBack: React.FC<{ className?: string; mini?: boolean }> = ({ className, mini = false }) => {
+export const CardBack: React.FC<{ className?: string; mini?: boolean }> = ({ className }) => {
   return (
     <div className={cn(
       "rounded-xl overflow-hidden",
@@ -217,7 +217,7 @@ export const SuitRowCard: React.FC<{
   fourColor?: boolean;
   meldColorCls?: string;
   animationsEnabled?: boolean;
-}> = ({ suit, rank, selected, onClick, leftPx, zIdx, isMyTurn, hasDrawn, fourColor = false, meldColorCls, animationsEnabled = true }) => {
+}> = ({ suit, rank, selected, onClick, leftPx, zIdx, isMyTurn, hasDrawn, fourColor = false, animationsEnabled = true }) => {
   const colorCls = getSuitColor(suit, fourColor);
   const accentColor = getSuitAccentColor(suit, fourColor);
   const suitCardW = 78;

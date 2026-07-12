@@ -20,7 +20,6 @@ import { db } from "../db.js";
 import {
   getUserEntitlement,
   getUserPlan,
-  isPremium,
   grantPremium,
   revokePremium,
   getAuditLog,

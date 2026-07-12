@@ -13,7 +13,7 @@
 
 import { Response, NextFunction } from "express";
 import { db } from "../db.js";
-import { requireAuth, AuthenticatedRequest } from "./auth.js";
+import { AuthenticatedRequest } from "./auth.js";
 
 export interface AdminRequest extends AuthenticatedRequest {
   isAdmin?: boolean;

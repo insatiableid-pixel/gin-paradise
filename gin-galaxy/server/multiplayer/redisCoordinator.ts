@@ -589,6 +589,28 @@ export class RedisCoordinator implements RealtimeCoordinator {
     return true;
   }
 
+  async claimLeaseAuthoritatively(leaseName: string, ownerId: string, ttlMs: number): Promise<boolean> {
+    const client = this.commandClient;
+    if (!client) return false;
+
+    const record = { ownerId, expiresAt: Date.now() + ttlMs };
+    const result = await client.set(this.leaseKey(leaseName), JSON.stringify(record), {
+      NX: true,
+      PX: ttlMs,
+    });
+    if (result !== "OK") {
+      const remote = await client.get(this.leaseKey(leaseName));
+      const parsed = remote ? parseLease(remote) : null;
+      if (parsed) this.leases.set(leaseName, parsed);
+      else this.leases.delete(leaseName);
+      return false;
+    }
+
+    this.leases.set(leaseName, record);
+    this.emit({ type: "lease_claimed", leaseName, payload: { lease: record } });
+    return true;
+  }
+
   renewLease(leaseName: string, ownerId: string, ttlMs: number): boolean {
     const existing = this.leases.get(leaseName);
     if (!existing || existing.ownerId !== ownerId) {
@@ -598,6 +620,36 @@ export class RedisCoordinator implements RealtimeCoordinator {
     const record = { ownerId, expiresAt: Date.now() + ttlMs };
     this.leases.set(leaseName, record);
     this.persistLease(leaseName, record, ttlMs, "renew");
+    this.emit({ type: "lease_renewed", leaseName, payload: { lease: record } });
+    return true;
+  }
+
+  async renewLeaseAuthoritatively(leaseName: string, ownerId: string, ttlMs: number): Promise<boolean> {
+    const client = this.commandClient;
+    if (!client) return false;
+
+    const record = { ownerId, expiresAt: Date.now() + ttlMs };
+    const result = await client.eval(
+      `local current = redis.call('GET', KEYS[1])
+       if not current then return 0 end
+       local decoded = cjson.decode(current)
+       if decoded.ownerId ~= ARGV[1] then return 0 end
+       redis.call('SET', KEYS[1], ARGV[2], 'PX', ARGV[3])
+       return 1`,
+      {
+        keys: [this.leaseKey(leaseName)],
+        arguments: [ownerId, JSON.stringify(record), String(ttlMs)],
+      },
+    );
+    if (Number(result) !== 1) {
+      const remote = await client.get(this.leaseKey(leaseName));
+      const parsed = remote ? parseLease(remote) : null;
+      if (parsed) this.leases.set(leaseName, parsed);
+      else this.leases.delete(leaseName);
+      return false;
+    }
+
+    this.leases.set(leaseName, record);
     this.emit({ type: "lease_renewed", leaseName, payload: { lease: record } });
     return true;
   }
@@ -927,11 +979,18 @@ export class RedisCoordinator implements RealtimeCoordinator {
 
   private persistQueueClear(): void {
     this.runBestEffortCommand("Failed to clear matchmaking queue", async (client) => {
-      const keys = await client.keys(this.queueEntryKey("*"));
-      if (keys.length > 0) {
-        for (const key of keys) {
-          await client.del(key);
+      // KEYS blocks Redis while scanning the entire keyspace. Delete bounded
+      // SCAN batches so queue cleanup remains safe on shared production Redis.
+      let batch: string[] = [];
+      for await (const key of client.scanIterator({ MATCH: this.queueEntryKey("*"), COUNT: 100 })) {
+        batch.push(key);
+        if (batch.length >= 100) {
+          await client.del(batch);
+          batch = [];
         }
+      }
+      if (batch.length > 0) {
+        await client.del(batch);
       }
       await client.del(this.queueIndexKey());
     });
@@ -969,10 +1028,29 @@ export class RedisCoordinator implements RealtimeCoordinator {
           } else {
             this.leases.delete(leaseName);
           }
+          // Synchronous callers make a provisional local decision. Revoke it
+          // immediately when Redis rejects the claim so room/timer owners can
+          // stop work rather than waiting for the next renewal interval.
+          this.dispatchLocalEvent(this.createEventEnvelope({
+            type: "lease_released",
+            leaseName,
+            payload: { ownerId: record.ownerId, replacement: parsed },
+          }));
         }
       } else {
-        const result = await client.set(key, payload, { XX: true, PX: ttlMs });
-        if (result !== "OK") {
+        const result = await client.eval(
+          `local current = redis.call('GET', KEYS[1])
+           if not current then return 0 end
+           local decoded = cjson.decode(current)
+           if decoded.ownerId ~= ARGV[1] then return 0 end
+           redis.call('SET', KEYS[1], ARGV[2], 'PX', ARGV[3])
+           return 1`,
+          {
+            keys: [key],
+            arguments: [record.ownerId, payload, String(ttlMs)],
+          },
+        );
+        if (Number(result) !== 1) {
           const remote = await client.get(key);
           const parsed = remote ? parseLease(remote) : null;
           if (parsed) {
@@ -980,6 +1058,11 @@ export class RedisCoordinator implements RealtimeCoordinator {
           } else {
             this.leases.delete(leaseName);
           }
+          this.dispatchLocalEvent(this.createEventEnvelope({
+            type: "lease_released",
+            leaseName,
+            payload: { ownerId: record.ownerId, replacement: parsed },
+          }));
         }
       }
     });
@@ -1003,13 +1086,18 @@ export class RedisCoordinator implements RealtimeCoordinator {
     this.leases.clear();
 
     const roomIds = await client.sMembers(this.roomIndexKey());
-    for (const roomId of roomIds) {
-      const raw = await client.get(this.roomSnapshotKey(roomId));
+    const [roomRows, gameRows] = await Promise.all([
+      roomIds.length > 0 ? client.mGet(roomIds.map((roomId) => this.roomSnapshotKey(roomId))) : [],
+      roomIds.length > 0 ? client.mGet(roomIds.map((roomId) => this.roomGameSnapshotKey(roomId))) : [],
+    ]);
+    for (let index = 0; index < roomIds.length; index += 1) {
+      const roomId = roomIds[index];
+      const raw = roomRows[index];
       if (!raw) continue;
       const snapshot = parseRoomSnapshot(raw);
       if (!snapshot) continue;
       this.replaceRoomFromSnapshot(snapshot);
-      const gameRaw = await client.get(this.roomGameSnapshotKey(roomId));
+      const gameRaw = gameRows[index];
       if (gameRaw) {
         const gameSnapshot = parseGameSnapshot(gameRaw);
         if (gameSnapshot) {
@@ -1029,8 +1117,12 @@ export class RedisCoordinator implements RealtimeCoordinator {
     }
 
     const queueIds = await client.zRange(this.queueIndexKey(), 0, -1);
-    for (const userId of queueIds) {
-      const raw = await client.get(this.queueEntryKey(userId));
+    const queueRows = queueIds.length > 0
+      ? await client.mGet(queueIds.map((userId) => this.queueEntryKey(userId)))
+      : [];
+    for (let index = 0; index < queueIds.length; index += 1) {
+      const userId = queueIds[index];
+      const raw = queueRows[index];
       if (!raw) continue;
       const entry = parseQueueEntry(raw);
       if (!entry) continue;

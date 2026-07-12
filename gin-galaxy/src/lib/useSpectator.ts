@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuthStore } from "./store";
+import { openAuthenticatedWebSocket } from "./websocketTicket";
 import type { SpectatorGameViewWire } from "../../server/multiplayer/types";
 
 export type SpectatorPhase = "disconnected" | "connecting" | "watching" | "match_over" | "error";
@@ -33,7 +34,7 @@ export function useSpectator(targetRoomId: string | null) {
     spectatorCount: 0,
   });
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!sessionId || !targetRoomId) return;
     if (wsRef.current) {
       const rs = wsRef.current.readyState;
@@ -43,8 +44,21 @@ export function useSpectator(targetRoomId: string | null) {
     intentionalClose.current = false;
     setState(prev => ({ ...prev, phase: "connecting", error: null }));
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const ws = new WebSocket(`${protocol}//${window.location.host}/ws?token=${sessionId}`);
+    let ws: WebSocket;
+    try {
+      ws = await openAuthenticatedWebSocket(sessionId);
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        phase: "disconnected",
+        error: error instanceof Error ? error.message : "Connection authorization failed",
+      }));
+      return;
+    }
+    if (intentionalClose.current) {
+      ws.close();
+      return;
+    }
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -153,7 +167,7 @@ export function useSpectator(targetRoomId: string | null) {
     return () => {
       disconnect();
     };
-  }, [targetRoomId, sessionId]);
+  }, [connect, disconnect, targetRoomId, sessionId]);
 
   return {
     ...state,

@@ -130,6 +130,7 @@ export interface CardView {
 /** The game state as seen by a specific player. Hides opponent hand. */
 export interface PlayerGameView {
   roomId: string;
+  myUserId: string;
   myHand: CardView[];
   opponentCardCount: number;
   myScore: number;

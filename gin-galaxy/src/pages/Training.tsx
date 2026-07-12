@@ -3,8 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   GraduationCap, TrendingUp, TrendingDown, Minus, Target, Activity,
   Trophy, AlertTriangle, ChevronRight, Clock, Zap, BarChart3,
-  Eye, CheckCircle2, CircleAlert, CircleDot, AlertCircle, Loader2,
-  Brain, Flame, Percent, Swords, Award, RefreshCw, Filter,
+  Eye, Loader2,
+  Brain, Flame, Percent, Swords, Award, RefreshCw,
   ArrowUpRight, ArrowDownRight, Sparkles, BookOpen, MessageSquare
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/Card";
@@ -205,7 +205,7 @@ export function Training() {
   const [prepResult, setPrepResult] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "history">("overview");
 
-  const fetchData = () => {
+  const fetchData = React.useCallback(() => {
     if (!sessionId) return;
     setLoading(true);
     setError(null);
@@ -219,9 +219,9 @@ export function Training() {
       .then(d => setData(d))
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
-  };
+  }, [sessionId]);
 
-  useEffect(() => { fetchData(); }, [sessionId]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleBatchPrep = async () => {
     if (!sessionId || preparing) return;

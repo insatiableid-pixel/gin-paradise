@@ -15,10 +15,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Swords, Users, Bell, UserPlus, UserMinus, Inbox, Send,
-  Clock, CheckCircle, XCircle, AlertTriangle, Trophy, ArrowRight,
-  RefreshCw, Flame, Eye, Play, Zap, Circle, Loader2,
+  Clock, CheckCircle, XCircle, AlertTriangle,
+  RefreshCw, Flame, Eye, Play, Zap, Loader2,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/Card";
+import { Card, CardContent } from "@/src/components/ui/Card";
 import { cn } from "@/src/lib/utils";
 import { useAuthStore } from "@/src/lib/store";
 
@@ -99,7 +99,7 @@ export function SocialHub() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [followAvailability, setFollowAvailability] = useState<Record<string, string>>({});
 
-  const headers = { Authorization: `Bearer ${sessionId}` };
+  const headers = React.useMemo(() => ({ Authorization: `Bearer ${sessionId}` }), [sessionId]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -142,7 +142,7 @@ export function SocialHub() {
       // Silently handle
     }
     setLoading(false);
-  }, [sessionId]);
+  }, [headers]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

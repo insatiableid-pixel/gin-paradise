@@ -24,7 +24,7 @@
     "quality:todos": "node scripts/check-todos.mjs",
     "quality:large-files": "node scripts/check-large-files.mjs",
     "analyze:bundle": "vite build --mode analyze",
-    "ci": "npm run security:audit && npm run security:secrets && npm run typecheck && npm run lint && npm test && npm run build && npm run quality:bundle",
+    "ci": "npm run security:audit && npm run security:secrets && npm run typecheck && npm run lint && npm run test:coverage && npm run build && npm run quality:bundle",
     "start": "NODE_ENV=production tsx server.ts",
     "test:e2e": "playwright test",
     "test:flaky": "node scripts/flaky-repeat.mjs --runs 2 -- npm test",

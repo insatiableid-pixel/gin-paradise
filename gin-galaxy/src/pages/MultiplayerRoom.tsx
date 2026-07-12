@@ -26,7 +26,7 @@ import { Button } from "@/src/components/ui/Button";
 import { motion, AnimatePresence } from "motion/react";
 import { useMultiplayer } from "@/src/lib/useMultiplayer";
 import { useAuthStore } from "@/src/lib/store";
-import { usePreferences, getSuitColor } from "@/src/lib/preferences";
+import { usePreferences } from "@/src/lib/preferences";
 import {
   computeMeldHighlights,
   getMeldColor,
@@ -37,17 +37,12 @@ import { useHandDrag } from "@/src/lib/handDrag";
 import {
   playDrawSound,
   playDiscardSound,
-  playDealSound,
   playKnockSound,
-  playResultSound,
   prefersReducedMotion,
 } from "@/src/lib/audio";
 import type { Card as EngineCard } from "@/src/lib/engine";
 import type {
-  ShowdownData,
   ShowdownPlayerData,
-  ShowdownMeld,
-  CardView,
 } from "../../server/multiplayer/types";
 import { SpectatorView } from "./SpectatorView";
 import {
@@ -61,33 +56,6 @@ import {
 import * as MP from "@/src/lib/motionPresets";
 
 // ── Card display types ───────────────────────────────────────────────
-
-type Suit = "♠" | "♥" | "♦" | "♣";
-type Rank = "A" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "J" | "Q" | "K";
-const SUIT_ORDER: Record<string, number> = { "♣": 0, "♦": 1, "♥": 2, "♠": 3 };
-const RANK_ORDER: Record<string, number> = {
-  A: 0,
-  "2": 1,
-  "3": 2,
-  "4": 3,
-  "5": 4,
-  "6": 5,
-  "7": 6,
-  "8": 7,
-  "9": 8,
-  "10": 9,
-  J: 10,
-  Q: 11,
-  K: 12,
-};
-
-function sortCards(cards: CardView[]): CardView[] {
-  return [...cards].sort((a, b) => {
-    const sd = (SUIT_ORDER[a.suit] ?? 0) - (SUIT_ORDER[b.suit] ?? 0);
-    if (sd !== 0) return sd;
-    return (RANK_ORDER[a.rank] ?? 0) - (RANK_ORDER[b.rank] ?? 0);
-  });
-}
 
 // Local card components removed — now imported from @/src/components/cards
 
@@ -197,8 +165,8 @@ export function MultiplayerRoom() {
 // ── Main Component ───────────────────────────────────────────────────
 
 function MultiplayerGameRoom() {
-  const { user } = useAuthStore();
   const mp = useMultiplayer();
+  const { connect, disconnect, queueMatch, startTournamentMatch, joinChallengeRoom } = mp;
   const {
     showDeadwoodCount,
     fourColorDeck,
@@ -221,7 +189,6 @@ function MultiplayerGameRoom() {
     sweeps_coins: number;
   } | null>(null);
   const [showPrefs, setShowPrefs] = useState(false);
-  const [knockAnimating, setKnockAnimating] = useState(false);
   const [discardAnimating, setDiscardAnimating] = useState(false);
   const [timerSpeed, setTimerSpeed] = useState("medium");
   const [matchPosture, setMatchPosture] = useState("like_rated");
@@ -234,7 +201,7 @@ function MultiplayerGameRoom() {
     },
     [soundEnabled],
   );
-  const activeHand = mp.gameState?.myHand ?? [];
+  const activeHand = useMemo(() => mp.gameState?.myHand ?? [], [mp.gameState?.myHand]);
 
   // Drag-and-drop hand management
   const {
@@ -333,16 +300,16 @@ function MultiplayerGameRoom() {
     } else {
       setDisplayTimer(null);
     }
-  }, [mp.gameState?.turnTimer?.remainingSeconds, mp.gameState?.turnTimer?.isMyTimer]);
+  }, [mp.gameState?.turnTimer]);
 
   // Auto-queue when navigated with ?quickmatch=true
   useEffect(() => {
     if (searchParams.get("quickmatch") === "true" && !autoQueueTriggered.current) {
       if (mp.phase === "disconnected") {
-        mp.connect();
+        connect();
       }
     }
-  }, [searchParams, mp.phase]);
+  }, [connect, searchParams, mp.phase]);
 
   // Once connected in lobby, auto-queue if quickmatch param is set
   useEffect(() => {
@@ -352,14 +319,14 @@ function MultiplayerGameRoom() {
       !autoQueueTriggered.current
     ) {
       autoQueueTriggered.current = true;
-      mp.queueMatch(selectedStake);
+      queueMatch(selectedStake);
     }
-  }, [searchParams, mp.phase]);
+  }, [mp.phase, queueMatch, searchParams, selectedStake]);
 
   // Clean up WebSocket on unmount
   useEffect(() => {
-    return () => mp.disconnect();
-  }, []);
+    return () => disconnect();
+  }, [disconnect]);
 
   // Tournament match: auto-connect and start when navigated with tournament params
   const tournamentAutoTriggered = useRef(false);
@@ -368,19 +335,19 @@ function MultiplayerGameRoom() {
     const matchIndex = searchParams.get("matchIndex");
     if (tournamentId && matchIndex && !tournamentAutoTriggered.current) {
       if (mp.phase === "disconnected") {
-        mp.connect();
+        connect();
       }
     }
-  }, [searchParams, mp.phase]);
+  }, [connect, mp.phase, searchParams]);
 
   useEffect(() => {
     const tournamentId = searchParams.get("tournamentId");
     const matchIndex = searchParams.get("matchIndex");
     if (tournamentId && matchIndex && mp.phase === "lobby" && !tournamentAutoTriggered.current) {
       tournamentAutoTriggered.current = true;
-      mp.startTournamentMatch(tournamentId, parseInt(matchIndex));
+      startTournamentMatch(tournamentId, parseInt(matchIndex));
     }
-  }, [searchParams, mp.phase]);
+  }, [mp.phase, searchParams, startTournamentMatch]);
 
   // Challenge room: auto-connect and join when navigated with ?challengeRoom=ROOMID
   const challengeRoomTriggered = useRef(false);
@@ -388,18 +355,18 @@ function MultiplayerGameRoom() {
     const challengeRoom = searchParams.get("challengeRoom");
     if (challengeRoom && !challengeRoomTriggered.current) {
       if (mp.phase === "disconnected") {
-        mp.connect();
+        connect();
       }
     }
-  }, [searchParams, mp.phase]);
+  }, [connect, mp.phase, searchParams]);
 
   useEffect(() => {
     const challengeRoom = searchParams.get("challengeRoom");
     if (challengeRoom && mp.phase === "lobby" && !challengeRoomTriggered.current) {
       challengeRoomTriggered.current = true;
-      mp.joinChallengeRoom(challengeRoom);
+      joinChallengeRoom(challengeRoom);
     }
-  }, [searchParams, mp.phase]);
+  }, [joinChallengeRoom, mp.phase, searchParams]);
 
   const copyRoomCode = () => {
     if (mp.roomId) {
@@ -925,8 +892,6 @@ function MultiplayerGameRoom() {
     if (!isMyTurn || !gs.hasDrawn || selectedCardIndex === null) return;
     playSound(playKnockSound);
     if (shouldAnimate) {
-      setKnockAnimating(true);
-      setTimeout(() => setKnockAnimating(false), MP.KNOCK_FLASH_DURATION * 1000);
     }
     mp.knock(selectedCardIndex);
     setSelectedCardIndex(null);

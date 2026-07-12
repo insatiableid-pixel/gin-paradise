@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Activity, Play, AlertCircle, Loader2 } from "lucide-react";
+import { Activity, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
 import { useAuthStore } from "@/src/lib/store";
