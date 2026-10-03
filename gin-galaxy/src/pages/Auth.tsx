@@ -16,7 +16,7 @@ export function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
     const body = isLogin ? { username, password } : { username, email, password };
 
@@ -30,7 +30,7 @@ export function Auth() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Authentication failed");
 
-      setUser(data.user, data.sessionId);
+      setUser(data.user);
       navigate("/");
     } catch (err: any) {
       setError(err.message);
@@ -40,13 +40,32 @@ export function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       {/* Tropical background */}
-      <div className="absolute inset-0" style={{ backgroundImage: 'url(/assets/tropical-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.5) 100%)' }} />
-      
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: "url(/assets/tropical-bg.png)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.5) 100%)",
+        }}
+      />
+
       <div className="relative z-10 w-full max-w-md">
         {/* Gin Paradise branding */}
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold tracking-[0.2em] text-amber-100" style={{ fontFamily: 'Georgia, "Times New Roman", serif', textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>
+          <h1
+            className="text-3xl font-bold tracking-[0.2em] text-amber-100"
+            style={{
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              textShadow: "0 2px 12px rgba(0,0,0,0.6)",
+            }}
+          >
             🌴 GIN PARADISE
           </h1>
           <p className="text-emerald-200/60 text-sm mt-1">The tropical card game experience</p>
@@ -54,7 +73,10 @@ export function Auth() {
 
         <Card className="bg-[#0a2e1e]/90 border-emerald-700/40 backdrop-blur-md shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center text-amber-100" style={{ fontFamily: 'Georgia, serif' }}>
+            <CardTitle
+              className="text-2xl font-bold text-center text-amber-100"
+              style={{ fontFamily: "Georgia, serif" }}
+            >
               {isLogin ? "Welcome Back" : "Create Account"}
             </CardTitle>
           </CardHeader>
@@ -65,7 +87,7 @@ export function Auth() {
                   {error}
                 </div>
               )}
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-emerald-200/80">Username</label>
                 <input
@@ -101,7 +123,15 @@ export function Auth() {
                 />
               </div>
 
-              <Button type="submit" variant="primary" className="w-full font-bold text-base py-2.5 rounded-xl" style={{ background: 'linear-gradient(135deg, #d4a843, #b8860b)', color: '#1a1a1a' }}>
+              <Button
+                type="submit"
+                variant="primary"
+                className="w-full font-bold text-base py-2.5 rounded-xl"
+                style={{
+                  background: "linear-gradient(135deg, #d4a843, #b8860b)",
+                  color: "#1a1a1a",
+                }}
+              >
                 {isLogin ? "Sign In" : "Sign Up"}
               </Button>
 

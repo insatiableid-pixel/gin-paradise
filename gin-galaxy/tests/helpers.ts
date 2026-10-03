@@ -3,7 +3,7 @@
  * against the actual SQLite database for integration testing.
  */
 import express, { type Express } from "express";
-import http from "http";
+import type http from "http";
 
 import { initializeDatabase, db } from "../server/db.js";
 import authRoutes from "../server/routes/auth.js";
@@ -182,13 +182,17 @@ export function getBaseUrl(): string {
 }
 
 /** Register a user and return the parsed response */
-export async function registerUser(username = "testuser", email = "test@test.com", password = "password123") {
+export async function registerUser(
+  username = "testuser",
+  email = "test@test.com",
+  password = "password123",
+) {
   const res = await fetch(`${baseUrl}/api/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, email, password }),
   });
-  return { status: res.status, body: await res.json() };
+  return { status: res.status, body: await res.json(), headers: res.headers };
 }
 
 /** Login a user and return the parsed response */
@@ -198,7 +202,7 @@ export async function loginUser(username = "testuser", password = "password123")
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });
-  return { status: res.status, body: await res.json() };
+  return { status: res.status, body: await res.json(), headers: res.headers };
 }
 
 /** Generic request helper */
@@ -206,7 +210,7 @@ export async function makeRequest(
   method: "GET" | "POST" | "PUT" | "DELETE",
   path: string,
   body?: any,
-  headers?: Record<string, string>
+  headers?: Record<string, string>,
 ) {
   const opts: RequestInit = {
     method,
@@ -217,5 +221,5 @@ export async function makeRequest(
   };
   if (body !== undefined) opts.body = JSON.stringify(body);
   const res = await fetch(`${baseUrl}${path}`, opts);
-  return { status: res.status, body: await res.json() };
+  return { status: res.status, body: await res.json(), headers: res.headers };
 }

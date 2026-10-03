@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { startTestServer, stopTestServer, registerUser, loginUser, makeRequest } from "./helpers.js";
+import {
+  startTestServer,
+  stopTestServer,
+  registerUser,
+  loginUser,
+  makeRequest,
+} from "./helpers.js";
 import { db } from "../server/db.js";
 import { consumeWebSocketTicket } from "../server/websocketTickets.js";
 
@@ -113,6 +119,9 @@ describe("Auth API", () => {
     expect(res.status).toBe(200);
     expect(res.body.sessionId).toBeTruthy();
     expect(res.body.user.username).toBe("test_auth_1");
+    expect(res.headers.get("set-cookie")).toContain("gin_session=");
+    expect(res.headers.get("set-cookie")).toContain("HttpOnly");
+    expect(res.headers.get("set-cookie")).toContain("SameSite=Lax");
   });
 
   it("should reject login with wrong password", async () => {
@@ -138,6 +147,19 @@ describe("Auth API", () => {
     const loginRes = await loginUser("test_auth_1", "password123");
     const res = await makeRequest("GET", "/api/auth/me", undefined, {
       Authorization: `Bearer ${loginRes.body.sessionId}`,
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.user.username).toBe("test_auth_1");
+  });
+
+  it("should authenticate browser requests with the HttpOnly session cookie", async () => {
+    const loginRes = await loginUser("test_auth_1", "password123");
+    const cookie = loginRes.headers.get("set-cookie")?.split(";")[0];
+    expect(cookie).toBeTruthy();
+
+    const res = await makeRequest("GET", "/api/auth/me", undefined, {
+      Cookie: cookie!,
+      Authorization: "Bearer cookie",
     });
     expect(res.status).toBe(200);
     expect(res.body.user.username).toBe("test_auth_1");
@@ -183,6 +205,7 @@ describe("Auth API", () => {
     });
     expect(logoutRes.status).toBe(200);
     expect(logoutRes.body.success).toBe(true);
+    expect(logoutRes.headers.get("set-cookie")).toContain("Max-Age=0");
 
     // Session should now be invalid
     const meRes = await makeRequest("GET", "/api/auth/me", undefined, {
@@ -206,7 +229,7 @@ describe("Matches API", () => {
       "POST",
       "/api/matches",
       { opponent_name: "Bot Alpha", user_score: 45, opponent_score: 30, is_win: true },
-      { Authorization: `Bearer ${sessionId}` }
+      { Authorization: `Bearer ${sessionId}` },
     );
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -227,7 +250,7 @@ describe("Matches API", () => {
       "POST",
       "/api/matches",
       { opponent_name: "Bot" },
-      { Authorization: `Bearer ${sessionId}` }
+      { Authorization: `Bearer ${sessionId}` },
     );
     expect(res.status).toBe(400);
     expect(res.body.error).toBeTruthy();
@@ -238,7 +261,7 @@ describe("Matches API", () => {
       "POST",
       "/api/matches",
       { opponent_name: "Bot", user_score: "not_a_number", opponent_score: 10, is_win: true },
-      { Authorization: `Bearer ${sessionId}` }
+      { Authorization: `Bearer ${sessionId}` },
     );
     expect(res.status).toBe(400);
   });
@@ -302,7 +325,7 @@ describe("Analysis API", () => {
       "POST",
       "/api/matches",
       { opponent_name: "AnalysisBot", user_score: 30, opponent_score: 45, is_win: false },
-      { Authorization: `Bearer ${sessionId}` }
+      { Authorization: `Bearer ${sessionId}` },
     );
 
     // Clear the env key temporarily

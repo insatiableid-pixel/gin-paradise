@@ -33,7 +33,7 @@ export interface QueueEntry {
   ws: WebSocket;
   enqueuedAt: number;
   stakeId: string;
-  timerSpeed?: string;
+  timerSpeed?: "fast" | "medium" | "slow";
   matchPosture?: MatchPosture;
 }
 
@@ -76,10 +76,7 @@ function mirrorQueueClear(): void {
 
 // ── Match Found Callback ─────────────────────────────────────────────
 
-export type MatchFoundCallback = (
-  player1: QueueEntry,
-  player2: QueueEntry
-) => void;
+export type MatchFoundCallback = (player1: QueueEntry, player2: QueueEntry) => void;
 
 let onMatchFound: MatchFoundCallback | null = null;
 
@@ -110,7 +107,8 @@ const MAX_BRACKET = 1000;
  */
 function getSearchBracket(entry: QueueEntry): number {
   const waitSeconds = (Date.now() - entry.enqueuedAt) / 1000;
-  const expansionRate = entry.matchPosture === "wider_field" ? BRACKET_EXPANSION * 2 : BRACKET_EXPANSION;
+  const expansionRate =
+    entry.matchPosture === "wider_field" ? BRACKET_EXPANSION * 2 : BRACKET_EXPANSION;
   const expansions = Math.floor(waitSeconds / EXPANSION_INTERVAL_SECONDS);
   return Math.min(BASE_BRACKET + expansions * expansionRate, MAX_BRACKET);
 }
@@ -133,8 +131,8 @@ export function joinQueue(
   rating: number,
   ws: WebSocket,
   stakeId: string = "free",
-  timerSpeed: string = "medium",
-  matchPosture: MatchPosture = "like_rated"
+  timerSpeed: "fast" | "medium" | "slow" = "medium",
+  matchPosture: MatchPosture = "like_rated",
 ): QueueResult {
   const coord = getSharedCoordinator();
   if (queuedUserIds.has(userId) || coord?.isMatchmakingQueued(userId)) {
@@ -240,10 +238,13 @@ function tryPair() {
         // Check if websockets are alive
         if (!isWsOpen(a.ws) || !isWsOpen(b.ws)) continue;
 
-        const combinedWait = (Date.now() - a.enqueuedAt) + (Date.now() - b.enqueuedAt);
+        const combinedWait = Date.now() - a.enqueuedAt + (Date.now() - b.enqueuedAt);
 
         // Prefer smallest rating gap, then longest combined wait
-        if (ratingGap < bestRatingGap || (ratingGap === bestRatingGap && combinedWait > bestCombinedWait)) {
+        if (
+          ratingGap < bestRatingGap ||
+          (ratingGap === bestRatingGap && combinedWait > bestCombinedWait)
+        ) {
           bestPair = [i, j];
           bestRatingGap = ratingGap;
           bestCombinedWait = combinedWait;
@@ -307,7 +308,7 @@ setInterval(() => {
             JSON.stringify({
               type: "queue_timeout",
               message: "Matchmaking queue timed out. Please try again.",
-            })
+            }),
           );
         } catch {
           // ignore send errors
@@ -335,4 +336,9 @@ export function _clearQueue() {
 }
 
 // Export bracket calculation for testing
-export { getSearchBracket as _getSearchBracket, BASE_BRACKET, BRACKET_EXPANSION, EXPANSION_INTERVAL_SECONDS };
+export {
+  getSearchBracket as _getSearchBracket,
+  BASE_BRACKET,
+  BRACKET_EXPANSION,
+  EXPANSION_INTERVAL_SECONDS,
+};

@@ -16,14 +16,29 @@ interface AuthState {
   logout: () => void;
 }
 
+const COOKIE_SESSION_MARKER = "cookie";
+
+function readSessionMarker(): string | null {
+  const stored = localStorage.getItem("sessionId");
+  if (!stored) return null;
+  // Migrate existing browser sessions away from reusable bearer persistence.
+  if (stored !== COOKIE_SESSION_MARKER) {
+    localStorage.removeItem("sessionId");
+    return null;
+  }
+  return stored;
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  sessionId: localStorage.getItem("sessionId"),
-  setUser: (user, sessionId) => {
-    if (sessionId) {
-      localStorage.setItem("sessionId", sessionId);
+  sessionId: readSessionMarker(),
+  setUser: (user) => {
+    if (user) {
+      localStorage.setItem("sessionId", COOKIE_SESSION_MARKER);
+    } else {
+      localStorage.removeItem("sessionId");
     }
-    set({ user, sessionId: sessionId || localStorage.getItem("sessionId") });
+    set({ user, sessionId: user ? COOKIE_SESSION_MARKER : null });
   },
   logout: () => {
     localStorage.removeItem("sessionId");

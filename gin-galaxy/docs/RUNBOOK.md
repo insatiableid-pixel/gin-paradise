@@ -12,8 +12,9 @@
 1. Run `npm ci`.
 2. Run `npm run ci`.
 3. Build the production bundle with `npm run build`.
-4. Start with `NODE_ENV=production npm start`.
-5. Confirm `/api/health` returns `status: "healthy"` and `/api/metrics` includes `gin_paradise_requests_total`.
+4. Confirm the service is configured for exactly one application process and one persistent SQLite volume.
+5. Start with `NODE_ENV=production npm start`.
+6. Confirm `/api/health` returns `status: "healthy"` and `/api/metrics` includes `gin_paradise_requests_total`.
 
 ## Rollback
 
@@ -35,8 +36,14 @@
 - Preserve `x-request-id` from upstream proxies; otherwise the server generates one.
 - Do not log secrets, bearer tokens, cookies, or session IDs. The logger redacts common sensitive keys.
 - Keep `.env` values out of commits and prefer platform-managed secrets for production.
+- Browser sessions use an `HttpOnly`, `SameSite=Lax` cookie. Never copy the session cookie into JavaScript storage or logs.
+
 ## Multiplayer scaling and latency constraints
 
+- The supported production topology is one application process. Redis
+  multi-process tests demonstrate live-room resilience, but do not authorize
+  horizontal production scaling while SQLite, matchmaking, and rate limiting
+  remain process-local.
 - Matchmaking re-evaluates local waiting players every 30 seconds as their
   rating brackets expand. Queue state is mirrored through the coordinator for
   deduplication and diagnostics, but pairing still requires both WebSockets on

@@ -47,7 +47,10 @@ export class MemoryCoordinator implements RealtimeCoordinator {
   private readonly listeners = new Set<CoordinatorEventListener>();
   private readonly pendingRoomActionResolvers = new Map<
     string,
-    { resolve: (response: CoordinatorRoomActionResponse) => void; timer: ReturnType<typeof setTimeout> }
+    {
+      resolve: (response: CoordinatorRoomActionResponse) => void;
+      timer: ReturnType<typeof setTimeout>;
+    }
   >();
   private readonly startedAt = Date.now();
 
@@ -254,9 +257,11 @@ export class MemoryCoordinator implements RealtimeCoordinator {
     if (!room) return;
 
     if ("ownerNodeId" in ownership) room.ownerNodeId = ownership.ownerNodeId;
-    if ("ownerLeaseExpiresAt" in ownership) room.ownerLeaseExpiresAt = ownership.ownerLeaseExpiresAt;
+    if ("ownerLeaseExpiresAt" in ownership)
+      room.ownerLeaseExpiresAt = ownership.ownerLeaseExpiresAt;
     if ("timerOwnerNodeId" in ownership) room.timerOwnerNodeId = ownership.timerOwnerNodeId;
-    if ("timerLeaseExpiresAt" in ownership) room.timerLeaseExpiresAt = ownership.timerLeaseExpiresAt;
+    if ("timerLeaseExpiresAt" in ownership)
+      room.timerLeaseExpiresAt = ownership.timerLeaseExpiresAt;
 
     this.emit({
       type: "room_updated",
@@ -331,6 +336,8 @@ export class MemoryCoordinator implements RealtimeCoordinator {
 
   setRoomGameState(roomId: string, snapshot: CoordinatorGameStateSnapshot): void {
     const normalized = this.cloneSnapshot(snapshot);
+    const current = this.roomGameSnapshots.get(roomId);
+    if (!this.shouldApplySnapshot(current, normalized)) return;
     this.roomGameSnapshots.set(roomId, normalized);
     this.emit({
       type: "room_game_state_set",
@@ -370,7 +377,11 @@ export class MemoryCoordinator implements RealtimeCoordinator {
     return true;
   }
 
-  async claimLeaseAuthoritatively(leaseName: string, ownerId: string, ttlMs: number): Promise<boolean> {
+  async claimLeaseAuthoritatively(
+    leaseName: string,
+    ownerId: string,
+    ttlMs: number,
+  ): Promise<boolean> {
     return this.claimLease(leaseName, ownerId, ttlMs);
   }
 
@@ -386,7 +397,11 @@ export class MemoryCoordinator implements RealtimeCoordinator {
     return true;
   }
 
-  async renewLeaseAuthoritatively(leaseName: string, ownerId: string, ttlMs: number): Promise<boolean> {
+  async renewLeaseAuthoritatively(
+    leaseName: string,
+    ownerId: string,
+    ttlMs: number,
+  ): Promise<boolean> {
     return this.renewLease(leaseName, ownerId, ttlMs);
   }
 
@@ -464,5 +479,16 @@ export class MemoryCoordinator implements RealtimeCoordinator {
 
   private cloneSnapshot(snapshot: CoordinatorGameStateSnapshot): CoordinatorGameStateSnapshot {
     return JSON.parse(JSON.stringify(snapshot)) as CoordinatorGameStateSnapshot;
+  }
+
+  private shouldApplySnapshot(
+    current: CoordinatorGameStateSnapshot | undefined,
+    incoming: CoordinatorGameStateSnapshot,
+  ): boolean {
+    if (!current) return true;
+    const currentRevision = current.revision ?? 0;
+    const incomingRevision = incoming.revision ?? 0;
+    if (incomingRevision !== currentRevision) return incomingRevision > currentRevision;
+    return incomingRevision === 0 && incoming.updatedAt > current.updatedAt;
   }
 }
